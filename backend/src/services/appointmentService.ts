@@ -1,0 +1,436 @@
+import prisma from '../config/database';
+import { AppError } from '../middlewares/errorHandler';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { AppointmentStatus, VisitType } from '@prisma/client';
+
+export const appointmentService = {
+  /**
+   * التحقق من وجود تعارض في المواعيد للدكتور
+   */
+  async checkTimeConflict(
+    vetId: string,
+    date: Date | string,
+    startTime: string,
+    duration: number,
+    excludeAppointmentId?: string
+  ): Promise<boolean> {
+    // حساب وقت النهاية للموعد الجديد
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const newStartMinutes = startHour * 60 + startMin;
+    const newEndMinutes = newStartMinutes + duration;
+
+    // تحويل التاريخ إلى بداية ونهاية اليوم
+    const targetDate = typeof date === 'string' ? new Date(date) : date;
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // جلب كل مواعيد الدكتور في نفس اليوم (ما عدا الملغية)
+    const existingAppointments = await prisma.appointment.findMany({
+      where: {
+        vetId,
+        appointmentDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        status: { not: 'CANCELLED' },
+        ...(excludeAppointmentId && { id: { not: excludeAppointmentId } }),
+      },
+      select: {
+        appointmentTime: true,
+        duration: true,
+      },
+    });
+
+    // التحقق من التعارض مع كل موعد موجود
+    for (const appt of existingAppointments) {
+      const [existHour, existMin] = appt.appointmentTime.split(':').map(Number);
+      const existStartMinutes = existHour * 60 + existMin;
+      const existEndMinutes = existStartMinutes + (appt.duration || 30);
+
+      // يوجد تعارض إذا:
+      // الموعد الجديد يبدأ قبل نهاية الموجود AND
+      // الموعد الجديد ينتهي بعد بداية الموجود
+      if (newStartMinutes < existEndMinutes && newEndMinutes > existStartMinutes) {
+        return true; // يوجد تعارض
+      }
+    }
+
+    return false; // لا يوجد تعارض
+  },
+
+  async create(data: {
+    petId: string;
+    vetId: string;
+    appointmentDate: Date;
+    appointmentTime: string;
+    duration?: number;
+    visitType?: VisitType;
+    reason?: string;
+    notes?: string;
+  }) {
+    // التحقق من تعارض المواعيد أولاً
+    const hasConflict = await this.checkTimeConflict(
+      data.vetId,
+      data.appointmentDate,
+      data.appointmentTime,
+      data.duration || 30
+    );
+
+    if (hasConflict) {
+      throw new AppError('هذا الدكتور لديه موعد آخر في هذا الوقت', 409);
+    }
+
+    const appointment = await prisma.appointment.create({
+      data: {
+        ...data,
+        duration: data.duration || 30,
+      },
+      include: {
+        pet: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return appointment;
+  },
+
+  async findAll(
+    page?: number,
+    limit?: number,
+    vetId?: string,
+    status?: AppointmentStatus,
+    date?: string
+  ) {
+    const { skip, limit: take, page: currentPage } = getPaginationParams(page, limit);
+
+    const where: any = {};
+
+    if (vetId) where.vetId = vetId;
+    if (status) where.status = status;
+    if (date) {
+      where.appointmentDate = {
+        gte: new Date(date),
+        lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000),
+      };
+    }
+
+    const [appointments, total] = await Promise.all([
+      prisma.appointment.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          pet: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  phone: true,
+                },
+              },
+            },
+          },
+          vet: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: [{ appointmentDate: 'desc' }, { appointmentTime: 'asc' }],
+      }),
+      prisma.appointment.count({ where }),
+    ]);
+
+    return createPaginatedResponse(appointments, total, currentPage, take);
+  },
+
+  async findById(id: string) {
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        pet: {
+          include: {
+            owner: true,
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+        medicalRecords: {
+          include: {
+            prescriptions: true,
+          },
+        },
+        invoice: {
+          include: {
+            items: true,
+            payments: true,
+          },
+        },
+      },
+    });
+
+    if (!appointment) {
+      throw new AppError('الموعد غير موجود', 404);
+    }
+
+    return appointment;
+  },
+
+  async update(
+    id: string,
+    data: {
+      appointmentDate?: Date;
+      appointmentTime?: string;
+      duration?: number;
+      status?: AppointmentStatus;
+      reason?: string;
+      notes?: string;
+      vetId?: string;
+    }
+  ) {
+    const appointment = await prisma.appointment.update({
+      where: { id },
+      data,
+      include: {
+        pet: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return appointment;
+  },
+
+  async delete(id: string) {
+    await prisma.appointment.delete({
+      where: { id },
+    });
+
+    return { message: 'تم حذف الموعد بنجاح' };
+  },
+
+  async getUpcoming(vetId?: string, limit: number = 10) {
+    const where: any = {
+      appointmentDate: {
+        gte: new Date(),
+      },
+      status: {
+        in: ['SCHEDULED', 'CONFIRMED'],
+      },
+    };
+
+    if (vetId) where.vetId = vetId;
+
+    const appointments = await prisma.appointment.findMany({
+      where,
+      take: limit,
+      include: {
+        pet: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: [{ appointmentDate: 'asc' }, { appointmentTime: 'asc' }],
+    });
+
+    return appointments;
+  },
+
+  async getFlowBoardData(date?: string) {
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        appointmentDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        invoice: {
+          select: {
+            invoiceNumber: true,
+            isFinalized: true,
+          },
+        },
+      },
+      orderBy: [{ appointmentTime: 'asc' }],
+    });
+
+    // Get owner data separately for each pet
+    const appointmentsWithOwner = await Promise.all(
+      appointments.map(async (appointment) => {
+        const pet = await prisma.pet.findUnique({
+          where: { id: appointment.petId },
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        });
+        return {
+          ...appointment,
+          pet: {
+            ...appointment.pet,
+            owner: pet?.owner,
+          },
+        };
+      })
+    );
+
+    // Group by status for Flow Board columns
+    // CANCELLED appointments are included in scheduled column for display with different styling
+    const columns = {
+      scheduled: appointmentsWithOwner.filter(
+        (a) => a.status === 'SCHEDULED' || a.status === 'CANCELLED'
+      ),
+      checkIn: appointmentsWithOwner.filter((a) => a.status === 'CHECK_IN'),
+      inProgress: appointmentsWithOwner.filter((a) => a.status === 'IN_PROGRESS'),
+      hospitalized: appointmentsWithOwner.filter((a) => a.status === 'HOSPITALIZED'),
+      completed: appointmentsWithOwner.filter((a) => a.status === 'COMPLETED'),
+    };
+
+    return columns;
+  },
+
+  async updateStatus(id: string, status: AppointmentStatus) {
+    const appointment = await prisma.appointment.update({
+      where: { id },
+      data: { status },
+      include: {
+        pet: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return appointment;
+  },
+
+  async updateConfirmation(id: string, isConfirmed: boolean) {
+    const appointment = await prisma.appointment.update({
+      where: { id },
+      data: { isConfirmed },
+      include: {
+        pet: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return appointment;
+  },
+};

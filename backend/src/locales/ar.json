@@ -1,0 +1,50 @@
+{
+  "auth": {
+    "accountCreated": "تم إنشاء الحساب بنجاح",
+    "loginSuccess": "تم تسجيل الدخول بنجاح",
+    "logoutSuccess": "تم تسجيل الخروج بنجاح",
+    "unauthorized": "غير مصرح لك بالوصول",
+    "emailExists": "البريد الإلكتروني مستخدم بالفعل",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "accountDisabled": "هذا الحساب معطل. الرجاء الاتصال بالمسؤول",
+    "userNotFound": "المستخدم غير موجود"
+  },
+  "owner": {
+    "created": "تم إضافة المالك بنجاح",
+    "updated": "تم تحديث بيانات المالك بنجاح",
+    "notFound": "المالك غير موجود",
+    "deleted": "تم حذف المالك بنجاح"
+  },
+  "pet": {
+    "created": "تم إضافة الحيوان الأليف بنجاح",
+    "updated": "تم تحديث بيانات الحيوان الأليف بنجاح",
+    "notFound": "الحيوان الأليف غير موجود",
+    "deleted": "تم حذف الحيوان الأليف بنجاح"
+  },
+  "appointment": {
+    "created": "تم إنشاء الموعد بنجاح",
+    "updated": "تم تحديث الموعد بنجاح",
+    "notFound": "الموعد غير موجود",
+    "deleted": "تم حذف الموعد بنجاح"
+  },
+  "errors": {
+    "serverError": "حدث خطأ في الخادم",
+    "recordExists": "هذا السجل موجود بالفعل",
+    "recordNotFound": "السجل المطلوب غير موجود",
+    "relationError": "خطأ في العلاقة بين البيانات",
+    "invalidToken": "رمز التحقق غير صالح",
+    "tokenExpired": "انتهت صلاحية رمز التحقق",
+    "notFound": "المسار {{path}} غير موجود"
+  },
+  "validation": {
+    "invalidEmail": "البريد الإلكتروني غير صالح",
+    "passwordMinLength": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+    "firstNameRequired": "الاسم الأول مطلوب",
+    "firstNameMinLength": "الاسم الأول يجب أن يكون حرفين على الأقل",
+    "lastNameRequired": "الاسم الأخير مطلوب",
+    "lastNameMinLength": "الاسم الأخير يجب أن يكون حرفين على الأقل",
+    "invalidPhone": "رقم الهاتف غير صالح",
+    "invalidRole": "الدور غير صالح",
+    "passwordRequired": "كلمة المرور مطلوبة"
+  }
+}

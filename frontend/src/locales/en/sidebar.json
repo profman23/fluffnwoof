@@ -1,0 +1,19 @@
+{
+  "appTitle": "FluffNwoof",
+  "appSubtitle": "Veterinary Clinic Management System",
+  "menu": {
+    "dashboard": "Dashboard",
+    "patients": "Patients",
+    "flowBoard": "Flow Board",
+    "appointments": "Appointments",
+    "medical": "Medical Records",
+    "invoices": "Invoices",
+    "serviceProducts": "Services & Products",
+    "reports": "Reports",
+    "nextAppointments": "Upcoming Appointments",
+    "upcoming": "Upcoming",
+    "userManagement": "User Management",
+    "rolesPermissions": "Roles & Permissions",
+    "audit": "Audit Log"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "auth": {
+    "accountCreated": "Account created successfully",
+    "loginSuccess": "Login successful",
+    "logoutSuccess": "Logout successful",
+    "unauthorized": "Unauthorized access",
+    "emailExists": "Email already exists",
+    "invalidCredentials": "Invalid email or password",
+    "accountDisabled": "This account is disabled. Please contact administrator",
+    "userNotFound": "User not found"
+  },
+  "owner": {
+    "created": "Owner added successfully",
+    "updated": "Owner updated successfully",
+    "notFound": "Owner not found",
+    "deleted": "Owner deleted successfully"
+  },
+  "pet": {
+    "created": "Pet added successfully",
+    "updated": "Pet updated successfully",
+    "notFound": "Pet not found",
+    "deleted": "Pet deleted successfully"
+  },
+  "appointment": {
+    "created": "Appointment created successfully",
+    "updated": "Appointment updated successfully",
+    "notFound": "Appointment not found",
+    "deleted": "Appointment deleted successfully"
+  },
+  "errors": {
+    "serverError": "Server error occurred",
+    "recordExists": "This record already exists",
+    "recordNotFound": "Record not found",
+    "relationError": "Data relation error",
+    "invalidToken": "Invalid token",
+    "tokenExpired": "Token expired",
+    "notFound": "Path {{path}} not found"
+  },
+  "validation": {
+    "invalidEmail": "Invalid email",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "firstNameRequired": "First name is required",
+    "firstNameMinLength": "First name must be at least 2 characters",
+    "lastNameRequired": "Last name is required",
+    "lastNameMinLength": "Last name must be at least 2 characters",
+    "invalidPhone": "Invalid phone number",
+    "invalidRole": "Invalid role",
+    "passwordRequired": "Password is required"
+  }
+}

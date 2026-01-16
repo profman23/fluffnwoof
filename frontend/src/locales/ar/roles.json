@@ -1,0 +1,50 @@
+{
+  "title": "الأدوار والصلاحيات",
+  "selectRole": "اختر الدور",
+  "currentlyEditing": "تحرير الدور",
+  "addRole": "إضافة دور جديد",
+  "saveChanges": "حفظ التغييرات",
+  "saveAndAddAnother": "حفظ وإضافة آخر",
+  "cancel": "إلغاء",
+  "screenName": "اسم الشاشة",
+  "noAuth": "بدون صلاحية",
+  "readOnly": "قراءة فقط",
+  "fullControl": "تحكم كامل",
+  "roleName": "اسم الدور (نظام)",
+  "roleNameHint": "يجب أن يكون بالأحرف الكبيرة الإنجليزية بدون مسافات (مثال: CUSTOM_ROLE)",
+  "displayNameAr": "الاسم بالعربية",
+  "displayNameEn": "الاسم بالإنجليزية",
+  "description": "الوصف (اختياري)",
+  "descriptionPlaceholder": "أدخل وصفاً للدور...",
+  "roles": {
+    "ADMIN": "مدير النظام",
+    "VET": "طبيب بيطري",
+    "RECEPTIONIST": "موظف استقبال"
+  },
+  "screens": {
+    "dashboard": "لوحة التحكم",
+    "patients": "المرضى",
+    "flowBoard": "لوحة العمل",
+    "medical": "السجلات الطبية",
+    "userManagement": "إدارة المستخدمين",
+    "rolesPermissions": "الأدوار والصلاحيات",
+    "serviceProducts": "الخدمات والمنتجات"
+  },
+  "specialPermissions": {
+    "title": "صلاحيات خاصة",
+    "hidePhone": "إخفاء رقم الهاتف"
+  },
+  "messages": {
+    "loading": "جاري التحميل...",
+    "saving": "جاري الحفظ...",
+    "success": "تم تحديث الصلاحيات بنجاح",
+    "roleCreated": "تم إنشاء الدور بنجاح",
+    "error": "حدث خطأ أثناء التحديث"
+  },
+  "errors": {
+    "nameRequired": "اسم الدور مطلوب",
+    "nameInvalid": "اسم الدور يجب أن يكون بالإنجليزية الكبيرة بدون مسافات",
+    "displayNameArRequired": "الاسم بالعربية مطلوب",
+    "displayNameEnRequired": "الاسم بالإنجليزية مطلوب"
+  }
+}

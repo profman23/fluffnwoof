@@ -1,0 +1,10 @@
+{
+  "underDevelopment": "{{page}} Page - Under Development",
+  "pages": {
+    "owners": "Owners",
+    "pets": "Pets",
+    "appointments": "Appointments",
+    "medical": "Medical Records",
+    "invoices": "Invoices"
+  }
+}

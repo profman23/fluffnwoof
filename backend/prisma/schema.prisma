@@ -1,0 +1,451 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  VET
+  RECEPTIONIST
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CHECK_IN
+  IN_PROGRESS
+  HOSPITALIZED
+  COMPLETED
+  CANCELLED
+}
+
+enum VisitType {
+  GENERAL_CHECKUP
+  GROOMING
+  SURGERY
+  VACCINATION
+  EMERGENCY
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Species {
+  DOG
+  CAT
+  BIRD
+  RABBIT
+  HAMSTER
+  GUINEA_PIG
+  TURTLE
+  FISH
+  OTHER
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  MADA
+  TABBY
+  TAMARA
+  BANK_TRANSFER
+}
+
+// Models
+model Role {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  displayNameEn   String
+  displayNameAr   String
+  description     String?
+  isSystem        Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  roleId    String
+  firstName String
+  lastName  String
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Keys
+  role Role @relation(fields: [roleId], references: [id])
+
+  // Relations
+  appointments    Appointment[]
+  medicalRecords  MedicalRecord[]
+  vaccinations    Vaccination[]
+  permissions     UserPermission[]
+  auditLogs       AuditLog[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  category    String
+  action      String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  users UserPermission[]
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  // Foreign Keys
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String   @id @default(uuid())
+  userId       String
+  permissionId String
+  grantedBy    String?
+  grantedAt    DateTime @default(now())
+
+  // Foreign Keys
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  // Foreign Keys
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Owner {
+  id         String   @id @default(uuid())
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String
+  address    String?
+  nationalId String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  pets     Pet[]
+  invoices Invoice[]
+
+  @@map("owners")
+}
+
+model Pet {
+  id          String    @id @default(uuid())
+  name        String
+  species     Species
+  breed       String?
+  gender      Gender
+  birthDate   DateTime?
+  color       String?
+  weight      Float?
+  microchipId String?   @unique
+  photoUrl    String?
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Foreign Keys
+  ownerId String
+  owner   Owner  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Relations
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  vaccinations   Vaccination[]
+
+  @@index([ownerId])
+  @@map("pets")
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  appointmentDate DateTime
+  appointmentTime String
+  duration        Int               @default(30) // minutes
+  status          AppointmentStatus @default(SCHEDULED)
+  isConfirmed     Boolean           @default(false) // حالة التأكيد منفصلة عن حالة الـ flow
+  visitType       VisitType         @default(GENERAL_CHECKUP)
+  reason          String?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Foreign Keys
+  petId String
+  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  vetId String
+  vet   User   @relation(fields: [vetId], references: [id])
+
+  // Relations
+  medicalRecords MedicalRecord[]
+  invoice        Invoice?
+
+  @@index([petId])
+  @@index([vetId])
+  @@index([appointmentDate])
+  @@index([status])
+  @@map("appointments")
+}
+
+model MedicalRecord {
+  id        String   @id @default(uuid())
+  visitDate DateTime @default(now())
+
+  // SOAP - Subjective
+  chiefComplaint String? // الشكوى الرئيسية
+  history        String? // التاريخ المرضي
+
+  // SOAP - Objective (Vital Signs)
+  weight             Float?  // الوزن (kg)
+  temperature        Float?  // الحرارة (C)
+  heartRate          Int?    // معدل ضربات القلب (bpm)
+  respirationRate    Int?    // معدل التنفس (breaths/min)
+  bodyConditionScore Int?    // 1-9
+  muscleCondition    String? // Normal, Mild loss, Moderate loss, Severe loss
+  painScore          Int?    // 0-10
+  hydration          String? // Normal, Mild, Moderate, Severe
+  attitude           String? // BAR, QAR, Depressed, etc.
+  behaviour          String?
+  mucousMembranes    String? // Pink, Pale, Cyanotic, etc.
+  crt                Float?  // seconds
+
+  // SOAP - Assessment & Plan (existing fields)
+  diagnosis String? // التشخيص
+  symptoms  String? // الأعراض (legacy, kept for compatibility)
+  treatment String? // خطة العلاج
+  notes     String? // ملاحظات إضافية
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Foreign Keys
+  petId String
+  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  vetId String
+  vet   User   @relation(fields: [vetId], references: [id])
+
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  // Relations
+  prescriptions Prescription[]
+
+  @@index([petId])
+  @@index([vetId])
+  @@index([visitDate])
+  @@index([appointmentId])
+  @@map("medical_records")
+}
+
+model Prescription {
+  id           String   @id @default(uuid())
+  medication   String
+  dosage       String
+  frequency    String
+  duration     String
+  instructions String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Foreign Keys
+  medicalRecordId String
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@index([medicalRecordId])
+  @@map("prescriptions")
+}
+
+model Vaccination {
+  id          String    @id @default(uuid())
+  vaccineName String
+  vaccineDate DateTime
+  nextDueDate DateTime?
+  batchNumber String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Foreign Keys
+  petId String
+  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  vetId String
+  vet   User   @relation(fields: [vetId], references: [id])
+
+  @@index([petId])
+  @@index([vetId])
+  @@index([nextDueDate])
+  @@map("vaccinations")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime
+  totalAmount   Float         @default(0)
+  paidAmount    Float         @default(0)
+  status        InvoiceStatus @default(PENDING)
+  isFinalized   Boolean       @default(false)
+  finalizedAt   DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Foreign Keys
+  ownerId String
+  owner   Owner  @relation(fields: [ownerId], references: [id])
+
+  appointmentId String?      @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  // Relations
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([ownerId])
+  @@index([invoiceNumber])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  paymentDate   DateTime      @default(now())
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Foreign Keys
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+// Services & Products
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items ServiceProduct[]
+
+  @@map("categories")
+}
+
+model ServiceProduct {
+  id             String   @id @default(uuid())
+  name           String
+  categoryId     String
+  priceBeforeTax Decimal  @db.Decimal(10, 2)
+  taxRate        Decimal  @db.Decimal(5, 2) // 0.00 or 15.00
+  priceAfterTax  Decimal  @db.Decimal(10, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Foreign Keys
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([name])
+  @@map("service_products")
+}

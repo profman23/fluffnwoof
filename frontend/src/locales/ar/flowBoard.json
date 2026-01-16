@@ -1,0 +1,122 @@
+{
+  "title": "لوحة التدفق",
+  "readOnly": "للقراءة فقط",
+  "addAppointment": "إضافة موعد",
+  "allStaff": "كل الموظفين",
+  "checkIn": "تسجيل وصول",
+  "columns": {
+    "scheduled": "مجدول",
+    "checkIn": "تسجيل الوصول",
+    "inProgress": "قيد التنفيذ",
+    "hospitalized": "إقامة ورعاية",
+    "completed": "مغلق"
+  },
+  "confirmed": "مؤكد",
+  "unconfirmed": "غير مؤكد",
+  "cancelled": "ملغي",
+  "showCancelled": "إظهار الملغي",
+  "menu": {
+    "confirm": "تأكيد",
+    "unconfirm": "إلغاء التأكيد",
+    "reschedule": "تغيير الموعد",
+    "cancel": "إلغاء الحجز"
+  },
+  "visitTypes": {
+    "GENERAL_CHECKUP": "فحص عام",
+    "GROOMING": "تجميل",
+    "SURGERY": "جراحة",
+    "VACCINATION": "تطعيم",
+    "EMERGENCY": "طوارئ"
+  },
+  "species": {
+    "DOG": "كلب",
+    "CAT": "قطة",
+    "BIRD": "طائر",
+    "RABBIT": "أرنب",
+    "HAMSTER": "هامستر",
+    "GUINEA_PIG": "خنزير غينيا",
+    "TURTLE": "سلحفاة",
+    "FISH": "سمكة",
+    "OTHER": "أخرى"
+  },
+  "form": {
+    "owner": "صاحب الحيوان",
+    "searchOwner": "ابحث بالاسم أو رقم الهاتف...",
+    "searching": "جاري البحث",
+    "pet": "الحيوان الأليف",
+    "visitType": "نوع الزيارة",
+    "staff": "الموظف",
+    "date": "التاريخ",
+    "time": "الوقت",
+    "duration": "المدة",
+    "minutes": "دقيقة",
+    "loading": "جاري التحميل...",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "saving": "جاري الحفظ...",
+    "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
+    "error": "حدث خطأ أثناء الحفظ"
+  },
+  "card": {
+    "vet": "الطبيب"
+  },
+  "errors": {
+    "timeConflict": "هذا الدكتور لديه موعد آخر في هذا الوقت"
+  },
+  "tabs": {
+    "soap": "السجل الطبي",
+    "services": "الخدمات والمنتجات",
+    "payment": "الدفع"
+  },
+  "services": {
+    "title": "الخدمات والمنتجات"
+  },
+  "searchServiceProduct": "ابحث عن خدمة أو منتج...",
+  "noProductsFound": "لم يتم العثور على منتجات",
+  "item": "الصنف",
+  "quantity": "الكمية",
+  "price": "السعر",
+  "total": "الإجمالي",
+  "totalAmount": "المجموع",
+  "noItemsSelected": "لم يتم تحديد أي عناصر. ابحث وأضف خدمات أو منتجات.",
+  "invoice": {
+    "number": "رقم الفاتورة",
+    "create": "إنشاء فاتورة",
+    "creating": "جاري الإنشاء...",
+    "createError": "فشل في إنشاء الفاتورة",
+    "generate": "إصدار الفاتورة",
+    "generating": "جاري الإصدار...",
+    "finalized": "تم إصدار الفاتورة",
+    "finalizeTitle": "إصدار الفاتورة",
+    "finalizeWarning": "بمجرد إصدار الفاتورة، لن تتمكن من تعديل الخدمات أو المنتجات أو المدفوعات. لا يمكن التراجع عن هذا الإجراء.",
+    "confirm": "إصدار الفاتورة",
+    "cancel": "إلغاء"
+  },
+  "invoiceStatus": {
+    "PENDING": "معلق",
+    "PAID": "مدفوع",
+    "PARTIALLY_PAID": "جزئي",
+    "OVERDUE": "متأخر"
+  },
+  "payment": {
+    "title": "الدفع",
+    "noInvoice": "لم يتم إنشاء فاتورة بعد",
+    "addServicesFirst": "أضف خدمات وأنشئ فاتورة أولاً"
+  },
+  "paidAmount": "المدفوع",
+  "remainingAmount": "المتبقي",
+  "paymentMethod": "طريقة الدفع",
+  "paymentMethods": {
+    "CASH": "نقدي",
+    "CARD": "بطاقة",
+    "MADA": "مدى",
+    "TABBY": "تابي",
+    "TAMARA": "تمارا",
+    "BANK_TRANSFER": "تحويل بنكي"
+  },
+  "enterAmount": "أدخل المبلغ",
+  "addPayment": "إضافة",
+  "payFull": "دفع الكل",
+  "amount": "المبلغ",
+  "fullyPaid": "مدفوع بالكامل"
+}

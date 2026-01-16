@@ -1,0 +1,27 @@
+{
+  "nextAppointments": {
+    "title": "Upcoming Appointments",
+    "filters": {
+      "title": "Filters",
+      "dateRange": "Date Range",
+      "from": "From",
+      "to": "To",
+      "vet": "Veterinarian",
+      "allVets": "All Veterinarians",
+      "apply": "Apply",
+      "reset": "Reset"
+    },
+    "table": {
+      "date": "Date",
+      "time": "Time",
+      "pet": "Pet",
+      "owner": "Owner",
+      "phone": "Phone",
+      "vet": "Veterinarian",
+      "visitType": "Visit Type",
+      "status": "Status"
+    },
+    "noData": "No upcoming appointments found",
+    "total": "Total Appointments"
+  }
+}

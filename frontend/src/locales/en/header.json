@@ -1,0 +1,11 @@
+{
+  "welcome": "Welcome, {{name}}",
+  "roles": {
+    "admin": "System Administrator",
+    "vet": "Veterinarian",
+    "receptionist": "Receptionist"
+  },
+  "logout": "Logout",
+  "patients": "Patients",
+  "flowBoard": "Flow Board"
+}

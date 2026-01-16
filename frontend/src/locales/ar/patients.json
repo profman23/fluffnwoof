@@ -1,0 +1,121 @@
+{
+  "title": "الحيوانات الأليفة",
+  "addPet": "إضافة حيوان أليف",
+  "editPet": "تعديل الحيوان",
+  "editOwner": "تعديل المالك",
+  "addAnotherPet": "إضافة حيوان آخر",
+  "save": "حفظ",
+  "saveAndAddAnother": "حفظ وإضافة آخر",
+  "cancel": "إلغاء",
+  "loading": "جاري التحميل...",
+
+  "ownerSection": "بيانات المالك",
+  "petSection": "بيانات الحيوان الأليف",
+  "selectExistingOwner": "اختيار مالك موجود",
+  "createNewOwner": "إنشاء مالك جديد",
+  "searchOwner": "البحث بالاسم أو الهاتف...",
+  "noOwnerFound": "لم يتم العثور على مالك",
+  "selectedOwner": "المالك المحدد",
+
+  "owner": {
+    "firstName": "الاسم الأول",
+    "lastName": "الاسم الثاني",
+    "phone": "رقم الهاتف",
+    "email": "البريد الإلكتروني (اختياري)",
+    "address": "العنوان",
+    "notes": "ملاحظات"
+  },
+
+  "pet": {
+    "name": "اسم الحيوان",
+    "species": "النوع",
+    "breed": "السلالة",
+    "gender": "الجنس",
+    "birthDate": "تاريخ الميلاد",
+    "color": "اللون",
+    "weight": "الوزن (كجم)",
+    "microchipId": "رقم الشريحة",
+    "notes": "ملاحظات"
+  },
+
+  "species": {
+    "DOG": "كلب",
+    "CAT": "قطة",
+    "BIRD": "طائر",
+    "OTHER": "أخرى"
+  },
+
+  "gender": {
+    "MALE": "ذكر",
+    "FEMALE": "أنثى"
+  },
+
+  "table": {
+    "ownerName": "المالك",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "petName": "اسم الحيوان",
+    "species": "النوع",
+    "breed": "السلالة",
+    "gender": "الجنس",
+    "actions": "الإجراءات"
+  },
+
+  "actions": {
+    "expand": "عرض التفاصيل",
+    "collapse": "إخفاء التفاصيل",
+    "edit": "تعديل",
+    "deactivate": "تعطيل",
+    "reactivate": "تفعيل"
+  },
+
+  "search": "البحث باسم الحيوان أو المالك أو الهاتف...",
+  "noPatients": "لا يوجد حيوانات أليفة",
+  "addFirstPet": "أضف أول حيوان أليف للبدء",
+  "readOnly": "للقراءة فقط",
+
+  "details": {
+    "ownerInfo": "بيانات المالك",
+    "petInfo": "بيانات الحيوان",
+    "name": "الاسم",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "address": "العنوان",
+    "species": "النوع",
+    "breed": "السلالة",
+    "gender": "الجنس",
+    "birthDate": "تاريخ الميلاد",
+    "color": "اللون",
+    "weight": "الوزن",
+    "microchip": "الشريحة",
+    "notes": "ملاحظات",
+    "notProvided": "غير محدد"
+  },
+
+  "messages": {
+    "petCreated": "تمت إضافة الحيوان بنجاح",
+    "petUpdated": "تم تحديث الحيوان بنجاح",
+    "petDeactivated": "تم تعطيل الحيوان بنجاح",
+    "petReactivated": "تم تفعيل الحيوان بنجاح",
+    "ownerCreated": "تم إنشاء المالك بنجاح",
+    "ownerUpdated": "تم تحديث المالك بنجاح",
+    "error": "حدث خطأ"
+  },
+
+  "errors": {
+    "ownerRequired": "يرجى اختيار أو إنشاء مالك",
+    "petNameRequired": "اسم الحيوان مطلوب",
+    "speciesRequired": "النوع مطلوب",
+    "genderRequired": "الجنس مطلوب",
+    "firstNameRequired": "الاسم الأول مطلوب",
+    "lastNameRequired": "الاسم الثاني مطلوب",
+    "phoneRequired": "رقم الهاتف مطلوب"
+  },
+
+  "confirmDeactivate": "هل أنت متأكد من تعطيل هذا الحيوان الأليف؟",
+  "selectBreed": "اختر السلالة",
+  "selectSpecies": "اختر النوع",
+  "selectGender": "اختر الجنس",
+  "otherBreed": "أخرى / غير مدرجة",
+  "enterBreed": "أدخل اسم السلالة"
+}

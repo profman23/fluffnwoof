@@ -1,0 +1,27 @@
+{
+  "title": "السجلات الطبية",
+  "search": "بحث بالاسم أو التشخيص...",
+  "readOnly": "وضع القراءة فقط",
+  "table": {
+    "visitDate": "تاريخ الزيارة",
+    "petName": "الأليف",
+    "species": "النوع",
+    "owner": "المالك",
+    "chiefComplaint": "الشكوى",
+    "diagnosis": "التشخيص",
+    "vet": "الطبيب",
+    "lastUpdated": "آخر تعديل"
+  },
+  "noRecords": "لا توجد سجلات طبية",
+  "loading": "جاري التحميل...",
+  "auditLog": {
+    "title": "سجل التعديلات",
+    "created": "إنشاء",
+    "updated": "تعديل",
+    "deleted": "حذف",
+    "by": "بواسطة",
+    "noLogs": "لا توجد تعديلات",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل"
+  }
+}

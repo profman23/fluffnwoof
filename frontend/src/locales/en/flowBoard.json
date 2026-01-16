@@ -1,0 +1,122 @@
+{
+  "title": "Flow Board",
+  "readOnly": "Read Only",
+  "addAppointment": "Add Appointment",
+  "allStaff": "All Staff",
+  "checkIn": "Check In",
+  "columns": {
+    "scheduled": "Scheduled",
+    "checkIn": "Check-In",
+    "inProgress": "In Progress",
+    "hospitalized": "Hospitalization & Boarding",
+    "completed": "Closed"
+  },
+  "confirmed": "Confirmed",
+  "unconfirmed": "Unconfirmed",
+  "cancelled": "Cancelled",
+  "showCancelled": "Show Cancelled",
+  "menu": {
+    "confirm": "Confirm",
+    "unconfirm": "Unconfirm",
+    "reschedule": "Reschedule",
+    "cancel": "Cancel"
+  },
+  "visitTypes": {
+    "GENERAL_CHECKUP": "General Checkup",
+    "GROOMING": "Grooming",
+    "SURGERY": "Surgery",
+    "VACCINATION": "Vaccination",
+    "EMERGENCY": "Emergency"
+  },
+  "species": {
+    "DOG": "Dog",
+    "CAT": "Cat",
+    "BIRD": "Bird",
+    "RABBIT": "Rabbit",
+    "HAMSTER": "Hamster",
+    "GUINEA_PIG": "Guinea Pig",
+    "TURTLE": "Turtle",
+    "FISH": "Fish",
+    "OTHER": "Other"
+  },
+  "form": {
+    "owner": "Owner",
+    "searchOwner": "Search owner by name or phone...",
+    "searching": "Searching",
+    "pet": "Pet",
+    "visitType": "Visit Type",
+    "staff": "Staff",
+    "date": "Date",
+    "time": "Time",
+    "duration": "Duration",
+    "minutes": "min",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "requiredFields": "Please fill in all required fields",
+    "error": "An error occurred while saving"
+  },
+  "card": {
+    "vet": "Doctor"
+  },
+  "errors": {
+    "timeConflict": "This doctor already has an appointment at this time"
+  },
+  "tabs": {
+    "soap": "Medical Record",
+    "services": "Services & Products",
+    "payment": "Payment"
+  },
+  "services": {
+    "title": "Services & Products"
+  },
+  "searchServiceProduct": "Search for service or product...",
+  "noProductsFound": "No products found",
+  "item": "Item",
+  "quantity": "Qty",
+  "price": "Price",
+  "total": "Total",
+  "totalAmount": "Total",
+  "noItemsSelected": "No items selected. Search and add services or products.",
+  "invoice": {
+    "number": "Invoice #",
+    "create": "Create Invoice",
+    "creating": "Creating...",
+    "createError": "Failed to create invoice",
+    "generate": "Generate Invoice",
+    "generating": "Generating...",
+    "finalized": "Invoice Finalized",
+    "finalizeTitle": "Generate Invoice",
+    "finalizeWarning": "Once you generate the invoice, you won't be able to modify services, products, or payments. This action cannot be undone.",
+    "confirm": "Generate Invoice",
+    "cancel": "Cancel"
+  },
+  "invoiceStatus": {
+    "PENDING": "Pending",
+    "PAID": "Paid",
+    "PARTIALLY_PAID": "Partial",
+    "OVERDUE": "Overdue"
+  },
+  "payment": {
+    "title": "Payment",
+    "noInvoice": "No invoice created yet",
+    "addServicesFirst": "Add services and create an invoice first"
+  },
+  "paidAmount": "Paid",
+  "remainingAmount": "Remaining",
+  "paymentMethod": "Payment Method",
+  "paymentMethods": {
+    "CASH": "Cash",
+    "CARD": "Card",
+    "MADA": "Mada",
+    "TABBY": "Tabby",
+    "TAMARA": "Tamara",
+    "BANK_TRANSFER": "Bank Transfer"
+  },
+  "enterAmount": "Enter amount",
+  "addPayment": "Add",
+  "payFull": "Pay Full",
+  "amount": "Amount",
+  "fullyPaid": "Fully Paid"
+}

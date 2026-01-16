@@ -1,0 +1,103 @@
+{
+  "title": "سجل المريض",
+  "saving": "جاري الحفظ...",
+  "save": "حفظ",
+  "close": "إغلاق",
+  "lastSaved": "آخر حفظ",
+  "select": "اختر...",
+
+  "patientInfo": {
+    "owner": "المالك",
+    "phone": "الهاتف",
+    "pet": "الحيوان",
+    "species": "النوع"
+  },
+
+  "sections": {
+    "subjective": "الشكوى (Subjective)",
+    "objective": "الفحص السريري (Objective)",
+    "assessment": "التشخيص (Assessment)",
+    "plan": "خطة العلاج (Plan)"
+  },
+
+  "fields": {
+    "chiefComplaint": "الشكوى الرئيسية",
+    "history": "التاريخ المرضي",
+    "weight": "الوزن",
+    "temperature": "الحرارة",
+    "heartRate": "معدل ضربات القلب",
+    "respirationRate": "معدل التنفس",
+    "bodyConditionScore": "حالة الجسم",
+    "muscleCondition": "حالة العضلات",
+    "painScore": "مستوى الألم",
+    "hydration": "الترطيب",
+    "attitude": "الحالة العامة",
+    "behaviour": "السلوك",
+    "mucousMembranes": "الأغشية المخاطية",
+    "crt": "وقت امتلاء الشعيرات",
+    "diagnosis": "التشخيص",
+    "treatment": "العلاج",
+    "notes": "ملاحظات"
+  },
+
+  "placeholders": {
+    "chiefComplaint": "أدخل الشكوى الرئيسية...",
+    "history": "أدخل التاريخ المرضي...",
+    "diagnosis": "أدخل التشخيص...",
+    "treatment": "أدخل خطة العلاج...",
+    "notes": "ملاحظات إضافية..."
+  },
+
+  "muscleConditions": {
+    "Normal": "طبيعي",
+    "Mild loss": "ضعف خفيف",
+    "Moderate loss": "ضعف متوسط",
+    "Severe loss": "ضعف شديد"
+  },
+
+  "hydrationLevels": {
+    "Normal": "طبيعي",
+    "Mild": "جفاف خفيف",
+    "Moderate": "جفاف متوسط",
+    "Severe": "جفاف شديد"
+  },
+
+  "attitudes": {
+    "BAR": "نشط ومتجاوب",
+    "QAR": "هادئ ومتجاوب",
+    "Depressed": "مكتئب",
+    "Lethargic": "خامل",
+    "Comatose": "غيبوبة"
+  },
+
+  "mucousMembranes": {
+    "Pink": "وردي (طبيعي)",
+    "Pale": "شاحب",
+    "Cyanotic": "أزرق",
+    "Icteric": "أصفر (يرقان)",
+    "Injected": "أحمر (محتقن)"
+  },
+
+  "errors": {
+    "loadFailed": "فشل في تحميل السجل الطبي",
+    "saveFailed": "فشل في حفظ التغييرات"
+  },
+
+  "nextAppointment": {
+    "title": "الموعد القادم",
+    "schedule": "جدولة متابعة",
+    "date": "التاريخ",
+    "time": "الوقت",
+    "visitType": "نوع الزيارة",
+    "vet": "الطبيب البيطري",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "أي ملاحظات للزيارة القادمة...",
+    "minutes": "دقيقة",
+    "cancel": "إلغاء",
+    "book": "حجز الموعد",
+    "booking": "جاري الحجز...",
+    "success": "تم حجز الموعد بنجاح!",
+    "error": "فشل في حجز الموعد",
+    "noSlots": "لا توجد أوقات متاحة"
+  }
+}

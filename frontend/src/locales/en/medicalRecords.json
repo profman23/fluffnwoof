@@ -1,0 +1,27 @@
+{
+  "title": "Medical Records",
+  "search": "Search by name or diagnosis...",
+  "readOnly": "Read Only Mode",
+  "table": {
+    "visitDate": "Visit Date",
+    "petName": "Pet",
+    "species": "Species",
+    "owner": "Owner",
+    "chiefComplaint": "Complaint",
+    "diagnosis": "Diagnosis",
+    "vet": "Vet",
+    "lastUpdated": "Last Updated"
+  },
+  "noRecords": "No medical records found",
+  "loading": "Loading...",
+  "auditLog": {
+    "title": "Audit Log",
+    "created": "Created",
+    "updated": "Updated",
+    "deleted": "Deleted",
+    "by": "by",
+    "noLogs": "No changes recorded",
+    "showMore": "Show more",
+    "showLess": "Show less"
+  }
+}

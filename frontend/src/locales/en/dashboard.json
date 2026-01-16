@@ -1,0 +1,35 @@
+{
+  "title": "Dashboard",
+  "refresh": "Refresh",
+  "retry": "Retry",
+  "stats": {
+    "todayAppointments": "Today's Appointments",
+    "registeredPets": "Registered Pets",
+    "registeredOwners": "Registered Owners",
+    "pendingInvoices": "Pending Invoices"
+  },
+  "upcomingAppointments": "Upcoming Appointments",
+  "upcomingVaccinations": "Upcoming Vaccinations",
+  "noAppointments": "No upcoming appointments",
+  "noVaccinations": "No upcoming vaccinations",
+  "appointmentTypes": {
+    "checkup": "Checkup",
+    "vaccination": "Vaccination",
+    "grooming": "Grooming",
+    "surgery": "Surgery",
+    "emergency": "Emergency"
+  },
+  "time": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "inDays": "In {{count}} days",
+    "inTwoDays": "In 2 days"
+  },
+  "vaccineTypes": {
+    "tripleCanine": "Triple Canine Vaccine",
+    "rabies": "Rabies Vaccine"
+  },
+  "errors": {
+    "loadFailed": "Failed to load dashboard data"
+  }
+}

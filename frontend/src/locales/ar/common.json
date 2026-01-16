@@ -1,0 +1,10 @@
+{
+  "underDevelopment": "صفحة {{page}} - قيد التطوير",
+  "pages": {
+    "owners": "الملاك",
+    "pets": "الحيوانات الأليفة",
+    "appointments": "المواعيد",
+    "medical": "السجلات الطبية",
+    "invoices": "الفواتير"
+  }
+}

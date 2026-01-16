@@ -1,0 +1,121 @@
+{
+  "title": "Patients",
+  "addPet": "Add Pet",
+  "editPet": "Edit Pet",
+  "editOwner": "Edit Owner",
+  "addAnotherPet": "Add Another Pet",
+  "save": "Save",
+  "saveAndAddAnother": "Save & Add Another",
+  "cancel": "Cancel",
+  "loading": "Loading...",
+
+  "ownerSection": "Owner Information",
+  "petSection": "Pet Information",
+  "selectExistingOwner": "Select Existing Owner",
+  "createNewOwner": "Create New Owner",
+  "searchOwner": "Search by name or phone...",
+  "noOwnerFound": "No owner found",
+  "selectedOwner": "Selected Owner",
+
+  "owner": {
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phone": "Phone",
+    "email": "Email (Optional)",
+    "address": "Address",
+    "notes": "Notes"
+  },
+
+  "pet": {
+    "name": "Pet Name",
+    "species": "Species",
+    "breed": "Breed",
+    "gender": "Gender",
+    "birthDate": "Birth Date",
+    "color": "Color",
+    "weight": "Weight (kg)",
+    "microchipId": "Microchip ID",
+    "notes": "Notes"
+  },
+
+  "species": {
+    "DOG": "Dog",
+    "CAT": "Cat",
+    "BIRD": "Bird",
+    "OTHER": "Other"
+  },
+
+  "gender": {
+    "MALE": "Male",
+    "FEMALE": "Female"
+  },
+
+  "table": {
+    "ownerName": "Owner",
+    "phone": "Phone",
+    "email": "Email",
+    "petName": "Pet Name",
+    "species": "Species",
+    "breed": "Breed",
+    "gender": "Gender",
+    "actions": "Actions"
+  },
+
+  "actions": {
+    "expand": "Show Details",
+    "collapse": "Hide Details",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate"
+  },
+
+  "search": "Search by pet name, owner name, or phone...",
+  "noPatients": "No patients found",
+  "addFirstPet": "Add your first pet to get started",
+  "readOnly": "Read Only",
+
+  "details": {
+    "ownerInfo": "Owner Information",
+    "petInfo": "Pet Information",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "species": "Species",
+    "breed": "Breed",
+    "gender": "Gender",
+    "birthDate": "Birth Date",
+    "color": "Color",
+    "weight": "Weight",
+    "microchip": "Microchip",
+    "notes": "Notes",
+    "notProvided": "Not provided"
+  },
+
+  "messages": {
+    "petCreated": "Pet added successfully",
+    "petUpdated": "Pet updated successfully",
+    "petDeactivated": "Pet deactivated successfully",
+    "petReactivated": "Pet reactivated successfully",
+    "ownerCreated": "Owner created successfully",
+    "ownerUpdated": "Owner updated successfully",
+    "error": "An error occurred"
+  },
+
+  "errors": {
+    "ownerRequired": "Please select or create an owner",
+    "petNameRequired": "Pet name is required",
+    "speciesRequired": "Species is required",
+    "genderRequired": "Gender is required",
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "phoneRequired": "Phone number is required"
+  },
+
+  "confirmDeactivate": "Are you sure you want to deactivate this pet?",
+  "selectBreed": "Select breed",
+  "selectSpecies": "Select species",
+  "selectGender": "Select gender",
+  "otherBreed": "Other / Not Listed",
+  "enterBreed": "Enter breed name"
+}

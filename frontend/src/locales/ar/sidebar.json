@@ -1,0 +1,19 @@
+{
+  "appTitle": "FluffNwoof",
+  "appSubtitle": "نظام إدارة العيادات البيطرية",
+  "menu": {
+    "dashboard": "لوحة التحكم",
+    "patients": "الحيوانات الأليفة",
+    "flowBoard": "لوحة التدفق",
+    "appointments": "المواعيد",
+    "medical": "السجلات الطبية",
+    "invoices": "الفواتير",
+    "serviceProducts": "الخدمات والمنتجات",
+    "reports": "التقارير",
+    "nextAppointments": "المواعيد القادمة",
+    "upcoming": "القادمة",
+    "userManagement": "إدارة المستخدمين",
+    "rolesPermissions": "الأدوار والصلاحيات",
+    "audit": "سجل العمليات"
+  }
+}

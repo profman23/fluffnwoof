@@ -1,0 +1,103 @@
+{
+  "title": "Patient Record",
+  "saving": "Saving...",
+  "save": "Save",
+  "close": "Close",
+  "lastSaved": "Last saved",
+  "select": "Select...",
+
+  "patientInfo": {
+    "owner": "Owner",
+    "phone": "Phone",
+    "pet": "Pet",
+    "species": "Species"
+  },
+
+  "sections": {
+    "subjective": "Subjective",
+    "objective": "Objective (Vital Signs)",
+    "assessment": "Assessment",
+    "plan": "Plan"
+  },
+
+  "fields": {
+    "chiefComplaint": "Chief Complaint",
+    "history": "History",
+    "weight": "Weight",
+    "temperature": "Temperature",
+    "heartRate": "Heart Rate",
+    "respirationRate": "Respiration Rate",
+    "bodyConditionScore": "Body Condition Score",
+    "muscleCondition": "Muscle Condition",
+    "painScore": "Pain Score",
+    "hydration": "Hydration",
+    "attitude": "Attitude",
+    "behaviour": "Behaviour",
+    "mucousMembranes": "Mucous Membranes",
+    "crt": "CRT",
+    "diagnosis": "Diagnosis",
+    "treatment": "Treatment",
+    "notes": "Notes"
+  },
+
+  "placeholders": {
+    "chiefComplaint": "Enter the main complaint...",
+    "history": "Enter medical history...",
+    "diagnosis": "Enter diagnosis...",
+    "treatment": "Enter treatment plan...",
+    "notes": "Additional notes..."
+  },
+
+  "muscleConditions": {
+    "Normal": "Normal",
+    "Mild loss": "Mild loss",
+    "Moderate loss": "Moderate loss",
+    "Severe loss": "Severe loss"
+  },
+
+  "hydrationLevels": {
+    "Normal": "Normal",
+    "Mild": "Mild dehydration",
+    "Moderate": "Moderate dehydration",
+    "Severe": "Severe dehydration"
+  },
+
+  "attitudes": {
+    "BAR": "Bright, Alert, Responsive",
+    "QAR": "Quiet, Alert, Responsive",
+    "Depressed": "Depressed",
+    "Lethargic": "Lethargic",
+    "Comatose": "Comatose"
+  },
+
+  "mucousMembranes": {
+    "Pink": "Pink (Normal)",
+    "Pale": "Pale",
+    "Cyanotic": "Cyanotic",
+    "Icteric": "Icteric (Jaundice)",
+    "Injected": "Injected (Red)"
+  },
+
+  "errors": {
+    "loadFailed": "Failed to load medical record",
+    "saveFailed": "Failed to save changes"
+  },
+
+  "nextAppointment": {
+    "title": "Next Appointment",
+    "schedule": "Schedule Follow-up",
+    "date": "Date",
+    "time": "Time",
+    "visitType": "Visit Type",
+    "vet": "Veterinarian",
+    "notes": "Notes",
+    "notesPlaceholder": "Any notes for the next visit...",
+    "minutes": "min",
+    "cancel": "Cancel",
+    "book": "Book Appointment",
+    "booking": "Booking...",
+    "success": "Appointment booked successfully!",
+    "error": "Failed to book appointment",
+    "noSlots": "No available time slots"
+  }
+}

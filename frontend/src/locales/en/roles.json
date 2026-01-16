@@ -1,0 +1,50 @@
+{
+  "title": "Roles & Permissions",
+  "selectRole": "Select Role",
+  "currentlyEditing": "Currently Editing",
+  "addRole": "Add New Role",
+  "saveChanges": "Save Changes",
+  "saveAndAddAnother": "Save & Add Another",
+  "cancel": "Cancel",
+  "screenName": "Screen Name",
+  "noAuth": "No Authorization",
+  "readOnly": "Read Only",
+  "fullControl": "Full Control",
+  "roleName": "Role Name (System)",
+  "roleNameHint": "Must be uppercase English letters with no spaces (e.g., CUSTOM_ROLE)",
+  "displayNameAr": "Arabic Name",
+  "displayNameEn": "English Name",
+  "description": "Description (Optional)",
+  "descriptionPlaceholder": "Enter a description for the role...",
+  "roles": {
+    "ADMIN": "Administrator",
+    "VET": "Veterinarian",
+    "RECEPTIONIST": "Receptionist"
+  },
+  "screens": {
+    "dashboard": "Dashboard",
+    "patients": "Patients",
+    "flowBoard": "Flow Board",
+    "medical": "Medical Records",
+    "userManagement": "User Management",
+    "rolesPermissions": "Roles & Permissions",
+    "serviceProducts": "Services & Products"
+  },
+  "specialPermissions": {
+    "title": "Special Permissions",
+    "hidePhone": "Hide Phone Number"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "success": "Permissions updated successfully",
+    "roleCreated": "Role created successfully",
+    "error": "Error updating permissions"
+  },
+  "errors": {
+    "nameRequired": "Role name is required",
+    "nameInvalid": "Role name must be uppercase English letters with no spaces",
+    "displayNameArRequired": "Arabic name is required",
+    "displayNameEnRequired": "English name is required"
+  }
+}

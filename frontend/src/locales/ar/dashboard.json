@@ -1,0 +1,35 @@
+{
+  "title": "لوحة التحكم",
+  "refresh": "تحديث",
+  "retry": "إعادة المحاولة",
+  "stats": {
+    "todayAppointments": "المواعيد اليوم",
+    "registeredPets": "الحيوانات المسجلة",
+    "registeredOwners": "الملاك المسجلين",
+    "pendingInvoices": "الفواتير المعلقة"
+  },
+  "upcomingAppointments": "المواعيد القادمة",
+  "upcomingVaccinations": "التطعيمات القادمة",
+  "noAppointments": "لا توجد مواعيد قادمة",
+  "noVaccinations": "لا توجد تطعيمات قادمة",
+  "appointmentTypes": {
+    "checkup": "فحص دوري",
+    "vaccination": "تطعيم",
+    "grooming": "تجميل",
+    "surgery": "جراحة",
+    "emergency": "طوارئ"
+  },
+  "time": {
+    "today": "اليوم",
+    "tomorrow": "غداً",
+    "inDays": "بعد {{count}} أيام",
+    "inTwoDays": "بعد يومين"
+  },
+  "vaccineTypes": {
+    "tripleCanine": "تطعيم الكلب الثلاثي",
+    "rabies": "تطعيم السعار"
+  },
+  "errors": {
+    "loadFailed": "فشل تحميل البيانات"
+  }
+}
