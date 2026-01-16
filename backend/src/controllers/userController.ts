@@ -161,7 +161,7 @@ export const userController = {
         throw new AppError('غير مصرح بالوصول', 401);
       }
 
-      await permissionService.grantPermission(id, permissionName, req.user.userId);
+      await permissionService.grantPermission(id, permissionName, req.user.id);
 
       res.json({
         message: 'تم منح الصلاحية بنجاح',

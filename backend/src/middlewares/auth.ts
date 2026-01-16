@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/env';
 import { AuthRequest, AuthUser } from '../types';
 import { AppError } from './errorHandler';
-import { UserRole } from '@prisma/client';
 import { permissionService } from '../services/permissionService';
 import { screenPermissionService } from '../services/screenPermissionService';
 
@@ -27,7 +26,7 @@ export const authenticate = async (
   }
 };
 
-export const authorize = (...roles: UserRole[]) => {
+export const authorize = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       throw new AppError('Unauthorized', 401);

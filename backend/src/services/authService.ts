@@ -1,9 +1,14 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from '../config/database';
 import { config } from '../config/env';
 import { AppError } from '../middlewares/errorHandler';
 import { t } from '../utils/i18n';
+
+// JWT options
+const jwtOptions: SignOptions = {
+  expiresIn: '7d',
+};
 
 export const authService = {
   async register(
@@ -13,7 +18,7 @@ export const authService = {
       firstName: string;
       lastName: string;
       phone?: string;
-      roleId?: string;
+      roleId: string;
     },
     lang: string = 'ar'
   ) {
@@ -29,8 +34,12 @@ export const authService = {
 
     const user = await prisma.user.create({
       data: {
-        ...data,
+        email: data.email,
         password: hashedPassword,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        roleId: data.roleId,
       },
       select: {
         id: true,
@@ -57,7 +66,7 @@ export const authService = {
         lastName: user.lastName,
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      jwtOptions
     );
 
     return { user, token };
@@ -98,7 +107,7 @@ export const authService = {
         lastName: user.lastName,
       },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      jwtOptions
     );
 
     const { password: _, ...userWithoutPassword } = user;
