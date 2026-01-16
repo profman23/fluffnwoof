@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   PlusIcon,
   ArrowUpTrayIcon,
-  TagIcon,
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,

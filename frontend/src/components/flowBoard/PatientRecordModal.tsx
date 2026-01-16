@@ -67,7 +67,7 @@ export const PatientRecordModal = ({
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
-  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const [_creatingInvoice, setCreatingInvoice] = useState(false);
   const [savingInvoice, setSavingInvoice] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
@@ -210,17 +210,12 @@ export const PatientRecordModal = ({
       }
 
       try {
-        const appointments = await flowBoardApi.getAppointments({
-          date: nextAppointmentData.appointmentDate,
-          vetId: nextAppointmentData.vetId,
-        });
+        const appointments = await flowBoardApi.getVetAppointments(
+          nextAppointmentData.vetId,
+          nextAppointmentData.appointmentDate
+        );
         if (isMountedRef.current) {
-          setBookedAppointments(
-            appointments.map((apt: FlowBoardAppointment) => ({
-              appointmentTime: apt.appointmentTime,
-              duration: apt.duration,
-            }))
-          );
+          setBookedAppointments(appointments);
         }
       } catch (err) {
         console.error('Failed to load booked appointments:', err);
@@ -393,71 +388,6 @@ export const PatientRecordModal = ({
             setSavingInvoice(false);
           }
         }
-      }
-    }
-  };
-
-  // Create invoice (manual button - kept for compatibility)
-  const handleCreateInvoice = async () => {
-    if (!appointment?.pet?.owner?.id || selectedItems.length === 0) return;
-
-    setCreatingInvoice(true);
-    setInvoiceError(null);
-
-    try {
-      const newInvoice = await createInvoiceWithItems(selectedItems);
-
-      if (newInvoice && isMountedRef.current) {
-        setInvoice(newInvoice);
-        setSelectedItems(
-          newInvoice.items.map((item) => ({
-            id: item.id,
-            name: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error('Failed to create invoice:', err);
-      if (isMountedRef.current) {
-        setInvoiceError(tFlow('invoice.createError'));
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setCreatingInvoice(false);
-      }
-    }
-  };
-
-  // Add payment to invoice
-  const handleAddPayment = async (paymentData: PaymentEntry) => {
-    if (!invoice) return;
-
-    setSavingInvoice(true);
-    try {
-      await invoicesApi.addPayment(invoice.id, {
-        amount: paymentData.amount,
-        paymentMethod: paymentData.paymentMethod,
-      });
-
-      const updatedInvoice = await invoicesApi.getById(invoice.id);
-      if (isMountedRef.current) {
-        setInvoice(updatedInvoice);
-        setPayments(
-          updatedInvoice.payments.map((p) => ({
-            id: p.id,
-            amount: p.amount,
-            paymentMethod: p.paymentMethod,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error('Failed to add payment:', err);
-    } finally {
-      if (isMountedRef.current) {
-        setSavingInvoice(false);
       }
     }
   };
