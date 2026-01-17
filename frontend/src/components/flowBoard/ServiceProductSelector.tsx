@@ -8,6 +8,7 @@ export interface SelectedItem {
   name: string;
   quantity: number;
   unitPrice: number;
+  discount: number; // Percentage discount (0-100)
   totalPrice: number;
 }
 
@@ -88,12 +89,14 @@ export const ServiceProductSelector = ({
   }, []);
 
   const handleSelectProduct = (product: ServiceProduct) => {
+    const unitPrice = Number(product.priceAfterTax) || 0;
     const newItem: SelectedItem = {
       id: product.id,
       name: product.name,
       quantity: 1,
-      unitPrice: Number(product.priceAfterTax) || 0,
-      totalPrice: Number(product.priceAfterTax) || 0,
+      unitPrice,
+      discount: 0,
+      totalPrice: unitPrice,
     };
     onItemsChange([...selectedItems, newItem]);
     setSearchQuery('');
@@ -101,11 +104,29 @@ export const ServiceProductSelector = ({
     inputRef.current?.focus();
   };
 
+  // Calculate total price with discount
+  const calculateTotalPrice = (unitPrice: number, quantity: number, discount: number) => {
+    const subtotal = unitPrice * quantity;
+    const discountAmount = (subtotal * discount) / 100;
+    return subtotal - discountAmount;
+  };
+
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     const updatedItems = selectedItems.map((item) =>
       item.id === itemId
-        ? { ...item, quantity: newQuantity, totalPrice: item.unitPrice * newQuantity }
+        ? { ...item, quantity: newQuantity, totalPrice: calculateTotalPrice(item.unitPrice, newQuantity, item.discount) }
+        : item
+    );
+    onItemsChange(updatedItems);
+  };
+
+  const handleDiscountChange = (itemId: string, newDiscount: number) => {
+    // Clamp discount between 0 and 100
+    const discount = Math.max(0, Math.min(100, newDiscount));
+    const updatedItems = selectedItems.map((item) =>
+      item.id === itemId
+        ? { ...item, discount, totalPrice: calculateTotalPrice(item.unitPrice, item.quantity, discount) }
         : item
     );
     onItemsChange(updatedItems);
@@ -182,8 +203,11 @@ export const ServiceProductSelector = ({
                 <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-24">
                   {t('quantity')}
                 </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
                   {t('price')}
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-20">
+                  {t('discount')}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
                   {t('total')}
@@ -217,6 +241,20 @@ export const ServiceProductSelector = ({
                   <td className="px-3 py-2 text-sm text-gray-600 text-right">
                     {Number(item.unitPrice || 0).toFixed(2)}
                   </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={item.discount || 0}
+                        onChange={(e) => handleDiscountChange(item.id, parseFloat(e.target.value) || 0)}
+                        disabled={disabled}
+                        className="w-14 px-1 py-1 text-center text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                      />
+                      <span className="text-xs text-gray-500 ml-1">%</span>
+                    </div>
+                  </td>
                   <td className="px-3 py-2 text-sm font-medium text-gray-900 text-right">
                     {Number(item.totalPrice || 0).toFixed(2)}
                   </td>
@@ -234,7 +272,7 @@ export const ServiceProductSelector = ({
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td colSpan={3} className="px-3 py-2 text-right text-sm font-medium text-gray-700">
+                <td colSpan={4} className="px-3 py-2 text-right text-sm font-medium text-gray-700">
                   {t('totalAmount')}:
                 </td>
                 <td className="px-3 py-2 text-right text-sm font-bold text-green-600">

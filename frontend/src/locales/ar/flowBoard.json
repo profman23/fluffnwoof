@@ -76,6 +76,7 @@
   "item": "الصنف",
   "quantity": "الكمية",
   "price": "السعر",
+  "discount": "الخصم",
   "total": "الإجمالي",
   "totalAmount": "المجموع",
   "noItemsSelected": "لم يتم تحديد أي عناصر. ابحث وأضف خدمات أو منتجات.",
@@ -112,7 +113,8 @@
     "MADA": "مدى",
     "TABBY": "تابي",
     "TAMARA": "تمارا",
-    "BANK_TRANSFER": "تحويل بنكي"
+    "BANK_TRANSFER": "تحويل بنكي",
+    "OTHER": "أخرى"
   },
   "enterAmount": "أدخل المبلغ",
   "addPayment": "إضافة",

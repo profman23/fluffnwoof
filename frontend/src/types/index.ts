@@ -62,6 +62,7 @@ export enum PaymentMethod {
   TABBY = 'TABBY',
   TAMARA = 'TAMARA',
   BANK_TRANSFER = 'BANK_TRANSFER',
+  OTHER = 'OTHER',
 }
 
 export interface User {

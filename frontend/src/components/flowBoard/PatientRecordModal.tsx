@@ -48,6 +48,26 @@ export const PatientRecordModal = ({
   const [error, setError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  // Use appointment from props or from loaded record (for Medical Records page)
+  const effectiveAppointment = useMemo(() => {
+    if (appointment) return appointment;
+    if (record?.appointment) {
+      // Convert Appointment to FlowBoardAppointment-like structure
+      return {
+        id: record.appointment.id,
+        pet: record.pet,
+        vet: record.vet,
+        appointmentDate: record.appointment.appointmentDate,
+        appointmentTime: record.appointment.appointmentTime,
+        status: record.appointment.status,
+        visitType: record.appointment.visitType,
+        duration: record.appointment.duration || 30,
+        isConfirmed: false, // Default value for appointments from medical records
+      } as FlowBoardAppointment;
+    }
+    return null;
+  }, [appointment, record]);
+
   // Next Appointment state
   const [showNextAppointment, setShowNextAppointment] = useState(false);
   const [nextAppointmentData, setNextAppointmentData] = useState({
@@ -147,10 +167,10 @@ export const PatientRecordModal = ({
   // Load existing invoice for appointment
   useEffect(() => {
     const loadInvoice = async () => {
-      if (!appointment?.id) return;
+      if (!effectiveAppointment?.id) return;
 
       try {
-        const existingInvoice = await invoicesApi.getByAppointmentId(appointment.id);
+        const existingInvoice = await invoicesApi.getByAppointmentId(effectiveAppointment.id);
         if (existingInvoice && isMountedRef.current) {
           setInvoice(existingInvoice);
           setSelectedItems(
@@ -159,6 +179,7 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              discount: 0, // Default discount for existing items
               totalPrice: item.totalPrice,
             }))
           );
@@ -175,10 +196,10 @@ export const PatientRecordModal = ({
       }
     };
 
-    if (isOpen && appointment?.id) {
+    if (isOpen && effectiveAppointment?.id) {
       loadInvoice();
     }
-  }, [isOpen, appointment?.id]);
+  }, [isOpen, effectiveAppointment?.id]);
 
   // Load staff (vets) for next appointment
   useEffect(() => {
@@ -187,8 +208,8 @@ export const PatientRecordModal = ({
         const data = await flowBoardApi.getStaff();
         if (isMountedRef.current) {
           setStaff(data);
-          if (appointment?.vet?.id && !nextAppointmentData.vetId) {
-            setNextAppointmentData(prev => ({ ...prev, vetId: appointment.vet.id }));
+          if (effectiveAppointment?.vet?.id && !nextAppointmentData.vetId) {
+            setNextAppointmentData(prev => ({ ...prev, vetId: effectiveAppointment.vet.id }));
           }
         }
       } catch (err) {
@@ -199,7 +220,7 @@ export const PatientRecordModal = ({
     if (isOpen && showNextAppointment) {
       loadStaff();
     }
-  }, [isOpen, showNextAppointment, appointment?.vet?.id]);
+  }, [isOpen, showNextAppointment, effectiveAppointment?.vet?.id]);
 
   // Load booked appointments for the selected date and vet
   useEffect(() => {
@@ -237,7 +258,8 @@ export const PatientRecordModal = ({
 
   // Handle booking next appointment
   const handleBookNextAppointment = async () => {
-    if (!appointment?.pet?.id || !nextAppointmentData.vetId || !nextAppointmentData.appointmentDate) {
+    const petId = effectiveAppointment?.pet?.id || record?.pet?.id;
+    if (!petId || !nextAppointmentData.vetId || !nextAppointmentData.appointmentDate) {
       return;
     }
 
@@ -246,7 +268,7 @@ export const PatientRecordModal = ({
 
     try {
       await flowBoardApi.createAppointment({
-        petId: appointment.pet.id,
+        petId,
         vetId: nextAppointmentData.vetId,
         appointmentDate: nextAppointmentData.appointmentDate,
         appointmentTime: nextAppointmentData.appointmentTime,
@@ -265,7 +287,7 @@ export const PatientRecordModal = ({
               appointmentDate: getTomorrowDate(),
               appointmentTime: '09:00',
               visitType: VisitType.GENERAL_CHECKUP,
-              vetId: appointment?.vet?.id || '',
+              vetId: effectiveAppointment?.vet?.id || '',
               notes: '',
             });
           }
@@ -285,11 +307,14 @@ export const PatientRecordModal = ({
 
   // Create invoice with items
   const createInvoiceWithItems = async (items: SelectedItem[]) => {
-    if (!appointment?.pet?.owner?.id || items.length === 0) return null;
+    const ownerId = effectiveAppointment?.pet?.owner?.id || record?.pet?.owner?.id;
+    const appointmentId = effectiveAppointment?.id;
+
+    if (!ownerId || items.length === 0) return null;
 
     const newInvoice = await invoicesApi.create({
-      ownerId: appointment.pet.owner.id,
-      appointmentId: appointment.id,
+      ownerId,
+      appointmentId,
       items: items.map((item) => ({
         description: item.name,
         quantity: item.quantity,
@@ -309,7 +334,8 @@ export const PatientRecordModal = ({
     if (newItems.length === 0) return;
 
     // If no invoice exists, create one
-    if (!invoice && appointment?.pet?.owner?.id) {
+    const ownerId = effectiveAppointment?.pet?.owner?.id || record?.pet?.owner?.id;
+    if (!invoice && ownerId) {
       setCreatingInvoice(true);
       setInvoiceError(null);
 
@@ -323,6 +349,7 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              discount: 0,
               totalPrice: item.totalPrice,
             }))
           );
@@ -377,6 +404,7 @@ export const PatientRecordModal = ({
                 name: item.description,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
+                discount: 0,
                 totalPrice: item.totalPrice,
               }))
             );
@@ -395,14 +423,17 @@ export const PatientRecordModal = ({
   // Handle payments change - auto-create invoice if needed
   const handlePaymentsChange = async (newPayments: PaymentEntry[]) => {
     // If no invoice exists and we have items, create invoice first
-    if (!invoice && selectedItems.length > 0 && appointment?.pet?.owner?.id) {
+    const ownerId = effectiveAppointment?.pet?.owner?.id || record?.pet?.owner?.id;
+    const appointmentId = effectiveAppointment?.id;
+
+    if (!invoice && selectedItems.length > 0 && ownerId) {
       setCreatingInvoice(true);
       setInvoiceError(null);
 
       try {
         const newInvoice = await invoicesApi.create({
-          ownerId: appointment.pet.owner.id,
-          appointmentId: appointment.id,
+          ownerId,
+          appointmentId,
           items: selectedItems.map((item) => ({
             description: item.name,
             quantity: item.quantity,
@@ -418,6 +449,7 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              discount: 0,
               totalPrice: item.totalPrice,
             }))
           );
@@ -661,8 +693,8 @@ export const PatientRecordModal = ({
                   <div>
                     <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.owner')}</label>
                     <p className="font-semibold text-gray-900 mt-1">
-                      {(appointment?.pet.owner || record?.pet?.owner)
-                        ? `${(appointment?.pet.owner || record?.pet?.owner)?.firstName} ${(appointment?.pet.owner || record?.pet?.owner)?.lastName}`
+                      {(effectiveAppointment?.pet?.owner || record?.pet?.owner)
+                        ? `${(effectiveAppointment?.pet?.owner || record?.pet?.owner)?.firstName} ${(effectiveAppointment?.pet?.owner || record?.pet?.owner)?.lastName}`
                         : '-'}
                     </p>
                   </div>
@@ -670,28 +702,28 @@ export const PatientRecordModal = ({
                     <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.phone')}</label>
                     <p className="font-semibold text-gray-900 mt-1" dir="ltr">
                       {canViewPhone
-                        ? (appointment?.pet.owner?.phone || record?.pet?.owner?.phone || '-')
-                        : maskPhoneNumber(appointment?.pet.owner?.phone || record?.pet?.owner?.phone || '')}
+                        ? (effectiveAppointment?.pet?.owner?.phone || record?.pet?.owner?.phone || '-')
+                        : maskPhoneNumber(effectiveAppointment?.pet?.owner?.phone || record?.pet?.owner?.phone || '')}
                     </p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.pet')}</label>
-                    <p className="font-semibold text-gray-900 mt-1">{appointment?.pet.name || record?.pet?.name || '-'}</p>
+                    <p className="font-semibold text-gray-900 mt-1">{effectiveAppointment?.pet?.name || record?.pet?.name || '-'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.species')}</label>
-                    <p className="font-semibold text-gray-900 mt-1">{appointment?.pet.species || record?.pet?.species || '-'}</p>
+                    <p className="font-semibold text-gray-900 mt-1">{effectiveAppointment?.pet?.species || record?.pet?.species || '-'}</p>
                   </div>
-                  {appointment?.visitType && (
+                  {effectiveAppointment?.visitType && (
                     <div>
                       <label className="text-xs text-gray-500 uppercase tracking-wide">{tFlow('form.visitType')}</label>
-                      <p className="font-semibold text-gray-900 mt-1">{tFlow(`visitTypes.${appointment.visitType}`)}</p>
+                      <p className="font-semibold text-gray-900 mt-1">{tFlow(`visitTypes.${effectiveAppointment.visitType}`)}</p>
                     </div>
                   )}
-                  {appointment?.vet && (
+                  {(effectiveAppointment?.vet || record?.vet) && (
                     <div>
                       <label className="text-xs text-gray-500 uppercase tracking-wide">{tFlow('card.vet')}</label>
-                      <p className="font-semibold text-gray-900 mt-1">{appointment.vet.firstName} {appointment.vet.lastName}</p>
+                      <p className="font-semibold text-gray-900 mt-1">{(effectiveAppointment?.vet || record?.vet)?.firstName} {(effectiveAppointment?.vet || record?.vet)?.lastName}</p>
                     </div>
                   )}
                 </div>
@@ -1015,7 +1047,7 @@ export const PatientRecordModal = ({
               </div>
 
               {/* Next Appointment Section */}
-              {canCreateAppointments && appointment && (
+              {canCreateAppointments && (effectiveAppointment || record?.pet) && (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <div className="bg-sky-50 px-5 py-3 border-b border-sky-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">

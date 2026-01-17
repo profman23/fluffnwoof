@@ -76,6 +76,7 @@
   "item": "Item",
   "quantity": "Qty",
   "price": "Price",
+  "discount": "Discount",
   "total": "Total",
   "totalAmount": "Total",
   "noItemsSelected": "No items selected. Search and add services or products.",
@@ -112,7 +113,8 @@
     "MADA": "Mada",
     "TABBY": "Tabby",
     "TAMARA": "Tamara",
-    "BANK_TRANSFER": "Bank Transfer"
+    "BANK_TRANSFER": "Bank Transfer",
+    "OTHER": "Other"
   },
   "enterAmount": "Enter amount",
   "addPayment": "Add",

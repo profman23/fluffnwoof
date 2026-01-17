@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PlusIcon, XMarkIcon, BanknotesIcon, CreditCardIcon, ArrowPathIcon, DocumentTextIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon, BanknotesIcon, CreditCardIcon, ArrowPathIcon, DocumentTextIcon, CheckCircleIcon, BuildingLibraryIcon, EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
 import { PaymentMethod } from '../../types';
 
 export interface PaymentEntry {
@@ -27,7 +27,8 @@ const paymentMethodIcons: Record<PaymentMethod, React.ReactNode> = {
   [PaymentMethod.MADA]: <CreditCardIcon className="w-4 h-4" />,
   [PaymentMethod.TABBY]: <CreditCardIcon className="w-4 h-4" />,
   [PaymentMethod.TAMARA]: <CreditCardIcon className="w-4 h-4" />,
-  [PaymentMethod.BANK_TRANSFER]: <BanknotesIcon className="w-4 h-4" />,
+  [PaymentMethod.BANK_TRANSFER]: <BuildingLibraryIcon className="w-4 h-4" />,
+  [PaymentMethod.OTHER]: <EllipsisHorizontalCircleIcon className="w-4 h-4" />,
 };
 
 const paymentMethodColors: Record<PaymentMethod, string> = {
@@ -36,7 +37,8 @@ const paymentMethodColors: Record<PaymentMethod, string> = {
   [PaymentMethod.MADA]: 'bg-purple-100 text-purple-700 border-purple-200',
   [PaymentMethod.TABBY]: 'bg-orange-100 text-orange-700 border-orange-200',
   [PaymentMethod.TAMARA]: 'bg-pink-100 text-pink-700 border-pink-200',
-  [PaymentMethod.BANK_TRANSFER]: 'bg-gray-100 text-gray-700 border-gray-200',
+  [PaymentMethod.BANK_TRANSFER]: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  [PaymentMethod.OTHER]: 'bg-gray-100 text-gray-700 border-gray-200',
 };
 
 export const PaymentSection = ({
@@ -111,6 +113,8 @@ export const PaymentSection = ({
     PaymentMethod.CARD,
     PaymentMethod.TABBY,
     PaymentMethod.TAMARA,
+    PaymentMethod.BANK_TRANSFER,
+    PaymentMethod.OTHER,
   ];
 
   const isDisabled = disabled || isFinalized;
