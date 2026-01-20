@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, DocumentTextIcon, ShoppingBagIcon, CreditCardIcon } from '@heroicons/react/24/outline';
-import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User } from '../../types';
+import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment } from '../../types';
 import { medicalRecordsApi } from '../../api/medicalRecords';
 import { flowBoardApi } from '../../api/flowBoard';
 import { invoicesApi, Invoice } from '../../api/invoices';
@@ -68,20 +68,24 @@ export const PatientRecordModal = ({
     return null;
   }, [appointment, record]);
 
-  // Next Appointment state
+  // Next Appointment state - 3 independent dates and times
   const [showNextAppointment, setShowNextAppointment] = useState(false);
-  const [nextAppointmentData, setNextAppointmentData] = useState({
-    appointmentDate: getTomorrowDate(),
-    appointmentTime: '09:00',
-    visitType: VisitType.GENERAL_CHECKUP,
-    vetId: '',
-    notes: '',
-  });
+  const [checkupDate, setCheckupDate] = useState('');
+  const [checkupTime, setCheckupTime] = useState('');
+  const [vaccinationDate, setVaccinationDate] = useState('');
+  const [vaccinationTime, setVaccinationTime] = useState('');
+  const [dewormingDate, setDewormingDate] = useState('');
+  const [dewormingTime, setDewormingTime] = useState('');
+  const [appointmentVetId, setAppointmentVetId] = useState('');
+  const [appointmentNotes, setAppointmentNotes] = useState('');
   const [bookingAppointment, setBookingAppointment] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [staff, setStaff] = useState<User[]>([]);
-  const [bookedAppointments, setBookedAppointments] = useState<{ appointmentTime: string; duration: number }[]>([]);
+  // Booked appointments for each date (to show available time slots)
+  const [checkupBookedSlots, setCheckupBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
+  const [vaccinationBookedSlots, setVaccinationBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
+  const [dewormingBookedSlots, setDewormingBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
 
   // Invoice/Payment state
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -95,6 +99,25 @@ export const PatientRecordModal = ({
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const [finalizingInvoice, setFinalizingInvoice] = useState(false);
 
+  // Close/Reopen record state
+  const [showCloseWarning, setShowCloseWarning] = useState(false);
+  const [closingRecord, setClosingRecord] = useState(false);
+  const [reopeningRecord, setReopeningRecord] = useState(false);
+
+  // Upcoming appointments state (scheduled from this record)
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  // All upcoming appointments for this pet (for showing existing booked appointments)
+  const [petUpcomingAppointments, setPetUpcomingAppointments] = useState<Appointment[]>([]);
+
+  // Mandatory fields validation
+  const mandatoryFieldsValid = useMemo(() => {
+    return (
+      formData.weight !== undefined && formData.weight !== null && formData.weight > 0 &&
+      formData.temperature !== undefined && formData.temperature !== null && formData.temperature > 0 &&
+      formData.heartRate !== undefined && formData.heartRate !== null && formData.heartRate > 0
+    );
+  }, [formData.weight, formData.temperature, formData.heartRate]);
+
   // Track mounted state
   useEffect(() => {
     isMountedRef.current = true;
@@ -106,12 +129,23 @@ export const PatientRecordModal = ({
     };
   }, []);
 
+  // Track modal open count to force reload on each open
+  const [openCount, setOpenCount] = useState(0);
+
+  // Increment open count when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setOpenCount(prev => prev + 1);
+    }
+  }, [isOpen]);
+
   // Load or create medical record when modal opens
   useEffect(() => {
     if (!isOpen || (!appointment && !existingRecordId)) {
       setRecord(null);
       setFormData({});
       setLoading(false);
+      setUpcomingAppointments([]); // Reset scheduled appointments when modal closes
       return;
     }
 
@@ -162,7 +196,7 @@ export const PatientRecordModal = ({
     };
 
     loadRecord();
-  }, [isOpen, appointment, existingRecordId, t]);
+  }, [isOpen, appointment?.id, existingRecordId, openCount, t]);
 
   // Load existing invoice for appointment
   useEffect(() => {
@@ -179,7 +213,7 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
-              discount: 0, // Default discount for existing items
+              discount: item.discount || 0,
               totalPrice: item.totalPrice,
             }))
           );
@@ -208,8 +242,8 @@ export const PatientRecordModal = ({
         const data = await flowBoardApi.getStaff();
         if (isMountedRef.current) {
           setStaff(data);
-          if (effectiveAppointment?.vet?.id && !nextAppointmentData.vetId) {
-            setNextAppointmentData(prev => ({ ...prev, vetId: effectiveAppointment.vet.id }));
+          if (effectiveAppointment?.vet?.id && !appointmentVetId) {
+            setAppointmentVetId(effectiveAppointment.vet.id);
           }
         }
       } catch (err) {
@@ -220,46 +254,160 @@ export const PatientRecordModal = ({
     if (isOpen && showNextAppointment) {
       loadStaff();
     }
-  }, [isOpen, showNextAppointment, effectiveAppointment?.vet?.id]);
+  }, [isOpen, showNextAppointment, effectiveAppointment?.vet?.id, appointmentVetId]);
 
-  // Load booked appointments for the selected date and vet
+  // Fetch booked slots when checkup date or vet changes
   useEffect(() => {
-    const loadBookedAppointments = async () => {
-      if (!nextAppointmentData.appointmentDate || !nextAppointmentData.vetId) {
-        setBookedAppointments([]);
+    const fetchBookedSlots = async () => {
+      if (!appointmentVetId || !checkupDate) {
+        setCheckupBookedSlots([]);
+        setCheckupTime('');
         return;
       }
-
       try {
-        const appointments = await flowBoardApi.getVetAppointments(
-          nextAppointmentData.vetId,
-          nextAppointmentData.appointmentDate
-        );
+        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, checkupDate);
         if (isMountedRef.current) {
-          setBookedAppointments(appointments);
+          setCheckupBookedSlots(booked);
+          setCheckupTime(''); // Reset time when date changes
         }
       } catch (err) {
-        console.error('Failed to load booked appointments:', err);
-        setBookedAppointments([]);
+        console.error('Failed to fetch checkup booked slots:', err);
+      }
+    };
+    fetchBookedSlots();
+  }, [appointmentVetId, checkupDate]);
+
+  // Fetch booked slots when vaccination date or vet changes
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!appointmentVetId || !vaccinationDate) {
+        setVaccinationBookedSlots([]);
+        setVaccinationTime('');
+        return;
+      }
+      try {
+        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, vaccinationDate);
+        if (isMountedRef.current) {
+          setVaccinationBookedSlots(booked);
+          setVaccinationTime(''); // Reset time when date changes
+        }
+      } catch (err) {
+        console.error('Failed to fetch vaccination booked slots:', err);
+      }
+    };
+    fetchBookedSlots();
+  }, [appointmentVetId, vaccinationDate]);
+
+  // Fetch booked slots when deworming date or vet changes
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!appointmentVetId || !dewormingDate) {
+        setDewormingBookedSlots([]);
+        setDewormingTime('');
+        return;
+      }
+      try {
+        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, dewormingDate);
+        if (isMountedRef.current) {
+          setDewormingBookedSlots(booked);
+          setDewormingTime(''); // Reset time when date changes
+        }
+      } catch (err) {
+        console.error('Failed to fetch deworming booked slots:', err);
+      }
+    };
+    fetchBookedSlots();
+  }, [appointmentVetId, dewormingDate]);
+
+  // Fetch appointments scheduled from this medical record
+  useEffect(() => {
+    const fetchScheduledAppointments = async () => {
+      const recordId = record?.id;
+      if (!recordId || !isOpen || loading) return;
+
+      try {
+        const appointments = await flowBoardApi.getByScheduledFromRecordId(recordId);
+        if (isMountedRef.current) {
+          setUpcomingAppointments(appointments);
+        }
+      } catch (err) {
+        console.error('Failed to fetch scheduled appointments:', err);
       }
     };
 
-    if (showNextAppointment) {
-      loadBookedAppointments();
-    }
-  }, [showNextAppointment, nextAppointmentData.appointmentDate, nextAppointmentData.vetId]);
+    fetchScheduledAppointments();
+  }, [isOpen, record?.id, loading, bookingSuccess]);
 
-  // Generate available time slots
-  const availableTimeSlots = useMemo(() => {
-    const duration = VISIT_TYPE_DURATION[nextAppointmentData.visitType];
-    const allSlots = generateTimeSlots(duration, nextAppointmentData.appointmentDate);
-    return allSlots.filter(slot => !isSlotBooked(slot, duration, bookedAppointments));
-  }, [nextAppointmentData.visitType, nextAppointmentData.appointmentDate, bookedAppointments]);
+  // Fetch all upcoming appointments for this pet
+  useEffect(() => {
+    const fetchPetAppointments = async () => {
+      const petId = effectiveAppointment?.pet?.id || record?.pet?.id;
+      if (!petId || !isOpen || loading) return;
 
-  // Handle booking next appointment
-  const handleBookNextAppointment = async () => {
+      try {
+        const appointments = await flowBoardApi.getUpcomingByPetId(petId);
+        if (isMountedRef.current) {
+          setPetUpcomingAppointments(appointments);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pet appointments:', err);
+      }
+    };
+
+    fetchPetAppointments();
+  }, [isOpen, effectiveAppointment?.pet?.id, record?.pet?.id, loading, bookingSuccess]);
+
+  // Count how many appointments will be booked (requires both date AND time)
+  const appointmentsToBookCount = useMemo(() => {
+    let count = 0;
+    if (checkupDate && checkupTime) count++;
+    if (vaccinationDate && vaccinationTime) count++;
+    if (dewormingDate && dewormingTime) count++;
+    return count;
+  }, [checkupDate, checkupTime, vaccinationDate, vaccinationTime, dewormingDate, dewormingTime]);
+
+  // Get booked appointments by type for this pet
+  const bookedAppointmentsByType = useMemo(() => {
+    const result: {
+      checkup: Appointment[];
+      vaccination: Appointment[];
+      deworming: Appointment[];
+    } = {
+      checkup: [],
+      vaccination: [],
+      deworming: [],
+    };
+
+    petUpcomingAppointments.forEach((appt) => {
+      const notes = appt.notes?.toLowerCase() || '';
+      if (notes.includes('routine') || notes.includes('check-up') || notes.includes('فحص دوري')) {
+        result.checkup.push(appt);
+      }
+      if (notes.includes('vaccination') || notes.includes('تطعيم')) {
+        result.vaccination.push(appt);
+      }
+      if (notes.includes('deworming') || notes.includes('ديدان') || notes.includes('flea') || notes.includes('براغيث')) {
+        result.deworming.push(appt);
+      }
+    });
+
+    return result;
+  }, [petUpcomingAppointments]);
+
+  // Check which appointment types are already booked (for backward compatibility)
+  const bookedAppointmentTypes = useMemo(() => {
+    return {
+      checkup: bookedAppointmentsByType.checkup.length > 0,
+      vaccination: bookedAppointmentsByType.vaccination.length > 0,
+      deworming: bookedAppointmentsByType.deworming.length > 0,
+    };
+  }, [bookedAppointmentsByType]);
+
+  // Handle booking next appointments (multiple)
+  const handleBookNextAppointments = async () => {
     const petId = effectiveAppointment?.pet?.id || record?.pet?.id;
-    if (!petId || !nextAppointmentData.vetId || !nextAppointmentData.appointmentDate) {
+    const recordId = record?.id;
+    if (!petId || !appointmentVetId || appointmentsToBookCount === 0) {
       return;
     }
 
@@ -267,15 +415,48 @@ export const PatientRecordModal = ({
     setBookingError(null);
 
     try {
-      await flowBoardApi.createAppointment({
-        petId,
-        vetId: nextAppointmentData.vetId,
-        appointmentDate: nextAppointmentData.appointmentDate,
-        appointmentTime: nextAppointmentData.appointmentTime,
-        visitType: nextAppointmentData.visitType,
-        duration: VISIT_TYPE_DURATION[nextAppointmentData.visitType],
-        notes: nextAppointmentData.notes,
-      });
+      const appointmentsToBook: { date: string; time: string; visitType: VisitType; notes: string }[] = [];
+
+      if (checkupDate && checkupTime) {
+        appointmentsToBook.push({
+          date: checkupDate,
+          time: checkupTime,
+          visitType: VisitType.GENERAL_CHECKUP,
+          notes: tFlow('nextAppointment.routineCheckup'),
+        });
+      }
+
+      if (vaccinationDate && vaccinationTime) {
+        appointmentsToBook.push({
+          date: vaccinationDate,
+          time: vaccinationTime,
+          visitType: VisitType.VACCINATION,
+          notes: tFlow('nextAppointment.nextVaccination'),
+        });
+      }
+
+      if (dewormingDate && dewormingTime) {
+        appointmentsToBook.push({
+          date: dewormingDate,
+          time: dewormingTime,
+          visitType: VisitType.GENERAL_CHECKUP,
+          notes: tFlow('nextAppointment.dewormingFlea'),
+        });
+      }
+
+      // Book all appointments with scheduledFromRecordId
+      for (const appt of appointmentsToBook) {
+        await flowBoardApi.createAppointment({
+          petId,
+          vetId: appointmentVetId,
+          appointmentDate: appt.date,
+          appointmentTime: appt.time,
+          visitType: appt.visitType,
+          duration: VISIT_TYPE_DURATION[appt.visitType],
+          notes: appt.notes + (appointmentNotes ? ` - ${appointmentNotes}` : ''),
+          scheduledFromRecordId: recordId,
+        });
+      }
 
       if (isMountedRef.current) {
         setBookingSuccess(true);
@@ -283,20 +464,22 @@ export const PatientRecordModal = ({
           if (isMountedRef.current) {
             setShowNextAppointment(false);
             setBookingSuccess(false);
-            setNextAppointmentData({
-              appointmentDate: getTomorrowDate(),
-              appointmentTime: '09:00',
-              visitType: VisitType.GENERAL_CHECKUP,
-              vetId: effectiveAppointment?.vet?.id || '',
-              notes: '',
-            });
+            // Reset all appointment dates and times
+            setCheckupDate('');
+            setCheckupTime('');
+            setVaccinationDate('');
+            setVaccinationTime('');
+            setDewormingDate('');
+            setDewormingTime('');
+            setAppointmentNotes('');
+            setAppointmentVetId(effectiveAppointment?.vet?.id || '');
           }
         }, 2000);
       }
     } catch (err) {
-      console.error('Failed to book appointment:', err);
+      console.error('Failed to book appointments:', err);
       if (isMountedRef.current) {
-        setBookingError(t('nextAppointment.error') || 'Failed to book appointment');
+        setBookingError(t('nextAppointment.error') || 'Failed to book appointments');
       }
     } finally {
       if (isMountedRef.current) {
@@ -319,6 +502,7 @@ export const PatientRecordModal = ({
         description: item.name,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        discount: item.discount,
       })),
     });
 
@@ -349,7 +533,7 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
-              discount: 0,
+              discount: item.discount || 0,
               totalPrice: item.totalPrice,
             }))
           );
@@ -369,13 +553,16 @@ export const PatientRecordModal = ({
       const existingIds = selectedItems.map(item => item.id);
       const newlyAddedItems = newItems.filter(item => !existingIds.includes(item.id));
 
-      // Check for quantity changes in existing items
-      const quantityChangedItems = newItems.filter(newItem => {
+      // Check for quantity or discount changes in existing items
+      const changedItems = newItems.filter(newItem => {
         const existingItem = selectedItems.find(item => item.id === newItem.id);
-        return existingItem && existingItem.quantity !== newItem.quantity;
+        return existingItem && (
+          existingItem.quantity !== newItem.quantity ||
+          existingItem.discount !== newItem.discount
+        );
       });
 
-      if (newlyAddedItems.length > 0 || quantityChangedItems.length > 0) {
+      if (newlyAddedItems.length > 0 || changedItems.length > 0) {
         setSavingInvoice(true);
         try {
           // Add new items
@@ -384,13 +571,15 @@ export const PatientRecordModal = ({
               description: item.name,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              discount: item.discount,
             });
           }
 
-          // Update quantity for changed items
-          for (const item of quantityChangedItems) {
+          // Update changed items (quantity or discount)
+          for (const item of changedItems) {
             await invoicesApi.updateItem(item.id, {
               quantity: item.quantity,
+              discount: item.discount,
             });
           }
 
@@ -404,7 +593,7 @@ export const PatientRecordModal = ({
                 name: item.description,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
-                discount: 0,
+                discount: item.discount || 0,
                 totalPrice: item.totalPrice,
               }))
             );
@@ -438,6 +627,7 @@ export const PatientRecordModal = ({
             description: item.name,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            discount: item.discount,
           })),
         });
 
@@ -449,7 +639,7 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
-              discount: 0,
+              discount: item.discount || 0,
               totalPrice: item.totalPrice,
             }))
           );
@@ -579,14 +769,81 @@ export const PatientRecordModal = ({
     }
   };
 
+  // Get empty SOAP fields
+  const getEmptyFields = useCallback((): string[] => {
+    const emptyFields: string[] = [];
+    const soapFields = [
+      'chiefComplaint', 'history', 'weight', 'temperature', 'heartRate',
+      'respirationRate', 'bodyConditionScore', 'muscleCondition', 'painScore',
+      'hydration', 'attitude', 'behaviour', 'mucousMembranes', 'crt',
+      'diagnosis', 'treatment'
+    ];
 
-  // Auto-save function
-  const saveRecord = useCallback(async () => {
+    soapFields.forEach(field => {
+      const value = formData[field as keyof MedicalRecordInput];
+      if (value === undefined || value === null || value === '') {
+        emptyFields.push(field);
+      }
+    });
+
+    return emptyFields;
+  }, [formData]);
+
+  // Close record handler
+  const handleCloseRecord = async () => {
+    if (!record) return;
+
+    setClosingRecord(true);
+    try {
+      await medicalRecordsApi.closeRecord(record.id);
+      if (isMountedRef.current) {
+        setShowCloseWarning(false);
+        // Close modal and refresh Flow Board to show card in COMPLETED column
+        onClose();
+        onSuccess?.();
+      }
+    } catch (err) {
+      console.error('Failed to close record:', err);
+    } finally {
+      if (isMountedRef.current) {
+        setClosingRecord(false);
+      }
+    }
+  };
+
+  // Reopen record handler
+  const handleReopenRecord = async () => {
+    if (!record) return;
+
+    setReopeningRecord(true);
+    try {
+      await medicalRecordsApi.reopenRecord(record.id);
+      if (isMountedRef.current) {
+        // Close modal and refresh Flow Board to show card in IN_PROGRESS column
+        onClose();
+        onSuccess?.();
+      }
+    } catch (err) {
+      console.error('Failed to reopen record:', err);
+    } finally {
+      if (isMountedRef.current) {
+        setReopeningRecord(false);
+      }
+    }
+  };
+
+
+  // Auto-save function - uses ref to get latest formData
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
+  const saveRecord = useCallback(async (dataToSave?: MedicalRecordInput) => {
     if (!record || !isMountedRef.current) return;
 
+    const data = dataToSave || formDataRef.current;
     setSaving(true);
     try {
-      await medicalRecordsApi.update(record.id, formData);
+      await medicalRecordsApi.update(record.id, data);
       if (!isMountedRef.current) return;
       setLastSaved(new Date());
     } catch (err) {
@@ -598,19 +855,23 @@ export const PatientRecordModal = ({
         setSaving(false);
       }
     }
-  }, [record, formData, t]);
+  }, [record, t]);
 
   // Handle form field changes with auto-save
   const handleFieldChange = useCallback((field: keyof MedicalRecordInput, value: string | number | undefined) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
 
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
 
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      saveRecord();
-    }, 2000);
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        saveRecord(newData);
+      }, 2000);
+
+      return newData;
+    });
   }, [saveRecord]);
 
   // Manual save
@@ -624,8 +885,9 @@ export const PatientRecordModal = ({
   const handleClose = useCallback(() => {
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
-      saveRecord();
     }
+    // Always save before closing to ensure data is not lost
+    saveRecord();
     onClose();
   }, [onClose, saveRecord]);
 
@@ -654,25 +916,69 @@ export const PatientRecordModal = ({
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-emerald-600 to-emerald-700 text-white">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold">{t('title')}</h2>
+            {record?.isClosed && (
+              <span className="flex items-center gap-1 text-sm bg-red-500/80 px-3 py-1 rounded-full">
+                {tFlow('record.closed')}
+              </span>
+            )}
             {saving && (
               <span className="flex items-center gap-1 text-sm bg-white/20 px-3 py-1 rounded-full">
                 <ArrowPathIcon className="w-4 h-4 animate-spin" />
                 {t('saving')}
               </span>
             )}
-            {!saving && lastSaved && (
+            {!saving && lastSaved && !record?.isClosed && (
               <span className="text-sm text-emerald-100">
                 {t('lastSaved')}: {lastSaved.toLocaleTimeString()}
               </span>
             )}
           </div>
-          <button
-            onClick={handleClose}
-            className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
-            type="button"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Close/Reopen Record Button */}
+            {record && !isReadOnly && (
+              record.isClosed ? (
+                <button
+                  onClick={handleReopenRecord}
+                  disabled={reopeningRecord}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                  type="button"
+                >
+                  {reopeningRecord ? (
+                    <>
+                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      {tFlow('record.reopening')}
+                    </>
+                  ) : (
+                    tFlow('record.reopen')
+                  )}
+                </button>
+              ) : (
+                <div className="relative group">
+                  <button
+                    onClick={() => setShowCloseWarning(true)}
+                    disabled={closingRecord || !mandatoryFieldsValid}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                  >
+                    {tFlow('record.close')}
+                  </button>
+                  {!mandatoryFieldsValid && (
+                    <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      {t('mandatoryFields.mustFillBeforeClose')}
+                      <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-800"></div>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+            <button
+              onClick={handleClose}
+              className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+              type="button"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -749,7 +1055,7 @@ export const PatientRecordModal = ({
                           value={formData.chiefComplaint || ''}
                           onChange={(e) => handleFieldChange('chiefComplaint', e.target.value)}
                           rows={2}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.chiefComplaint')}
                         />
@@ -760,7 +1066,7 @@ export const PatientRecordModal = ({
                           value={formData.history || ''}
                           onChange={(e) => handleFieldChange('history', e.target.value)}
                           rows={2}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.history')}
                         />
@@ -776,44 +1082,72 @@ export const PatientRecordModal = ({
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.weight')} (kg)</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {t('fields.weight')} (kg) <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
+                          min="0"
                           step="0.1"
                           value={formData.weight || ''}
-                          onChange={(e) => handleFieldChange('weight', e.target.value ? parseFloat(e.target.value) : undefined)}
-                          disabled={isReadOnly}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            handleFieldChange('weight', e.target.value && val >= 0 ? val : undefined);
+                          }}
+                          disabled={isReadOnly || record?.isClosed}
+                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm ${
+                            !formData.weight && !record?.isClosed ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+                          }`}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.temperature')} (C)</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {t('fields.temperature')} (C) <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
+                          min="0"
                           step="0.1"
                           value={formData.temperature || ''}
-                          onChange={(e) => handleFieldChange('temperature', e.target.value ? parseFloat(e.target.value) : undefined)}
-                          disabled={isReadOnly}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            handleFieldChange('temperature', e.target.value && val >= 0 ? val : undefined);
+                          }}
+                          disabled={isReadOnly || record?.isClosed}
+                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm ${
+                            !formData.temperature && !record?.isClosed ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+                          }`}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.heartRate')} (bpm)</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {t('fields.heartRate')} (bpm) <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
+                          min="0"
                           value={formData.heartRate || ''}
-                          onChange={(e) => handleFieldChange('heartRate', e.target.value ? parseInt(e.target.value) : undefined)}
-                          disabled={isReadOnly}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            handleFieldChange('heartRate', e.target.value && val >= 0 ? val : undefined);
+                          }}
+                          disabled={isReadOnly || record?.isClosed}
+                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm ${
+                            !formData.heartRate && !record?.isClosed ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+                          }`}
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.respirationRate')} (/min)</label>
                         <input
                           type="number"
+                          min="0"
                           value={formData.respirationRate || ''}
-                          onChange={(e) => handleFieldChange('respirationRate', e.target.value ? parseInt(e.target.value) : undefined)}
-                          disabled={isReadOnly}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            handleFieldChange('respirationRate', e.target.value && val >= 0 ? val : undefined);
+                          }}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         />
                       </div>
@@ -825,7 +1159,7 @@ export const PatientRecordModal = ({
                           max="9"
                           value={formData.bodyConditionScore || ''}
                           onChange={(e) => handleFieldChange('bodyConditionScore', e.target.value ? parseInt(e.target.value) : undefined)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         />
                       </div>
@@ -837,7 +1171,7 @@ export const PatientRecordModal = ({
                           max="10"
                           value={formData.painScore || ''}
                           onChange={(e) => handleFieldChange('painScore', e.target.value ? parseInt(e.target.value) : undefined)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         />
                       </div>
@@ -846,7 +1180,7 @@ export const PatientRecordModal = ({
                         <select
                           value={formData.muscleCondition || ''}
                           onChange={(e) => handleFieldChange('muscleCondition', e.target.value)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         >
                           <option value="">{t('select')}</option>
@@ -860,7 +1194,7 @@ export const PatientRecordModal = ({
                         <select
                           value={formData.hydration || ''}
                           onChange={(e) => handleFieldChange('hydration', e.target.value)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         >
                           <option value="">{t('select')}</option>
@@ -874,7 +1208,7 @@ export const PatientRecordModal = ({
                         <select
                           value={formData.attitude || ''}
                           onChange={(e) => handleFieldChange('attitude', e.target.value)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         >
                           <option value="">{t('select')}</option>
@@ -888,7 +1222,7 @@ export const PatientRecordModal = ({
                         <select
                           value={formData.mucousMembranes || ''}
                           onChange={(e) => handleFieldChange('mucousMembranes', e.target.value)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         >
                           <option value="">{t('select')}</option>
@@ -901,10 +1235,14 @@ export const PatientRecordModal = ({
                         <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.crt')} (sec)</label>
                         <input
                           type="number"
+                          min="0"
                           step="0.1"
                           value={formData.crt || ''}
-                          onChange={(e) => handleFieldChange('crt', e.target.value ? parseFloat(e.target.value) : undefined)}
-                          disabled={isReadOnly}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            handleFieldChange('crt', e.target.value && val >= 0 ? val : undefined);
+                          }}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         />
                       </div>
@@ -914,7 +1252,7 @@ export const PatientRecordModal = ({
                           type="text"
                           value={formData.behaviour || ''}
                           onChange={(e) => handleFieldChange('behaviour', e.target.value)}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
                         />
                       </div>
@@ -931,7 +1269,7 @@ export const PatientRecordModal = ({
                       value={formData.diagnosis || ''}
                       onChange={(e) => handleFieldChange('diagnosis', e.target.value)}
                       rows={2}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || record?.isClosed}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                       placeholder={t('placeholders.diagnosis')}
                     />
@@ -950,7 +1288,7 @@ export const PatientRecordModal = ({
                           value={formData.treatment || ''}
                           onChange={(e) => handleFieldChange('treatment', e.target.value)}
                           rows={2}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.treatment')}
                         />
@@ -961,7 +1299,7 @@ export const PatientRecordModal = ({
                           value={formData.notes || ''}
                           onChange={(e) => handleFieldChange('notes', e.target.value)}
                           rows={2}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || record?.isClosed}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.notes')}
                         />
@@ -1075,66 +1413,226 @@ export const PatientRecordModal = ({
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.date')}</label>
-                              <input
-                                type="date"
-                                value={nextAppointmentData.appointmentDate}
-                                min={getTomorrowDate()}
-                                onChange={(e) => setNextAppointmentData(prev => ({
-                                  ...prev,
-                                  appointmentDate: e.target.value,
-                                  appointmentTime: '09:00',
-                                }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.time')}</label>
-                              <select
-                                value={nextAppointmentData.appointmentTime}
-                                onChange={(e) => setNextAppointmentData(prev => ({
-                                  ...prev,
-                                  appointmentTime: e.target.value,
-                                }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                                disabled={availableTimeSlots.length === 0}
-                              >
-                                {availableTimeSlots.length === 0 ? (
-                                  <option value="">{t('nextAppointment.noSlots')}</option>
-                                ) : (
-                                  availableTimeSlots.map(slot => (
-                                    <option key={slot} value={slot}>{slot}</option>
-                                  ))
+                          {/* 3 Independent Appointment Date + Time Rows */}
+                          <div className="space-y-3">
+                            {/* Routine Check-up */}
+                            <div className="p-3 rounded-lg border bg-sky-50 border-sky-100">
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-sky-700">
+                                  {tFlow('nextAppointment.routineCheckup')}
+                                </label>
+                              </div>
+                              {/* Show existing booked appointments */}
+                              {bookedAppointmentsByType.checkup.length > 0 && (
+                                <div className="mb-3 space-y-2">
+                                  {bookedAppointmentsByType.checkup.map((appt) => (
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 border border-orange-300 rounded-lg">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-orange-500">🟠</span>
+                                        <span className="text-sm font-medium text-orange-800">
+                                          {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
+                                        </span>
+                                        {appt.vet && (
+                                          <span className="text-xs text-orange-600">
+                                            ({appt.vet.firstName} {appt.vet.lastName})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Add new appointment form */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <input
+                                    type="date"
+                                    value={checkupDate}
+                                    min={getTomorrowDate()}
+                                    onChange={(e) => setCheckupDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-sky-200 bg-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={checkupTime}
+                                    onChange={(e) => setCheckupTime(e.target.value)}
+                                    disabled={!checkupDate || !appointmentVetId}
+                                    className="w-full px-3 py-2 border border-sky-200 bg-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">{t('nextAppointment.time')}</option>
+                                    {checkupDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], checkupDate)
+                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], checkupBookedSlots))
+                                      .map(slot => (
+                                        <option key={slot} value={slot}>{slot}</option>
+                                      ))}
+                                  </select>
+                                </div>
+                                {(checkupDate || checkupTime) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setCheckupDate(''); setCheckupTime(''); }}
+                                    className="p-1 text-sky-400 hover:text-sky-600"
+                                  >
+                                    <XMarkIcon className="w-5 h-5" />
+                                  </button>
                                 )}
-                              </select>
+                              </div>
+                              {bookedAppointmentsByType.checkup.length > 0 && (
+                                <p className="mt-2 text-xs text-sky-600">
+                                  {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.routineCheckup')}
+                                </p>
+                              )}
                             </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.visitType')}</label>
-                              <select
-                                value={nextAppointmentData.visitType}
-                                onChange={(e) => setNextAppointmentData(prev => ({
-                                  ...prev,
-                                  visitType: e.target.value as VisitType,
-                                }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                              >
-                                {Object.values(VisitType).map(type => (
-                                  <option key={type} value={type}>
-                                    {tFlow(`visitTypes.${type}`)} ({VISIT_TYPE_DURATION[type]} {t('nextAppointment.minutes')})
-                                  </option>
-                                ))}
-                              </select>
+
+                            {/* Vaccination */}
+                            <div className="p-3 rounded-lg border bg-green-50 border-green-100">
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-green-700">
+                                  {tFlow('nextAppointment.nextVaccination')}
+                                </label>
+                              </div>
+                              {/* Show existing booked appointments */}
+                              {bookedAppointmentsByType.vaccination.length > 0 && (
+                                <div className="mb-3 space-y-2">
+                                  {bookedAppointmentsByType.vaccination.map((appt) => (
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 border border-orange-300 rounded-lg">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-orange-500">🟠</span>
+                                        <span className="text-sm font-medium text-orange-800">
+                                          {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
+                                        </span>
+                                        {appt.vet && (
+                                          <span className="text-xs text-orange-600">
+                                            ({appt.vet.firstName} {appt.vet.lastName})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Add new appointment form */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <input
+                                    type="date"
+                                    value={vaccinationDate}
+                                    min={getTomorrowDate()}
+                                    onChange={(e) => setVaccinationDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-green-200 bg-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={vaccinationTime}
+                                    onChange={(e) => setVaccinationTime(e.target.value)}
+                                    disabled={!vaccinationDate || !appointmentVetId}
+                                    className="w-full px-3 py-2 border border-green-200 bg-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">{t('nextAppointment.time')}</option>
+                                    {vaccinationDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.VACCINATION], vaccinationDate)
+                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.VACCINATION], vaccinationBookedSlots))
+                                      .map(slot => (
+                                        <option key={slot} value={slot}>{slot}</option>
+                                      ))}
+                                  </select>
+                                </div>
+                                {(vaccinationDate || vaccinationTime) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setVaccinationDate(''); setVaccinationTime(''); }}
+                                    className="p-1 text-green-400 hover:text-green-600"
+                                  >
+                                    <XMarkIcon className="w-5 h-5" />
+                                  </button>
+                                )}
+                              </div>
+                              {bookedAppointmentsByType.vaccination.length > 0 && (
+                                <p className="mt-2 text-xs text-green-600">
+                                  {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.nextVaccination')}
+                                </p>
+                              )}
                             </div>
+
+                            {/* Deworming - Flea */}
+                            <div className="p-3 rounded-lg border bg-purple-50 border-purple-100">
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-purple-700">
+                                  {tFlow('nextAppointment.dewormingFlea')}
+                                </label>
+                              </div>
+                              {/* Show existing booked appointments */}
+                              {bookedAppointmentsByType.deworming.length > 0 && (
+                                <div className="mb-3 space-y-2">
+                                  {bookedAppointmentsByType.deworming.map((appt) => (
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 border border-orange-300 rounded-lg">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-orange-500">🟠</span>
+                                        <span className="text-sm font-medium text-orange-800">
+                                          {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
+                                        </span>
+                                        {appt.vet && (
+                                          <span className="text-xs text-orange-600">
+                                            ({appt.vet.firstName} {appt.vet.lastName})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Add new appointment form */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <input
+                                    type="date"
+                                    value={dewormingDate}
+                                    min={getTomorrowDate()}
+                                    onChange={(e) => setDewormingDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-purple-200 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={dewormingTime}
+                                    onChange={(e) => setDewormingTime(e.target.value)}
+                                    disabled={!dewormingDate || !appointmentVetId}
+                                    className="w-full px-3 py-2 border border-purple-200 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">{t('nextAppointment.time')}</option>
+                                    {dewormingDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], dewormingDate)
+                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], dewormingBookedSlots))
+                                      .map(slot => (
+                                        <option key={slot} value={slot}>{slot}</option>
+                                      ))}
+                                  </select>
+                                </div>
+                                {(dewormingDate || dewormingTime) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setDewormingDate(''); setDewormingTime(''); }}
+                                    className="p-1 text-purple-400 hover:text-purple-600"
+                                  >
+                                    <XMarkIcon className="w-5 h-5" />
+                                  </button>
+                                )}
+                              </div>
+                              {bookedAppointmentsByType.deworming.length > 0 && (
+                                <p className="mt-2 text-xs text-purple-600">
+                                  {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.dewormingFlea')}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Vet Selection */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.vet')}</label>
                               <select
-                                value={nextAppointmentData.vetId}
-                                onChange={(e) => setNextAppointmentData(prev => ({
-                                  ...prev,
-                                  vetId: e.target.value,
-                                }))}
+                                value={appointmentVetId}
+                                onChange={(e) => setAppointmentVetId(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                               >
                                 <option value="">{t('select')}</option>
@@ -1145,21 +1643,24 @@ export const PatientRecordModal = ({
                                 ))}
                               </select>
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.notes')}</label>
+                              <input
+                                type="text"
+                                value={appointmentNotes}
+                                onChange={(e) => setAppointmentNotes(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                placeholder={t('nextAppointment.notesPlaceholder')}
+                              />
+                            </div>
                           </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.notes')}</label>
-                            <textarea
-                              value={nextAppointmentData.notes}
-                              onChange={(e) => setNextAppointmentData(prev => ({
-                                ...prev,
-                                notes: e.target.value,
-                              }))}
-                              rows={2}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                              placeholder={t('nextAppointment.notesPlaceholder')}
-                            />
-                          </div>
+                          {/* Summary */}
+                          {appointmentsToBookCount > 0 && (
+                            <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                              {t('nextAppointment.willBook', { count: appointmentsToBookCount })}
+                            </div>
+                          )}
 
                           {bookingError && (
                             <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
@@ -1173,6 +1674,13 @@ export const PatientRecordModal = ({
                               onClick={() => {
                                 setShowNextAppointment(false);
                                 setBookingError(null);
+                                setCheckupDate('');
+                                setCheckupTime('');
+                                setVaccinationDate('');
+                                setVaccinationTime('');
+                                setDewormingDate('');
+                                setDewormingTime('');
+                                setAppointmentNotes('');
                               }}
                               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium transition-colors"
                             >
@@ -1180,8 +1688,8 @@ export const PatientRecordModal = ({
                             </button>
                             <button
                               type="button"
-                              onClick={handleBookNextAppointment}
-                              disabled={bookingAppointment || !nextAppointmentData.vetId || availableTimeSlots.length === 0}
+                              onClick={handleBookNextAppointments}
+                              disabled={bookingAppointment || !appointmentVetId || appointmentsToBookCount === 0}
                               className="flex items-center gap-2 px-5 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
                             >
                               {bookingAppointment ? (
@@ -1192,7 +1700,7 @@ export const PatientRecordModal = ({
                               ) : (
                                 <>
                                   <CalendarDaysIcon className="w-4 h-4" />
-                                  {t('nextAppointment.book')}
+                                  {t('nextAppointment.book')} {appointmentsToBookCount > 0 && `(${appointmentsToBookCount})`}
                                 </>
                               )}
                             </button>
@@ -1201,6 +1709,48 @@ export const PatientRecordModal = ({
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Upcoming Appointments Section */}
+              {upcomingAppointments.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="bg-indigo-50 px-5 py-3 border-b border-indigo-100 flex items-center gap-2">
+                    <CalendarDaysIcon className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-lg font-semibold text-indigo-900">{t('upcomingAppointments.title')}</h3>
+                    <span className="bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                      {upcomingAppointments.length}
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <div className="space-y-2">
+                      {upcomingAppointments.map((appt) => (
+                        <div
+                          key={appt.id}
+                          className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm font-medium text-indigo-700">
+                              {new Date(appt.appointmentDate).toLocaleDateString()}
+                            </div>
+                            <div className="text-sm text-indigo-600" dir="ltr">
+                              {appt.appointmentTime}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                              {appt.notes || (appt.visitType && tFlow(`visitTypes.${appt.visitType}`))}
+                            </span>
+                            {appt.vet && (
+                              <span className="text-sm text-gray-600">
+                                {appt.vet.firstName} {appt.vet.lastName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1245,6 +1795,30 @@ export const PatientRecordModal = ({
         cancelText={tFlow('invoice.cancel')}
         variant="warning"
         loading={finalizingInvoice}
+      />
+
+      {/* Close Record Warning Modal */}
+      <ConfirmationModal
+        isOpen={showCloseWarning}
+        onClose={() => setShowCloseWarning(false)}
+        onConfirm={handleCloseRecord}
+        title={tFlow('record.closeWarningTitle')}
+        message={
+          <>
+            {tFlow('record.closeWarning')}
+            {getEmptyFields().length > 0 && (
+              <ul className="mt-3 list-disc list-inside text-sm text-gray-600">
+                {getEmptyFields().map((field) => (
+                  <li key={field}>{tFlow(`record.emptyFields.${field}`)}</li>
+                ))}
+              </ul>
+            )}
+          </>
+        }
+        confirmText={tFlow('record.closeConfirm')}
+        cancelText={tFlow('record.closeCancel')}
+        variant="warning"
+        loading={closingRecord}
       />
     </div>
   );

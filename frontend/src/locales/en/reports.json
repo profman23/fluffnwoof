@@ -8,6 +8,8 @@
       "to": "To",
       "vet": "Veterinarian",
       "allVets": "All Veterinarians",
+      "customerCode": "Customer Code",
+      "phone": "Phone Number",
       "apply": "Apply",
       "reset": "Reset"
     },

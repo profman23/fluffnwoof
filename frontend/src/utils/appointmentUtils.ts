@@ -9,12 +9,14 @@ export const VISIT_TYPE_DURATION: Record<VisitType, number> = {
   [VisitType.EMERGENCY]: 45,
 };
 
-// Generate time slots based on duration, filtering past times for today
+// Generate time slots with 30-minute intervals, filtering past times for today
+// The durationMinutes is used to ensure the slot ends before closing time
 export const generateTimeSlots = (durationMinutes: number, selectedDate: string): string[] => {
   const slots: string[] = [];
   const startHour = 8; // 8:00 AM
   const endHour = 23; // 11:00 PM
   const endMinute = 30; // End at 11:30 PM
+  const slotInterval = 30; // Always use 30-minute intervals for slot display
 
   // Check if selected date is today
   const now = new Date();
@@ -24,13 +26,13 @@ export const generateTimeSlots = (durationMinutes: number, selectedDate: string)
   const currentMinute = now.getMinutes();
 
   for (let hour = startHour; hour <= endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += durationMinutes) {
+    for (let minute = 0; minute < 60; minute += slotInterval) {
       // Skip past times if today
       if (isToday && (hour < currentHour || (hour === currentHour && minute <= currentMinute))) {
         continue;
       }
 
-      // Calculate end time of this slot
+      // Calculate end time of this slot based on actual duration
       const slotEndMinutes = hour * 60 + minute + durationMinutes;
       const maxEndMinutes = endHour * 60 + endMinute;
 

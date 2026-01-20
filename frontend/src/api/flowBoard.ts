@@ -9,6 +9,7 @@ export interface CreateFlowBoardAppointmentInput {
   visitType: VisitType;
   duration?: number;
   notes?: string;
+  scheduledFromRecordId?: string;
 }
 
 export const flowBoardApi = {
@@ -89,5 +90,31 @@ export const flowBoardApi = {
   updateConfirmation: async (id: string, isConfirmed: boolean): Promise<Appointment> => {
     const response = await api.patch(`/appointments/${id}/confirmation`, { isConfirmed });
     return response.data.data;
+  },
+
+  /**
+   * Get upcoming appointments for a specific pet
+   */
+  getUpcomingByPetId: async (petId: string): Promise<Appointment[]> => {
+    try {
+      const response = await api.get(`/appointments/pet/${petId}/upcoming`);
+      return response.data?.data || [];
+    } catch (error) {
+      console.error('Failed to fetch pet upcoming appointments:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get appointments scheduled from a specific medical record
+   */
+  getByScheduledFromRecordId: async (recordId: string): Promise<Appointment[]> => {
+    try {
+      const response = await api.get(`/appointments/record/${recordId}/scheduled`);
+      return response.data?.data || [];
+    } catch (error) {
+      console.error('Failed to fetch record scheduled appointments:', error);
+      return [];
+    }
   },
 };

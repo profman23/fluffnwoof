@@ -15,6 +15,9 @@
   "unconfirmed": "Unconfirmed",
   "cancelled": "Cancelled",
   "showCancelled": "Show Cancelled",
+  "sort": "Sort",
+  "sortAsc": "Sort by time (earliest first)",
+  "sortDesc": "Sort by time (latest first)",
   "menu": {
     "confirm": "Confirm",
     "unconfirm": "Unconfirm",
@@ -120,5 +123,61 @@
   "addPayment": "Add",
   "payFull": "Pay Full",
   "amount": "Amount",
-  "fullyPaid": "Fully Paid"
+  "fullyPaid": "Fully Paid",
+  "record": {
+    "close": "Close Record",
+    "reopen": "Reopen Record",
+    "closing": "Closing...",
+    "reopening": "Reopening...",
+    "closed": "Record Closed",
+    "closedBy": "Closed by",
+    "closedAt": "Closed at",
+    "closeWarningTitle": "Close Medical Record",
+    "closeWarning": "Are you sure you want to close this medical record? The following fields are empty:",
+    "closeConfirm": "Close Record",
+    "closeCancel": "Cancel",
+    "emptyFields": {
+      "chiefComplaint": "Chief Complaint",
+      "history": "History",
+      "weight": "Weight",
+      "temperature": "Temperature",
+      "heartRate": "Heart Rate",
+      "respirationRate": "Respiration Rate",
+      "bodyConditionScore": "Body Condition Score",
+      "muscleCondition": "Muscle Condition",
+      "painScore": "Pain Score",
+      "hydration": "Hydration",
+      "attitude": "Attitude",
+      "behaviour": "Behaviour",
+      "mucousMembranes": "Mucous Membranes",
+      "crt": "CRT",
+      "diagnosis": "Diagnosis",
+      "treatment": "Treatment"
+    }
+  },
+  "nextAppointment": {
+    "title": "Next Appointment",
+    "book": "Book Appointment",
+    "booking": "Booking...",
+    "booked": "Booked",
+    "type": "Appointment Type",
+    "routineCheckup": "Routine Check-up",
+    "nextVaccination": "Next Vaccination",
+    "nextDeworming": "Next Deworming",
+    "dewormingFlea": "Deworming - Flea",
+    "date": "Date",
+    "time": "Time",
+    "vet": "Veterinarian",
+    "notes": "Notes",
+    "selectVet": "Select Veterinarian",
+    "noAvailableSlots": "No available slots",
+    "alreadyBooked": "Already booked",
+    "addAnother": "Add Another",
+    "existingAppointments": "Existing Appointments",
+    "newAppointment": "New Appointment"
+  },
+  "mandatoryFields": {
+    "required": "Required",
+    "mustFillBeforeClose": "Please fill all mandatory fields (Weight, Temperature, Heart Rate) before closing the record"
+  }
 }

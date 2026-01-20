@@ -6,6 +6,8 @@ interface GetNextAppointmentsParams {
   startDate?: string;
   endDate?: string;
   vetId?: string;
+  customerCode?: string;
+  phone?: string;
   page?: number;
   limit?: number;
 }
@@ -20,7 +22,7 @@ interface PaginatedResult<T> {
 
 export const reportService = {
   getNextAppointments: async (params: GetNextAppointmentsParams): Promise<PaginatedResult<any>> => {
-    const { startDate, endDate, vetId, page = 1, limit = 20 } = params;
+    const { startDate, endDate, vetId, customerCode, phone, page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -46,6 +48,27 @@ export const reportService = {
       where.vetId = vetId;
     }
 
+    // Customer code filtering
+    if (customerCode) {
+      where.pet = {
+        ...where.pet,
+        owner: {
+          customerCode: { contains: customerCode, mode: 'insensitive' },
+        },
+      };
+    }
+
+    // Phone filtering
+    if (phone) {
+      where.pet = {
+        ...where.pet,
+        owner: {
+          ...where.pet?.owner,
+          phone: { contains: phone },
+        },
+      };
+    }
+
     // Get total count
     const total = await prisma.appointment.count({ where });
 
@@ -54,7 +77,11 @@ export const reportService = {
       where,
       include: {
         pet: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            petCode: true,
             owner: {
               select: {
                 id: true,
@@ -62,6 +89,7 @@ export const reportService = {
                 lastName: true,
                 phone: true,
                 email: true,
+                customerCode: true,
               },
             },
           },

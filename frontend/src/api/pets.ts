@@ -30,7 +30,10 @@ export interface UpdatePetInput {
 }
 
 export interface PetWithOwner extends Omit<Pet, 'owner'> {
-  owner: Pick<Owner, 'id' | 'firstName' | 'lastName' | 'phone' | 'email'>;
+  petCode?: string;
+  owner: Pick<Owner, 'id' | 'firstName' | 'lastName' | 'phone' | 'email'> & {
+    customerCode?: string;
+  };
 }
 
 export interface PaginatedPets {

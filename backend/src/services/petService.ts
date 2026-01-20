@@ -3,6 +3,22 @@ import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { Species, Gender } from '@prisma/client';
 
+// Generate next pet code (P00000001, P00000002, etc.)
+async function generatePetCode(): Promise<string> {
+  const lastPet = await prisma.pet.findFirst({
+    orderBy: { petCode: 'desc' },
+    select: { petCode: true },
+  });
+
+  if (!lastPet || !lastPet.petCode) {
+    return 'P00000001';
+  }
+
+  const lastNumber = parseInt(lastPet.petCode.substring(1), 10);
+  const nextNumber = lastNumber + 1;
+  return `P${nextNumber.toString().padStart(8, '0')}`;
+}
+
 export const petService = {
   async create(data: {
     name: string;
@@ -17,8 +33,13 @@ export const petService = {
     notes?: string;
     ownerId: string;
   }) {
+    const petCode = await generatePetCode();
+
     const pet = await prisma.pet.create({
-      data,
+      data: {
+        ...data,
+        petCode,
+      },
       include: {
         owner: {
           select: {
@@ -26,6 +47,7 @@ export const petService = {
             firstName: true,
             lastName: true,
             phone: true,
+            customerCode: true,
           },
         },
       },
@@ -44,6 +66,11 @@ export const petService = {
         { name: { contains: search, mode: 'insensitive' as const } },
         { breed: { contains: search, mode: 'insensitive' as const } },
         { microchipId: { contains: search } },
+        { petCode: { contains: search, mode: 'insensitive' as const } },
+        { owner: { firstName: { contains: search, mode: 'insensitive' as const } } },
+        { owner: { lastName: { contains: search, mode: 'insensitive' as const } } },
+        { owner: { phone: { contains: search } } },
+        { owner: { customerCode: { contains: search, mode: 'insensitive' as const } } },
       ];
     }
 
@@ -63,6 +90,7 @@ export const petService = {
               firstName: true,
               lastName: true,
               phone: true,
+              customerCode: true,
             },
           },
         },

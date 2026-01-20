@@ -163,10 +163,16 @@ export const PatientsPage: React.FC = () => {
               <tr>
                 <th className="w-10"></th>
                 <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('table.customerCode')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('table.ownerName')}
                 </th>
                 <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('table.phone')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('table.petCode')}
                 </th>
                 <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('table.petName')}
@@ -188,13 +194,13 @@ export const PatientsPage: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     {t('loading')}
                   </td>
                 </tr>
               ) : pets.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     <div className="flex flex-col items-center">
                       <span className="text-4xl mb-2">🐾</span>
                       <p>{t('noPatients')}</p>
@@ -221,12 +227,22 @@ export const PatientsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {pet.owner.customerCode || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {pet.owner.firstName} {pet.owner.lastName}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500" dir="ltr">
                         {canViewPhone ? pet.owner.phone : maskPhoneNumber(pet.owner.phone)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {pet.petCode || '-'}
+                        </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{pet.name}</div>
@@ -266,7 +282,7 @@ export const PatientsPage: React.FC = () => {
                     {/* Expanded Details Row */}
                     {expandedRowId === pet.id && (
                       <tr>
-                        <td colSpan={8} className="px-4 py-4 bg-gray-50">
+                        <td colSpan={10} className="px-4 py-4 bg-gray-50">
                           <PatientDetails
                             pet={pet}
                             canModify={canModify}

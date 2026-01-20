@@ -3,17 +3,18 @@
   "refresh": "تحديث",
   "retry": "إعادة المحاولة",
   "stats": {
-    "todayAppointments": "المواعيد اليوم",
+    "todayAppointments": "مواعيد اليوم",
     "registeredPets": "الحيوانات المسجلة",
-    "registeredOwners": "الملاك المسجلين",
+    "registeredOwners": "العملاء المسجلين",
     "pendingInvoices": "الفواتير المعلقة"
   },
   "upcomingAppointments": "المواعيد القادمة",
   "upcomingVaccinations": "التطعيمات القادمة",
   "noAppointments": "لا توجد مواعيد قادمة",
   "noVaccinations": "لا توجد تطعيمات قادمة",
+  "noData": "لا توجد بيانات",
   "appointmentTypes": {
-    "checkup": "فحص دوري",
+    "checkup": "فحص عام",
     "vaccination": "تطعيم",
     "grooming": "تجميل",
     "surgery": "جراحة",
@@ -26,10 +27,70 @@
     "inTwoDays": "بعد يومين"
   },
   "vaccineTypes": {
-    "tripleCanine": "تطعيم الكلب الثلاثي",
-    "rabies": "تطعيم السعار"
+    "tripleCanine": "اللقاح الثلاثي للكلاب",
+    "rabies": "لقاح داء الكلب"
   },
   "errors": {
     "loadFailed": "فشل تحميل البيانات"
+  },
+  "vetPerformance": {
+    "title": "أداء الأطباء",
+    "detailsTitle": "تفاصيل أداء الطبيب",
+    "loadError": "فشل تحميل بيانات أداء الأطباء",
+    "noData": "لا توجد بيانات أداء متاحة",
+    "lastActivity": "آخر نشاط",
+    "noActivity": "لا يوجد نشاط بعد",
+    "yesterday": "أمس",
+    "daysAgo": "منذ {{count}} أيام",
+    "completionRate": "نسبة الإكمال",
+    "totalRecords": "إجمالي السجلات",
+    "complete": "مكتمل",
+    "incomplete": "غير مكتمل",
+    "viewDetails": "عرض التفاصيل",
+    "performanceExcellent": "أداء ممتاز",
+    "performanceGood": "أداء جيد",
+    "performanceNeedsImprovement": "يحتاج تحسين",
+    "description": "السجل الطبي المكتمل يشمل جميع حقول SOAP: الشكوى الرئيسية، التاريخ المرضي، الوزن، الحرارة، معدل ضربات القلب، معدل التنفس، حالة الجسم، حالة العضلات، درجة الألم، الترطيب، السلوك، الأغشية المخاطية، CRT، التشخيص، والعلاج."
+  },
+  "analytics": {
+    "totalAppointments": "إجمالي المواعيد",
+    "completedAppointments": "مكتملة",
+    "cancelledAppointments": "ملغاة",
+    "inProgress": "قيد التنفيذ",
+    "newPatients": "مرضى جدد",
+    "newOwners": "عملاء جدد",
+    "totalVets": "إجمالي الأطباء",
+    "totalPatients": "إجمالي المرضى",
+    "appointmentsTrend": "اتجاه المواعيد",
+    "patientsBySpecies": "المرضى حسب النوع",
+    "vetPerformance": "أداء الأطباء",
+    "changeFromPrevious": "مقارنة بالفترة السابقة",
+    "appointments": "المواعيد",
+    "total": "الإجمالي",
+    "completed": "مكتملة",
+    "cancelled": "ملغاة",
+    "noData": "لا توجد بيانات",
+    "completedRecords": "السجلات المكتملة",
+    "completionRate": "نسبة الإكمال"
+  },
+  "dateRange": {
+    "today": "اليوم",
+    "thisWeek": "هذا الأسبوع",
+    "thisMonth": "هذا الشهر",
+    "thisYear": "هذه السنة",
+    "custom": "مخصص",
+    "from": "من",
+    "to": "إلى"
+  },
+  "species": {
+    "DOG": "كلاب",
+    "CAT": "قطط",
+    "BIRD": "طيور",
+    "RABBIT": "أرانب",
+    "HAMSTER": "هامستر",
+    "GUINEA_PIG": "خنازير غينيا",
+    "TURTLE": "سلاحف",
+    "FISH": "أسماك",
+    "OTHER": "أخرى"
   }
 }

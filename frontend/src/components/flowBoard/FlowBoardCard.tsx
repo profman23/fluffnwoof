@@ -258,6 +258,14 @@ export const FlowBoardCard = ({
         )}
       </div>
 
+      {/* Medical Record Code - show when record is closed */}
+      {appointment.medicalRecord?.recordCode && (
+        <div className="flex items-center gap-1 mt-1.5 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded">
+          <DocumentTextIcon className="w-3 h-3" />
+          <span className="font-medium">{appointment.medicalRecord.recordCode}</span>
+        </div>
+      )}
+
       {/* Invoice Number - show when invoice is finalized */}
       {appointment.invoice?.isFinalized && (
         <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded">

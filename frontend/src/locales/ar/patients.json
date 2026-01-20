@@ -51,9 +51,11 @@
   },
 
   "table": {
+    "customerCode": "كود العميل",
     "ownerName": "المالك",
     "phone": "الهاتف",
     "email": "البريد الإلكتروني",
+    "petCode": "كود الحيوان",
     "petName": "اسم الحيوان",
     "species": "النوع",
     "breed": "السلالة",
@@ -109,7 +111,8 @@
     "genderRequired": "الجنس مطلوب",
     "firstNameRequired": "الاسم الأول مطلوب",
     "lastNameRequired": "الاسم الثاني مطلوب",
-    "phoneRequired": "رقم الهاتف مطلوب"
+    "phoneRequired": "رقم الهاتف مطلوب",
+    "phoneExists": "رقم الهاتف موجود مسبقاً"
   },
 
   "confirmDeactivate": "هل أنت متأكد من تعطيل هذا الحيوان الأليف؟",

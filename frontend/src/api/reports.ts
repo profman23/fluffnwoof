@@ -13,6 +13,8 @@ export interface GetNextAppointmentsParams {
   startDate?: string;
   endDate?: string;
   vetId?: string;
+  customerCode?: string;
+  phone?: string;
   page?: number;
   limit?: number;
 }

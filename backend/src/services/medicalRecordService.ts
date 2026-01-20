@@ -334,4 +334,118 @@ export const medicalRecordService = {
 
     return record;
   },
+
+  /**
+   * Close medical record
+   */
+  async closeRecord(id: string, userId: string) {
+    const existing = await prisma.medicalRecord.findUnique({
+      where: { id },
+      include: { appointment: true },
+    });
+    if (!existing) {
+      throw new AppError('Medical record not found', 404);
+    }
+
+    if (existing.isClosed) {
+      throw new AppError('Medical record is already closed', 400);
+    }
+
+    // Generate unique record code: MR-YYYYMMDD-XXX
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+
+    const countToday = await prisma.medicalRecord.count({
+      where: {
+        isClosed: true,
+        closedAt: {
+          gte: startOfDay
+        }
+      }
+    });
+
+    const recordCode = `MR-${dateStr}-${String(countToday + 1).padStart(3, '0')}`;
+
+    // Update medical record
+    const updatedRecord = await prisma.medicalRecord.update({
+      where: { id },
+      data: {
+        isClosed: true,
+        closedAt: new Date(),
+        closedById: userId,
+        recordCode: recordCode,
+      },
+      include: {
+        pet: {
+          include: { owner: true },
+        },
+        vet: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        closedBy: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        appointment: true,
+        prescriptions: true,
+      },
+    });
+
+    // Move appointment to COMPLETED if it exists
+    if (existing.appointmentId) {
+      await prisma.appointment.update({
+        where: { id: existing.appointmentId },
+        data: { status: 'COMPLETED' },
+      });
+    }
+
+    return updatedRecord;
+  },
+
+  /**
+   * Reopen medical record
+   */
+  async reopenRecord(id: string) {
+    const existing = await prisma.medicalRecord.findUnique({
+      where: { id },
+      include: { appointment: true },
+    });
+    if (!existing) {
+      throw new AppError('Medical record not found', 404);
+    }
+
+    if (!existing.isClosed) {
+      throw new AppError('Medical record is not closed', 400);
+    }
+
+    // Update medical record
+    const updatedRecord = await prisma.medicalRecord.update({
+      where: { id },
+      data: {
+        isClosed: false,
+        closedAt: null,
+        closedById: null,
+      },
+      include: {
+        pet: {
+          include: { owner: true },
+        },
+        vet: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        appointment: true,
+        prescriptions: true,
+      },
+    });
+
+    // Move appointment back to IN_PROGRESS if it exists and is COMPLETED
+    if (existing.appointmentId && existing.appointment?.status === 'COMPLETED') {
+      await prisma.appointment.update({
+        where: { id: existing.appointmentId },
+        data: { status: 'IN_PROGRESS' },
+      });
+    }
+
+    return updatedRecord;
+  },
 };

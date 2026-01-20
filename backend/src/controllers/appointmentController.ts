@@ -155,4 +155,32 @@ export const appointmentController = {
       next(error);
     }
   },
+
+  async getUpcomingByPetId(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { petId } = req.params;
+      const appointments = await appointmentService.getUpcomingByPetId(petId);
+
+      res.status(200).json({
+        success: true,
+        data: appointments,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getByScheduledFromRecordId(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { recordId } = req.params;
+      const appointments = await appointmentService.getByScheduledFromRecordId(recordId);
+
+      res.status(200).json({
+        success: true,
+        data: appointments,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

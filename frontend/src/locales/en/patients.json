@@ -51,9 +51,11 @@
   },
 
   "table": {
+    "customerCode": "Customer Code",
     "ownerName": "Owner",
     "phone": "Phone",
     "email": "Email",
+    "petCode": "Pet Code",
     "petName": "Pet Name",
     "species": "Species",
     "breed": "Breed",
@@ -109,7 +111,8 @@
     "genderRequired": "Gender is required",
     "firstNameRequired": "First name is required",
     "lastNameRequired": "Last name is required",
-    "phoneRequired": "Phone number is required"
+    "phoneRequired": "Phone number is required",
+    "phoneExists": "Phone number already exists"
   },
 
   "confirmDeactivate": "Are you sure you want to deactivate this pet?",

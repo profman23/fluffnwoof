@@ -4,11 +4,13 @@ import { Prisma } from '@prisma/client';
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
+  errorCode?: string;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, errorCode?: string) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
+    this.errorCode = errorCode;
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -25,9 +27,11 @@ export const errorHandler = (
   let message = 'حدث خطأ في الخادم';
 
   // Custom AppError
+  let errorCode: string | undefined;
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
+    errorCode = err.errorCode;
   }
 
   // Prisma errors
@@ -68,6 +72,7 @@ export const errorHandler = (
   res.status(statusCode).json({
     success: false,
     message,
+    ...(errorCode && { errorCode }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };

@@ -6,6 +6,7 @@ export interface InvoiceItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  discount: number;
   totalPrice: number;
   createdAt: string;
   updatedAt: string;
@@ -66,6 +67,7 @@ export interface CreateInvoiceInput {
     description: string;
     quantity: number;
     unitPrice: number;
+    discount?: number;
   }[];
 }
 
@@ -73,6 +75,7 @@ export interface AddItemInput {
   description: string;
   quantity: number;
   unitPrice: number;
+  discount?: number;
 }
 
 export interface AddPaymentInput {

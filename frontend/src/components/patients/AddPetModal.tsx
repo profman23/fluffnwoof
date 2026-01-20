@@ -265,7 +265,12 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
         }, 500);
       }
     } catch (error: any) {
-      setApiError(error.response?.data?.message || t('messages.error'));
+      const errorCode = error.response?.data?.errorCode;
+      if (errorCode === 'PHONE_EXISTS') {
+        setApiError(t('errors.phoneExists'));
+      } else {
+        setApiError(error.response?.data?.message || t('messages.error'));
+      }
     } finally {
       setLoading(false);
     }

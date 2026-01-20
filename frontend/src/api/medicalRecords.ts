@@ -74,4 +74,16 @@ export const medicalRecordsApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/medical-records/${id}`);
   },
+
+  // Close medical record
+  closeRecord: async (id: string): Promise<MedicalRecord> => {
+    const response = await apiClient.patch(`/medical-records/${id}/close`);
+    return response.data.data;
+  },
+
+  // Reopen medical record
+  reopenRecord: async (id: string): Promise<MedicalRecord> => {
+    const response = await apiClient.patch(`/medical-records/${id}/reopen`);
+    return response.data.data;
+  },
 };

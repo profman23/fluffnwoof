@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { FlowBoardAppointment } from '../../types';
 import { FlowBoardCard } from './FlowBoardCard';
 
@@ -15,6 +15,8 @@ interface FlowBoardColumnProps {
   onStatusChange?: () => void;
   onReschedule?: (appointment: FlowBoardAppointment) => void;
   hasFullAccess?: boolean;
+  sortOrder?: 'asc' | 'desc';
+  onSortChange?: () => void;
 }
 
 export const FlowBoardColumn = ({
@@ -28,6 +30,8 @@ export const FlowBoardColumn = ({
   onStatusChange,
   onReschedule,
   hasFullAccess = false,
+  sortOrder = 'asc',
+  onSortChange,
 }: FlowBoardColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -38,23 +42,39 @@ export const FlowBoardColumn = ({
     >
       {/* Column Header */}
       <div
-        className="p-2 rounded-t-lg flex items-center justify-between"
+        className="px-2 py-2 rounded-t-lg flex items-center justify-between h-10"
         style={{ backgroundColor: color }}
       >
-        <div className="flex items-center gap-1.5">
-          <h3 className="font-semibold text-white text-sm">{title}</h3>
-          <span className="bg-white bg-opacity-30 text-white px-1.5 py-0.5 rounded-full text-xs">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <h3 className="font-semibold text-white text-sm truncate">{title}</h3>
+          <span className="bg-white bg-opacity-30 text-white px-1.5 py-0.5 rounded-full text-xs flex-shrink-0">
             {appointments.length}
           </span>
         </div>
-        {showAddButton && onAddClick && (
-          <button
-            onClick={onAddClick}
-            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-lg transition-colors"
-          >
-            <PlusIcon className="w-5 h-5 text-white" />
-          </button>
-        )}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Sort Button */}
+          {onSortChange && (
+            <button
+              onClick={onSortChange}
+              className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded transition-colors"
+              title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
+            >
+              {sortOrder === 'asc' ? (
+                <ArrowUpIcon className="w-4 h-4 text-white" />
+              ) : (
+                <ArrowDownIcon className="w-4 h-4 text-white" />
+              )}
+            </button>
+          )}
+          {showAddButton && onAddClick && (
+            <button
+              onClick={onAddClick}
+              className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-lg transition-colors"
+            >
+              <PlusIcon className="w-5 h-5 text-white" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Cards Container */}

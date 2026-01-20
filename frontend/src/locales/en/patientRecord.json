@@ -96,8 +96,13 @@
     "cancel": "Cancel",
     "book": "Book Appointment",
     "booking": "Booking...",
-    "success": "Appointment booked successfully!",
-    "error": "Failed to book appointment",
-    "noSlots": "No available time slots"
+    "success": "Appointments booked successfully!",
+    "error": "Failed to book appointments",
+    "noSlots": "No available time slots",
+    "willBook": "{{count}} appointment(s) will be booked"
+  },
+
+  "upcomingAppointments": {
+    "title": "Scheduled Appointments"
   }
 }

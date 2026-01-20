@@ -102,11 +102,12 @@ model User {
   role Role @relation(fields: [roleId], references: [id])
 
   // Relations
-  appointments    Appointment[]
-  medicalRecords  MedicalRecord[]
-  vaccinations    Vaccination[]
-  permissions     UserPermission[]
-  auditLogs       AuditLog[]
+  appointments          Appointment[]
+  medicalRecords        MedicalRecord[] @relation("VetRecords")
+  closedMedicalRecords  MedicalRecord[] @relation("ClosedRecords")
+  vaccinations          Vaccination[]
+  permissions           UserPermission[]
+  auditLogs             AuditLog[]
 
   @@index([roleId])
   @@map("users")
@@ -179,26 +180,29 @@ model AuditLog {
 }
 
 model Owner {
-  id         String   @id @default(uuid())
-  firstName  String
-  lastName   String
-  email      String?
-  phone      String
-  address    String?
-  nationalId String?
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  customerCode String   @unique // C00000001
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String   @unique
+  address      String?
+  nationalId   String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   pets     Pet[]
   invoices Invoice[]
 
+  @@index([customerCode])
   @@map("owners")
 }
 
 model Pet {
   id          String    @id @default(uuid())
+  petCode     String    @unique // P00000001
   name        String
   species     Species
   breed       String?
@@ -223,6 +227,7 @@ model Pet {
   vaccinations   Vaccination[]
 
   @@index([ownerId])
+  @@index([petCode])
   @@map("pets")
 }
 
@@ -246,6 +251,10 @@ model Appointment {
   vetId String
   vet   User   @relation(fields: [vetId], references: [id])
 
+  // Scheduled from medical record (for follow-up appointments)
+  scheduledFromRecordId String?
+  scheduledFromRecord   MedicalRecord? @relation("ScheduledAppointments", fields: [scheduledFromRecordId], references: [id], onDelete: SetNull)
+
   // Relations
   medicalRecords MedicalRecord[]
   invoice        Invoice?
@@ -254,6 +263,7 @@ model Appointment {
   @@index([vetId])
   @@index([appointmentDate])
   @@index([status])
+  @@index([scheduledFromRecordId])
   @@map("appointments")
 }
 
@@ -291,23 +301,33 @@ model MedicalRecord {
   createdById String?
   updatedById String?
 
+  // Close/Reopen status
+  isClosed   Boolean   @default(false)
+  closedAt   DateTime?
+  closedById String?
+  recordCode String?   @unique // كود السجل المغلق مثل: MR-20260119-001
+
   // Foreign Keys
   petId String
   pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
 
   vetId String
-  vet   User   @relation(fields: [vetId], references: [id])
+  vet   User   @relation("VetRecords", fields: [vetId], references: [id])
+
+  closedBy User? @relation("ClosedRecords", fields: [closedById], references: [id])
 
   appointmentId String?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   // Relations
-  prescriptions Prescription[]
+  prescriptions         Prescription[]
+  scheduledAppointments Appointment[]  @relation("ScheduledAppointments")
 
   @@index([petId])
   @@index([vetId])
   @@index([visitDate])
   @@index([appointmentId])
+  @@index([isClosed])
   @@map("medical_records")
 }
 
@@ -388,6 +408,7 @@ model InvoiceItem {
   description String
   quantity    Int      @default(1)
   unitPrice   Float
+  discount    Float    @default(0) // Discount percentage (0-100)
   totalPrice  Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

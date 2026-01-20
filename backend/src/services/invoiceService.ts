@@ -11,6 +11,7 @@ interface CreateInvoiceInput {
     description: string;
     quantity: number;
     unitPrice: number;
+    discount?: number;
   }[];
 }
 
@@ -18,6 +19,7 @@ interface AddInvoiceItemInput {
   description: string;
   quantity: number;
   unitPrice: number;
+  discount?: number;
 }
 
 interface AddPaymentInput {
@@ -64,15 +66,18 @@ export const invoiceService = {
   async create(data: CreateInvoiceInput) {
     const invoiceNumber = await this.generateInvoiceNumber();
 
-    // Calculate total from items
+    // Calculate total from items (with discount)
     let totalAmount = 0;
     const itemsData = data.items?.map((item) => {
-      const totalPrice = item.quantity * item.unitPrice;
+      const discount = item.discount || 0;
+      const subtotal = item.quantity * item.unitPrice;
+      const totalPrice = subtotal * (1 - discount / 100);
       totalAmount += totalPrice;
       return {
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        discount,
         totalPrice,
       };
     }) || [];
@@ -202,7 +207,9 @@ export const invoiceService = {
       throw new AppError('Invoice not found', 404);
     }
 
-    const totalPrice = data.quantity * data.unitPrice;
+    const discount = data.discount || 0;
+    const subtotal = data.quantity * data.unitPrice;
+    const totalPrice = subtotal * (1 - discount / 100);
 
     const item = await prisma.invoiceItem.create({
       data: {
@@ -210,6 +217,7 @@ export const invoiceService = {
         description: data.description,
         quantity: data.quantity,
         unitPrice: data.unitPrice,
+        discount,
         totalPrice,
       },
     });
@@ -234,7 +242,9 @@ export const invoiceService = {
 
     const quantity = data.quantity ?? item.quantity;
     const unitPrice = data.unitPrice ?? item.unitPrice;
-    const totalPrice = quantity * unitPrice;
+    const discount = data.discount ?? item.discount;
+    const subtotal = quantity * unitPrice;
+    const totalPrice = subtotal * (1 - discount / 100);
 
     const updatedItem = await prisma.invoiceItem.update({
       where: { id: itemId },
@@ -242,6 +252,7 @@ export const invoiceService = {
         description: data.description,
         quantity,
         unitPrice,
+        discount,
         totalPrice,
       },
     });

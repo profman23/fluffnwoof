@@ -2,6 +2,22 @@ import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
+// Generate next customer code (C00000001, C00000002, etc.)
+async function generateCustomerCode(): Promise<string> {
+  const lastOwner = await prisma.owner.findFirst({
+    orderBy: { customerCode: 'desc' },
+    select: { customerCode: true },
+  });
+
+  if (!lastOwner || !lastOwner.customerCode) {
+    return 'C00000001';
+  }
+
+  const lastNumber = parseInt(lastOwner.customerCode.substring(1), 10);
+  const nextNumber = lastNumber + 1;
+  return `C${nextNumber.toString().padStart(8, '0')}`;
+}
+
 export const ownerService = {
   async create(data: {
     firstName: string;
@@ -12,8 +28,22 @@ export const ownerService = {
     nationalId?: string;
     notes?: string;
   }) {
+    // Check if phone number already exists
+    const existingOwner = await prisma.owner.findUnique({
+      where: { phone: data.phone },
+    });
+
+    if (existingOwner) {
+      throw new AppError('Phone number already exists', 400, 'PHONE_EXISTS');
+    }
+
+    const customerCode = await generateCustomerCode();
+
     const owner = await prisma.owner.create({
-      data,
+      data: {
+        ...data,
+        customerCode,
+      },
       include: {
         pets: true,
       },
@@ -32,6 +62,7 @@ export const ownerService = {
             { lastName: { contains: search, mode: 'insensitive' as const } },
             { phone: { contains: search } },
             { email: { contains: search, mode: 'insensitive' as const } },
+            { customerCode: { contains: search, mode: 'insensitive' as const } },
           ],
         }
       : {};
@@ -96,6 +127,20 @@ export const ownerService = {
       notes?: string;
     }
   ) {
+    // Check if phone number already exists for another owner
+    if (data.phone) {
+      const existingOwner = await prisma.owner.findFirst({
+        where: {
+          phone: data.phone,
+          NOT: { id },
+        },
+      });
+
+      if (existingOwner) {
+        throw new AppError('Phone number already exists', 400, 'PHONE_EXISTS');
+      }
+    }
+
     const owner = await prisma.owner.update({
       where: { id },
       data,

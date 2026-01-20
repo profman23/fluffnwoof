@@ -68,6 +68,13 @@ export const FlowBoardPage = () => {
   const [selectedStaff, setSelectedStaff] = useState<string>('all');
   const [showCancelled, setShowCancelled] = useState(true);
   const [rescheduleAppointment, setRescheduleAppointment] = useState<FlowBoardAppointment | null>(null);
+  const [columnSortOrder, setColumnSortOrder] = useState<Record<string, 'asc' | 'desc'>>({
+    scheduled: 'asc',
+    checkIn: 'asc',
+    inProgress: 'asc',
+    hospitalized: 'asc',
+    completed: 'asc',
+  }); // Default: closest time at top for all columns
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -106,7 +113,24 @@ export const FlowBoardPage = () => {
     loadStaff();
   }, []);
 
-  // Filter data by selected staff and cancelled visibility
+  // Sort appointments by time for a specific column
+  const sortAppointments = (appointments: FlowBoardAppointment[], columnId: string) => {
+    const sortOrder = columnSortOrder[columnId] || 'asc';
+    return [...appointments].sort((a, b) => {
+      const comparison = a.appointmentTime.localeCompare(b.appointmentTime);
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  // Handler for column sort change
+  const handleColumnSortChange = (columnId: string) => {
+    setColumnSortOrder(prev => ({
+      ...prev,
+      [columnId]: prev[columnId] === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  // Filter data by selected staff, cancelled visibility, and sort
   const filteredData = useMemo(() => {
     let result = data;
 
@@ -129,8 +153,17 @@ export const FlowBoardPage = () => {
       };
     }
 
+    // Sort all columns by appointment time (each column has its own sort order)
+    result = {
+      scheduled: sortAppointments(result.scheduled, 'scheduled'),
+      checkIn: sortAppointments(result.checkIn, 'checkIn'),
+      inProgress: sortAppointments(result.inProgress, 'inProgress'),
+      hospitalized: sortAppointments(result.hospitalized, 'hospitalized'),
+      completed: sortAppointments(result.completed, 'completed'),
+    };
+
     return result;
-  }, [data, selectedStaff, showCancelled]);
+  }, [data, selectedStaff, showCancelled, columnSortOrder]);
 
   const handleDateChange = (offset: number) => {
     const date = new Date(selectedDate);
@@ -334,6 +367,8 @@ export const FlowBoardPage = () => {
                   onStatusChange={loadData}
                   onReschedule={setRescheduleAppointment}
                   hasFullAccess={hasFullAccess}
+                  sortOrder={columnSortOrder[column.id] || 'asc'}
+                  onSortChange={() => handleColumnSortChange(column.id)}
                 />
               ))}
             </div>

@@ -18,4 +18,10 @@ router.get('/appointments', dashboardController.getUpcomingAppointments);
 // Get upcoming vaccinations
 router.get('/vaccinations', dashboardController.getUpcomingVaccinations);
 
+// Get vet performance stats
+router.get('/vet-performance', dashboardController.getVetPerformance);
+
+// Get analytics with date range
+router.get('/analytics', dashboardController.getAnalytics);
+
 export default router;

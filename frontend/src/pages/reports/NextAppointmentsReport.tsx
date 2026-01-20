@@ -25,6 +25,8 @@ export const NextAppointmentsReport = () => {
     startDate: getTodayDate(),
     endDate: '',
     vetId: '',
+    customerCode: '',
+    phone: '',
     page: 1,
     limit: 20,
   });
@@ -78,6 +80,8 @@ export const NextAppointmentsReport = () => {
       startDate: getTodayDate(),
       endDate: '',
       vetId: '',
+      customerCode: '',
+      phone: '',
       page: 1,
       limit: 20,
     });
@@ -127,7 +131,7 @@ export const NextAppointmentsReport = () => {
       {/* Filters */}
       {showFilters && (
         <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {/* Start Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -171,6 +175,35 @@ export const NextAppointmentsReport = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Customer Code Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('nextAppointments.filters.customerCode')}
+              </label>
+              <input
+                type="text"
+                value={filters.customerCode || ''}
+                onChange={(e) => setFilters(prev => ({ ...prev, customerCode: e.target.value }))}
+                placeholder="C00000001"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* Phone Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('nextAppointments.filters.phone')}
+              </label>
+              <input
+                type="text"
+                value={filters.phone || ''}
+                onChange={(e) => setFilters(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="05xxxxxxxx"
+                dir="ltr"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
 
             {/* Filter Actions */}

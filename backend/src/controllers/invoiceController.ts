@@ -93,7 +93,7 @@ export const invoiceController = {
   async addItem(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { description, quantity, unitPrice } = req.body;
+      const { description, quantity, unitPrice, discount } = req.body;
 
       if (!description || quantity === undefined || unitPrice === undefined) {
         return res.status(400).json({ message: 'Description, quantity, and unitPrice are required' });
@@ -103,6 +103,7 @@ export const invoiceController = {
         description,
         quantity: Number(quantity),
         unitPrice: Number(unitPrice),
+        discount: discount !== undefined ? Number(discount) : undefined,
       });
 
       res.status(201).json(item);
@@ -117,12 +118,13 @@ export const invoiceController = {
   async updateItem(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { itemId } = req.params;
-      const { description, quantity, unitPrice } = req.body;
+      const { description, quantity, unitPrice, discount } = req.body;
 
       const item = await invoiceService.updateItem(itemId, {
         description,
         quantity: quantity !== undefined ? Number(quantity) : undefined,
         unitPrice: unitPrice !== undefined ? Number(unitPrice) : undefined,
+        discount: discount !== undefined ? Number(discount) : undefined,
       });
 
       res.json(item);

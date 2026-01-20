@@ -69,48 +69,79 @@ export const appointmentService = {
     visitType?: VisitType;
     reason?: string;
     notes?: string;
+    scheduledFromRecordId?: string;
   }) {
-    // التحقق من تعارض المواعيد أولاً
-    const hasConflict = await this.checkTimeConflict(
-      data.vetId,
-      data.appointmentDate,
-      data.appointmentTime,
-      data.duration || 30
-    );
+    // استخدام Transaction لمنع Race Conditions عند الحجز المتزامن
+    return await prisma.$transaction(async (tx) => {
+      // التحقق من تعارض المواعيد داخل الـ transaction
+      const [startHour, startMin] = data.appointmentTime.split(':').map(Number);
+      const newStartMinutes = startHour * 60 + startMin;
+      const newEndMinutes = newStartMinutes + (data.duration || 30);
 
-    if (hasConflict) {
-      throw new AppError('هذا الدكتور لديه موعد آخر في هذا الوقت', 409);
-    }
+      const targetDate = typeof data.appointmentDate === 'string' ? new Date(data.appointmentDate) : data.appointmentDate;
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
 
-    const appointment = await prisma.appointment.create({
-      data: {
-        ...data,
-        duration: data.duration || 30,
-      },
-      include: {
-        pet: {
-          include: {
-            owner: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
+      // جلب كل مواعيد الدكتور في نفس اليوم (ما عدا الملغية)
+      const existingAppointments = await tx.appointment.findMany({
+        where: {
+          vetId: data.vetId,
+          appointmentDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          status: { not: 'CANCELLED' },
+        },
+        select: {
+          appointmentTime: true,
+          duration: true,
+        },
+      });
+
+      // التحقق من التعارض مع كل موعد موجود
+      for (const appt of existingAppointments) {
+        const [existHour, existMin] = appt.appointmentTime.split(':').map(Number);
+        const existStartMinutes = existHour * 60 + existMin;
+        const existEndMinutes = existStartMinutes + (appt.duration || 30);
+
+        if (newStartMinutes < existEndMinutes && newEndMinutes > existStartMinutes) {
+          throw new AppError('هذا الدكتور لديه موعد آخر في هذا الوقت', 409);
+        }
+      }
+
+      // إنشاء الموعد داخل نفس الـ transaction
+      const appointment = await tx.appointment.create({
+        data: {
+          ...data,
+          duration: data.duration || 30,
+        },
+        include: {
+          pet: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  phone: true,
+                },
               },
             },
           },
-        },
-        vet: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+          vet: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return appointment;
+      return appointment;
+    });
   },
 
   async findAll(
@@ -329,6 +360,16 @@ export const appointmentService = {
             isFinalized: true,
           },
         },
+        medicalRecords: {
+          where: {
+            isClosed: true,
+          },
+          select: {
+            recordCode: true,
+            isClosed: true,
+          },
+          take: 1,
+        },
       },
       orderBy: [{ appointmentTime: 'asc' }],
     });
@@ -349,18 +390,25 @@ export const appointmentService = {
             },
           },
         });
+        // Get the first closed medical record's code if exists
+        const medicalRecord = appointment.medicalRecords?.[0] || null;
         return {
           ...appointment,
           pet: {
             ...appointment.pet,
             owner: pet?.owner,
           },
+          medicalRecord: medicalRecord ? {
+            recordCode: medicalRecord.recordCode,
+            isClosed: medicalRecord.isClosed,
+          } : null,
         };
       })
     );
 
     // Group by status for Flow Board columns
     // CANCELLED appointments are included in scheduled column for display with different styling
+    // COMPLETED appointments are shown in completed column (including those with finalized invoices)
     const columns = {
       scheduled: appointmentsWithOwner.filter(
         (a) => a.status === 'SCHEDULED' || a.status === 'CANCELLED'
@@ -368,7 +416,9 @@ export const appointmentService = {
       checkIn: appointmentsWithOwner.filter((a) => a.status === 'CHECK_IN'),
       inProgress: appointmentsWithOwner.filter((a) => a.status === 'IN_PROGRESS'),
       hospitalized: appointmentsWithOwner.filter((a) => a.status === 'HOSPITALIZED'),
-      completed: appointmentsWithOwner.filter((a) => a.status === 'COMPLETED'),
+      completed: appointmentsWithOwner.filter(
+        (a) => a.status === 'COMPLETED'
+      ),
     };
 
     return columns;
@@ -432,5 +482,56 @@ export const appointmentService = {
     });
 
     return appointment;
+  },
+
+  /**
+   * Get upcoming appointments for a specific pet
+   */
+  async getUpcomingByPetId(petId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        petId,
+        appointmentDate: { gte: today },
+        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+      },
+      orderBy: [{ appointmentDate: 'asc' }, { appointmentTime: 'asc' }],
+      include: {
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return appointments;
+  },
+
+  /**
+   * Get appointments scheduled from a specific medical record
+   */
+  async getByScheduledFromRecordId(recordId: string) {
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        scheduledFromRecordId: recordId,
+      },
+      orderBy: [{ appointmentDate: 'asc' }, { appointmentTime: 'asc' }],
+      include: {
+        vet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return appointments;
   },
 };

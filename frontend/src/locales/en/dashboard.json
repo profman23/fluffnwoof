@@ -12,6 +12,7 @@
   "upcomingVaccinations": "Upcoming Vaccinations",
   "noAppointments": "No upcoming appointments",
   "noVaccinations": "No upcoming vaccinations",
+  "noData": "No Data Available",
   "appointmentTypes": {
     "checkup": "Checkup",
     "vaccination": "Vaccination",
@@ -31,5 +32,65 @@
   },
   "errors": {
     "loadFailed": "Failed to load dashboard data"
+  },
+  "vetPerformance": {
+    "title": "Vet Performance",
+    "detailsTitle": "Vet Performance Details",
+    "loadError": "Failed to load vet performance data",
+    "noData": "No vet performance data available",
+    "lastActivity": "Last Activity",
+    "noActivity": "No activity yet",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago",
+    "completionRate": "Completion Rate",
+    "totalRecords": "Total Records",
+    "complete": "Complete",
+    "incomplete": "Incomplete",
+    "viewDetails": "View Details",
+    "performanceExcellent": "Excellent Performance",
+    "performanceGood": "Good Performance",
+    "performanceNeedsImprovement": "Needs Improvement",
+    "description": "A complete medical record includes all SOAP fields: Chief Complaint, History, Weight, Temperature, Heart Rate, Respiration Rate, Body Condition Score, Muscle Condition, Pain Score, Hydration, Attitude, Behaviour, Mucous Membranes, CRT, Diagnosis, and Treatment."
+  },
+  "analytics": {
+    "totalAppointments": "Total Appointments",
+    "completedAppointments": "Completed",
+    "cancelledAppointments": "Cancelled",
+    "inProgress": "In Progress",
+    "newPatients": "New Patients",
+    "newOwners": "New Owners",
+    "totalVets": "Total Vets",
+    "totalPatients": "Total Patients",
+    "appointmentsTrend": "Appointments Trend",
+    "patientsBySpecies": "Patients by Species",
+    "vetPerformance": "Vet Performance",
+    "changeFromPrevious": "vs Previous Period",
+    "appointments": "Appointments",
+    "total": "Total",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "noData": "No Data Available",
+    "completedRecords": "Completed Records",
+    "completionRate": "Completion Rate"
+  },
+  "dateRange": {
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "thisYear": "This Year",
+    "custom": "Custom",
+    "from": "From",
+    "to": "To"
+  },
+  "species": {
+    "DOG": "Dogs",
+    "CAT": "Cats",
+    "BIRD": "Birds",
+    "RABBIT": "Rabbits",
+    "HAMSTER": "Hamsters",
+    "GUINEA_PIG": "Guinea Pigs",
+    "TURTLE": "Turtles",
+    "FISH": "Fish",
+    "OTHER": "Other"
   }
 }

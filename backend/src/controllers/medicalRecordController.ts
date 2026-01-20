@@ -170,4 +170,41 @@ export const medicalRecordController = {
       next(error);
     }
   },
+
+  /**
+   * Close medical record
+   */
+  async closeRecord(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const record = await medicalRecordService.closeRecord(
+        req.params.id,
+        req.user?.id || ''
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Medical record closed successfully',
+        data: record,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Reopen medical record
+   */
+  async reopenRecord(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const record = await medicalRecordService.reopenRecord(req.params.id);
+
+      res.status(200).json({
+        success: true,
+        message: 'Medical record reopened successfully',
+        data: record,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

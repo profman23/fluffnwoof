@@ -56,4 +56,40 @@ export const dashboardController = {
       next(error);
     }
   },
+
+  async getVetPerformance(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const stats = await dashboardService.getVetPerformanceStats();
+
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getAnalytics(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { startDate, endDate } = req.query;
+
+      // Default to current month if not provided
+      const start = startDate
+        ? new Date(startDate as string)
+        : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const end = endDate
+        ? new Date(endDate as string)
+        : new Date();
+
+      const analytics = await dashboardService.getAnalytics(start, end);
+
+      res.status(200).json({
+        success: true,
+        data: analytics,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

@@ -156,6 +156,10 @@ export interface FlowBoardAppointment {
     invoiceNumber: string;
     isFinalized: boolean;
   };
+  medicalRecord?: {
+    recordCode: string | null;
+    isClosed: boolean;
+  } | null;
 }
 
 export interface FlowBoardData {
@@ -210,6 +214,12 @@ export interface MedicalRecord {
   updatedBy?: User;
   createdAt: string;
   updatedAt: string;
+
+  // Close/Reopen status
+  isClosed?: boolean;
+  closedAt?: string;
+  closedById?: string;
+  closedBy?: User;
 }
 
 export interface MedicalRecordInput {

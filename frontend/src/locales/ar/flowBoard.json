@@ -15,6 +15,9 @@
   "unconfirmed": "غير مؤكد",
   "cancelled": "ملغي",
   "showCancelled": "إظهار الملغي",
+  "sort": "ترتيب",
+  "sortAsc": "ترتيب حسب الوقت (الأقرب أولاً)",
+  "sortDesc": "ترتيب حسب الوقت (الأبعد أولاً)",
   "menu": {
     "confirm": "تأكيد",
     "unconfirm": "إلغاء التأكيد",
@@ -120,5 +123,61 @@
   "addPayment": "إضافة",
   "payFull": "دفع الكل",
   "amount": "المبلغ",
-  "fullyPaid": "مدفوع بالكامل"
+  "fullyPaid": "مدفوع بالكامل",
+  "record": {
+    "close": "إغلاق السجل",
+    "reopen": "إعادة فتح السجل",
+    "closing": "جاري الإغلاق...",
+    "reopening": "جاري إعادة الفتح...",
+    "closed": "السجل مغلق",
+    "closedBy": "أُغلق بواسطة",
+    "closedAt": "أُغلق في",
+    "closeWarningTitle": "إغلاق السجل الطبي",
+    "closeWarning": "هل أنت متأكد من إغلاق هذا السجل الطبي؟ الحقول التالية فارغة:",
+    "closeConfirm": "إغلاق السجل",
+    "closeCancel": "إلغاء",
+    "emptyFields": {
+      "chiefComplaint": "الشكوى الرئيسية",
+      "history": "التاريخ المرضي",
+      "weight": "الوزن",
+      "temperature": "الحرارة",
+      "heartRate": "معدل ضربات القلب",
+      "respirationRate": "معدل التنفس",
+      "bodyConditionScore": "درجة حالة الجسم",
+      "muscleCondition": "حالة العضلات",
+      "painScore": "درجة الألم",
+      "hydration": "الترطيب",
+      "attitude": "الحالة العامة",
+      "behaviour": "السلوك",
+      "mucousMembranes": "الأغشية المخاطية",
+      "crt": "وقت امتلاء الشعيرات",
+      "diagnosis": "التشخيص",
+      "treatment": "العلاج"
+    }
+  },
+  "nextAppointment": {
+    "title": "الموعد القادم",
+    "book": "حجز موعد",
+    "booking": "جاري الحجز...",
+    "booked": "محجوز",
+    "type": "نوع الموعد",
+    "routineCheckup": "فحص روتيني",
+    "nextVaccination": "موعد التطعيم القادم",
+    "nextDeworming": "موعد جرعة الديدان القادم",
+    "dewormingFlea": "التطعيم ضد الديدان والبراغيث",
+    "date": "التاريخ",
+    "time": "الوقت",
+    "vet": "الطبيب البيطري",
+    "notes": "ملاحظات",
+    "selectVet": "اختر الطبيب",
+    "noAvailableSlots": "لا توجد أوقات متاحة",
+    "alreadyBooked": "محجوز مسبقاً",
+    "addAnother": "إضافة آخر",
+    "existingAppointments": "المواعيد المحجوزة",
+    "newAppointment": "موعد جديد"
+  },
+  "mandatoryFields": {
+    "required": "مطلوب",
+    "mustFillBeforeClose": "يرجى ملء الحقول الإلزامية (الوزن، الحرارة، معدل ضربات القلب) قبل إغلاق السجل"
+  }
 }
