@@ -785,7 +785,14 @@ export const PatientRecordModal = ({
   const handleCloseRecord = async () => {
     if (!record) return;
 
+    // Don't try to close if already closed
+    if (record.isClosed) {
+      setShowCloseWarning(false);
+      return;
+    }
+
     setClosingRecord(true);
+    setError(null);
     try {
       // Cancel any pending auto-save
       if (autoSaveTimeoutRef.current) {
@@ -794,15 +801,21 @@ export const PatientRecordModal = ({
       // Save medical record data first to ensure all fields are persisted
       await medicalRecordsApi.update(record.id, formData);
       // Then close the record
-      await medicalRecordsApi.closeRecord(record.id);
+      const closedRecord = await medicalRecordsApi.closeRecord(record.id);
       if (isMountedRef.current) {
+        setRecord(closedRecord); // Update local state
         setShowCloseWarning(false);
         // Close modal and refresh Flow Board to show card in COMPLETED column
         onClose();
         onSuccess?.();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to close record:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to close record';
+        setError(errorMessage);
+        setShowCloseWarning(false);
+      }
     } finally {
       if (isMountedRef.current) {
         setClosingRecord(false);
@@ -814,16 +827,27 @@ export const PatientRecordModal = ({
   const handleReopenRecord = async () => {
     if (!record) return;
 
+    // Don't try to reopen if not closed
+    if (!record.isClosed) {
+      return;
+    }
+
     setReopeningRecord(true);
+    setError(null);
     try {
-      await medicalRecordsApi.reopenRecord(record.id);
+      const reopenedRecord = await medicalRecordsApi.reopenRecord(record.id);
       if (isMountedRef.current) {
+        setRecord(reopenedRecord); // Update local state
         // Close modal and refresh Flow Board to show card in IN_PROGRESS column
         onClose();
         onSuccess?.();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to reopen record:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to reopen record';
+        setError(errorMessage);
+      }
     } finally {
       if (isMountedRef.current) {
         setReopeningRecord(false);
