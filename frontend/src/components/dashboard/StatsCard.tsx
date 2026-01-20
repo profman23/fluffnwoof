@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon } from '@heroicons/react/24/solid';
 
 interface StatsCardProps {
@@ -29,8 +28,6 @@ export const StatsCard = ({
   color = 'primary',
   loading = false,
 }: StatsCardProps) => {
-  const { t } = useTranslation('dashboard');
-
   const renderChange = () => {
     if (change === undefined) return null;
 

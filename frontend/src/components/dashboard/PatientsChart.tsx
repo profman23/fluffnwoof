@@ -110,13 +110,14 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
   };
 
   // Custom legend
-  const renderLegend = (props: { payload?: Array<{ color: string; value: string; payload: { payload: SpeciesData } }> }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderLegend = (props: any) => {
     const { payload } = props;
     if (!payload) return null;
 
     return (
       <div className="flex flex-wrap justify-center gap-3 mt-4">
-        {payload.map((entry, index) => {
+        {payload.map((entry: any, index: number) => {
           const item = entry.payload.payload;
           const emoji = speciesEmoji[item.species] || '🐾';
           const speciesName = t(`species.${item.species}`) || item.species;

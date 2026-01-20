@@ -394,14 +394,6 @@ export const PatientRecordModal = ({
     return result;
   }, [petUpcomingAppointments]);
 
-  // Check which appointment types are already booked (for backward compatibility)
-  const bookedAppointmentTypes = useMemo(() => {
-    return {
-      checkup: bookedAppointmentsByType.checkup.length > 0,
-      vaccination: bookedAppointmentsByType.vaccination.length > 0,
-      deworming: bookedAppointmentsByType.deworming.length > 0,
-    };
-  }, [bookedAppointmentsByType]);
 
   // Handle booking next appointments (multiple)
   const handleBookNextAppointments = async () => {

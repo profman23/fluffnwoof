@@ -4,18 +4,16 @@ import { CalendarDaysIcon } from '@heroicons/react/24/outline';
 export type DateRangePreset = 'today' | 'thisWeek' | 'thisMonth' | 'thisYear' | 'custom';
 
 interface DateRangeFilterProps {
-  startDate: string;
-  endDate: string;
+  startDate: Date;
+  endDate: Date;
   preset: DateRangePreset;
-  onPresetChange: (preset: DateRangePreset) => void;
-  onDateChange: (startDate: string, endDate: string) => void;
+  onDateChange: (startDate: Date, endDate: Date, preset: DateRangePreset) => void;
 }
 
 export const DateRangeFilter = ({
   startDate,
   endDate,
   preset,
-  onPresetChange,
   onDateChange,
 }: DateRangeFilterProps) => {
   const { t } = useTranslation('dashboard');
@@ -27,9 +25,12 @@ export const DateRangeFilter = ({
     { key: 'thisYear', label: t('dateRange.thisYear') },
   ];
 
-  const handlePresetClick = (presetKey: DateRangePreset) => {
-    onPresetChange(presetKey);
+  // Convert Date to string for input value
+  const formatDateForInput = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
 
+  const handlePresetClick = (presetKey: DateRangePreset) => {
     const today = new Date();
     let start: Date;
     let end: Date = today;
@@ -52,18 +53,15 @@ export const DateRangeFilter = ({
         return;
     }
 
-    onDateChange(
-      start.toISOString().split('T')[0],
-      end.toISOString().split('T')[0]
-    );
+    onDateChange(start, end, presetKey);
   };
 
   const handleCustomDateChange = (type: 'start' | 'end', value: string) => {
-    onPresetChange('custom');
+    const newDate = new Date(value);
     if (type === 'start') {
-      onDateChange(value, endDate);
+      onDateChange(newDate, endDate, 'custom');
     } else {
-      onDateChange(startDate, value);
+      onDateChange(startDate, newDate, 'custom');
     }
   };
 
@@ -95,7 +93,7 @@ export const DateRangeFilter = ({
         <div className="flex items-center gap-1.5">
           <input
             type="date"
-            value={startDate}
+            value={formatDateForInput(startDate)}
             onChange={(e) => handleCustomDateChange('start', e.target.value)}
             className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
               preset === 'custom' ? 'border-primary-400' : 'border-gray-300'
@@ -104,7 +102,7 @@ export const DateRangeFilter = ({
           <span className="text-gray-500 text-sm">-</span>
           <input
             type="date"
-            value={endDate}
+            value={formatDateForInput(endDate)}
             onChange={(e) => handleCustomDateChange('end', e.target.value)}
             className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
               preset === 'custom' ? 'border-primary-400' : 'border-gray-300'
