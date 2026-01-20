@@ -95,9 +95,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </h3>
 
           {/* Message */}
-          <p className="text-sm text-gray-600 text-center mb-6">
+          <div className="text-sm text-gray-600 text-center mb-6">
             {message}
-          </p>
+          </div>
 
           {/* Buttons */}
           <div className="flex gap-3">

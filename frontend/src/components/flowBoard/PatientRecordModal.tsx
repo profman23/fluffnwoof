@@ -785,12 +785,6 @@ export const PatientRecordModal = ({
   const handleCloseRecord = async () => {
     if (!record) return;
 
-    // Don't try to close if already closed
-    if (record.isClosed) {
-      setShowCloseWarning(false);
-      return;
-    }
-
     setClosingRecord(true);
     setError(null);
     try {
@@ -798,6 +792,20 @@ export const PatientRecordModal = ({
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
+
+      // First, fetch the latest record state from server to ensure we have current isClosed status
+      const currentRecord = await medicalRecordsApi.getById(record.id);
+
+      // Don't try to close if already closed
+      if (currentRecord.isClosed) {
+        if (isMountedRef.current) {
+          setRecord(currentRecord);
+          setShowCloseWarning(false);
+          setError('السجل مغلق بالفعل');
+        }
+        return;
+      }
+
       // Save medical record data first to ensure all fields are persisted
       await medicalRecordsApi.update(record.id, formData);
       // Then close the record
@@ -827,14 +835,21 @@ export const PatientRecordModal = ({
   const handleReopenRecord = async () => {
     if (!record) return;
 
-    // Don't try to reopen if not closed
-    if (!record.isClosed) {
-      return;
-    }
-
     setReopeningRecord(true);
     setError(null);
     try {
+      // First, fetch the latest record state from server
+      const currentRecord = await medicalRecordsApi.getById(record.id);
+
+      // Don't try to reopen if not closed
+      if (!currentRecord.isClosed) {
+        if (isMountedRef.current) {
+          setRecord(currentRecord);
+          setError('السجل مفتوح بالفعل');
+        }
+        return;
+      }
+
       const reopenedRecord = await medicalRecordsApi.reopenRecord(record.id);
       if (isMountedRef.current) {
         setRecord(reopenedRecord); // Update local state
