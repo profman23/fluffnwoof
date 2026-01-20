@@ -787,6 +787,13 @@ export const PatientRecordModal = ({
 
     setClosingRecord(true);
     try {
+      // Cancel any pending auto-save
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      // Save medical record data first to ensure all fields are persisted
+      await medicalRecordsApi.update(record.id, formData);
+      // Then close the record
       await medicalRecordsApi.closeRecord(record.id);
       if (isMountedRef.current) {
         setShowCloseWarning(false);
