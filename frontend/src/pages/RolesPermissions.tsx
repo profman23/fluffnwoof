@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { rolesApi, ScreenPermissions } from '../api/roles';
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { LogoLoader } from '../components/common/LogoLoader';
 import { Role } from '../types';
 import { AddRoleModal } from '../components/roles/AddRoleModal';
 
@@ -15,6 +17,7 @@ const SCREEN_NAMES = [
   'userManagement',
   'rolesPermissions',
   'serviceProducts',
+  'sms',
 ];
 
 const SPECIAL_PERMISSIONS = [
@@ -146,9 +149,7 @@ export const RolesPermissions: React.FC = () => {
   if (loading && roles.length === 0) {
     return (
       <ScreenPermissionGuard screenName="rolesPermissions">
-        <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">{t('messages.loading')}</p>
-        </div>
+        <LogoLoader />
       </ScreenPermissionGuard>
     );
   }
@@ -158,7 +159,10 @@ export const RolesPermissions: React.FC = () => {
       <div className="container mx-auto p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">{t('title')}</h1>
+            <div className="flex items-center gap-3">
+              <ShieldCheckIcon className="w-7 h-7 text-brand-dark" />
+              <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+            </div>
             {isReadOnly && (
               <span className="inline-block mt-2 px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
                 {t('readOnly')}

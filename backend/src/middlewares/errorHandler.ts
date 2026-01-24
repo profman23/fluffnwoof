@@ -39,7 +39,23 @@ export const errorHandler = (
     statusCode = 400;
 
     if (err.code === 'P2002') {
-      message = 'هذا السجل موجود بالفعل';
+      // Get the field(s) that caused the unique constraint violation
+      const target = err.meta?.target as string[] | string | undefined;
+      const targetFields = Array.isArray(target) ? target : target ? [target] : [];
+
+      // Specific error messages based on the field
+      if (targetFields.some(f => f.includes('recordCode'))) {
+        statusCode = 409; // Conflict
+        message = 'حدث تعارض أثناء إغلاق السجل. يرجى المحاولة مرة أخرى.';
+      } else if (targetFields.some(f => f.includes('appointmentId'))) {
+        message = 'هذا الموعد لديه سجل طبي بالفعل';
+      } else if (targetFields.some(f => f.includes('email'))) {
+        message = 'البريد الإلكتروني مستخدم بالفعل';
+      } else if (targetFields.some(f => f.includes('phone'))) {
+        message = 'رقم الهاتف مستخدم بالفعل';
+      } else {
+        message = 'هذا السجل موجود بالفعل';
+      }
     } else if (err.code === 'P2025') {
       message = 'السجل المطلوب غير موجود';
     } else if (err.code === 'P2003') {

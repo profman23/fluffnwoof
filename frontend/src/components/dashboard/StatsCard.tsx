@@ -1,4 +1,5 @@
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon } from '@heroicons/react/24/solid';
+import { AnimatedNumber } from '../common/AnimatedNumber';
 
 interface StatsCardProps {
   title: string;
@@ -8,6 +9,8 @@ interface StatsCardProps {
   changeLabel?: string;
   color?: 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger';
   loading?: boolean;
+  animationDelay?: number;
+  isVisible?: boolean;
 }
 
 const colorClasses = {
@@ -27,6 +30,8 @@ export const StatsCard = ({
   changeLabel,
   color = 'primary',
   loading = false,
+  animationDelay = 0,
+  isVisible = true,
 }: StatsCardProps) => {
   const renderChange = () => {
     if (change === undefined) return null;
@@ -45,7 +50,7 @@ export const StatsCard = ({
       changeText = `${change}%`;
     } else {
       changeIcon = <MinusIcon className="w-3 h-3" />;
-      changeColor = 'text-gray-600 bg-gray-50';
+      changeColor = 'text-brand-dark/60 bg-primary-50';
       changeText = '0%';
     }
 
@@ -59,31 +64,40 @@ export const StatsCard = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-5 animate-pulse">
+      <div className="bg-brand-white rounded-xl shadow-md p-5 animate-pulse">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="h-4 bg-gray-200 rounded w-24 mb-3" />
-            <div className="h-8 bg-gray-200 rounded w-16 mb-2" />
-            <div className="h-4 bg-gray-200 rounded w-20" />
+            <div className="h-4 bg-primary-100 rounded w-24 mb-3" />
+            <div className="h-8 bg-primary-100 rounded w-16 mb-2" />
+            <div className="h-4 bg-primary-100 rounded w-20" />
           </div>
-          <div className="w-14 h-14 bg-gray-200 rounded-xl" />
+          <div className="w-14 h-14 bg-primary-100 rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-5 border border-gray-100">
+    <div className="bg-brand-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-5 border border-primary-200">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mb-2">
-            {typeof value === 'number' ? value.toLocaleString() : value}
+          <p className="text-brand-dark/60 text-sm font-medium mb-1">{title}</p>
+          <p className="text-3xl font-bold text-brand-dark mb-2">
+            {typeof value === 'number' ? (
+              <AnimatedNumber
+                value={value}
+                duration={1200}
+                delay={animationDelay}
+                trigger={isVisible}
+              />
+            ) : (
+              value
+            )}
           </p>
           <div className="flex items-center gap-2">
             {renderChange()}
             {changeLabel && (
-              <span className="text-xs text-gray-500">{changeLabel}</span>
+              <span className="text-xs text-brand-dark/60">{changeLabel}</span>
             )}
           </div>
         </div>

@@ -28,7 +28,8 @@
     "medical": "السجلات الطبية",
     "userManagement": "إدارة المستخدمين",
     "rolesPermissions": "الأدوار والصلاحيات",
-    "serviceProducts": "الخدمات والمنتجات"
+    "serviceProducts": "الخدمات والمنتجات",
+    "sms": "الرسائل النصية"
   },
   "specialPermissions": {
     "title": "صلاحيات خاصة",

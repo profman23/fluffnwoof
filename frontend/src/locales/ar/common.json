@@ -6,5 +6,27 @@
     "appointments": "المواعيد",
     "medical": "السجلات الطبية",
     "invoices": "الفواتير"
+  },
+  "cancel": "إلغاء",
+  "upload": {
+    "dragDrop": "اسحب وأفلت أو انقر",
+    "maxSize": "الحد الأقصى: {{size}} ميجابايت",
+    "uploading": "جاري الرفع...",
+    "uploadSuccess": "رفع",
+    "uploadError": "فشل الرفع",
+    "invalidType": "نوع الملف غير مدعوم",
+    "fileTooLarge": "الملف كبير جداً",
+    "removeImage": "إزالة الصورة",
+    "changeImage": "تغيير الصورة"
+  },
+  "attachments": {
+    "title": "المرفقات",
+    "addAttachment": "إضافة مرفق",
+    "noAttachments": "لا توجد مرفقات",
+    "description": "الوصف (اختياري)",
+    "download": "تحميل",
+    "delete": "حذف",
+    "confirmDelete": "هل أنت متأكد من حذف هذا المرفق؟",
+    "maxFilesReached": "الحد الأقصى {{max}} ملفات"
   }
 }

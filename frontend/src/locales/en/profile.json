@@ -1,0 +1,39 @@
+{
+  "title": "My Profile",
+  "profile": {
+    "title": "Profile Information",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "role": "Role",
+    "avatar": "Profile Picture",
+    "editProfile": "Edit Profile",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel"
+  },
+  "theme": {
+    "title": "Theme Customization",
+    "layoutColors": "Layout Colors",
+    "headerColor": "Header Background",
+    "sidebarColor": "Sidebar Background",
+    "sidebarHoverColor": "Sidebar Hover",
+    "flowBoardColors": "FlowBoard Column Colors",
+    "columns": {
+      "scheduled": "Scheduled",
+      "checkIn": "Check-In",
+      "inProgress": "In Progress",
+      "hospitalized": "Hospitalized",
+      "completed": "Completed"
+    },
+    "resetDefaults": "Reset to Defaults",
+    "saveTheme": "Save Theme"
+  },
+  "messages": {
+    "profileUpdated": "Profile updated successfully",
+    "themeUpdated": "Theme preferences saved",
+    "themeReset": "Theme reset to defaults",
+    "avatarUpdated": "Profile picture updated successfully",
+    "avatarRemoved": "Profile picture removed",
+    "error": "An error occurred"
+  }
+}

@@ -145,13 +145,13 @@ export const FlowBoardCard = ({
       {...listeners}
       onClick={handleClick}
       className={`rounded-md shadow-sm border p-2 cursor-grab active:cursor-grabbing
-        ${isCancelled ? 'bg-red-50 border-red-200 opacity-75' : 'bg-white'}
+        ${isCancelled ? 'bg-red-50 border-red-200 opacity-75' : 'bg-brand-white'}
         ${isDragging ? 'opacity-50 shadow-lg' : ''}
-        hover:shadow-md transition-shadow ${onCardClick ? 'hover:ring-2 hover:ring-blue-300' : ''}`}
+        hover:shadow-md transition-shadow ${onCardClick ? 'hover:ring-2 hover:ring-secondary-300' : ''}`}
     >
       {/* Header with time, status and menu */}
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium text-gray-600">
+        <span className="text-xs font-medium text-brand-dark/70">
           {appointment.appointmentTime}
         </span>
         <div className="flex items-center gap-1">
@@ -172,18 +172,18 @@ export const FlowBoardCard = ({
             <div className="relative" ref={menuRef}>
               <button
                 onClick={handleMenuToggle}
-                className="p-0.5 hover:bg-gray-100 rounded transition-colors"
+                className="p-0.5 hover:bg-primary-100 rounded transition-colors"
               >
-                <EllipsisVerticalIcon className="w-4 h-4 text-gray-500" />
+                <EllipsisVerticalIcon className="w-4 h-4 text-brand-dark/60" />
               </button>
 
               {/* Dropdown Menu */}
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[140px] py-1">
+                <div className="absolute right-0 top-full mt-1 bg-brand-white border border-primary-200 rounded-lg shadow-lg z-50 min-w-[140px] py-1">
                   {/* Confirm/Unconfirm */}
                   <button
                     onClick={handleConfirmationToggle}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-primary-50 text-left"
                   >
                     <CheckCircleIcon className="w-4 h-4 text-green-600" />
                     <span>{isConfirmed ? t('menu.unconfirm') : t('menu.confirm')}</span>
@@ -192,7 +192,7 @@ export const FlowBoardCard = ({
                   {/* Reschedule */}
                   <button
                     onClick={handleReschedule}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-primary-50 text-left"
                   >
                     <CalendarIcon className="w-4 h-4 text-blue-600" />
                     <span>{t('menu.reschedule')}</span>
@@ -214,23 +214,23 @@ export const FlowBoardCard = ({
       </div>
 
       {/* Owner name */}
-      <div className="font-medium text-gray-900 text-sm mb-0.5 truncate">
+      <div className="font-medium text-brand-dark text-sm mb-0.5 truncate">
         {appointment.pet.owner
           ? `${appointment.pet.owner.firstName} ${appointment.pet.owner.lastName}`
           : '-'}
       </div>
 
       {/* Pet info */}
-      <div className="flex items-center gap-1 text-xs text-gray-600 mb-0.5">
+      <div className="flex items-center gap-1 text-xs text-brand-dark/70 mb-0.5">
         <span>{speciesIcons[appointment.pet.species] || '🐾'}</span>
         <span className="truncate font-medium">{appointment.pet.name}</span>
-        <span className="text-gray-400">•</span>
-        <span className="text-gray-500">{t(`species.${appointment.pet.species}`)}</span>
+        <span className="text-brand-dark/40">•</span>
+        <span className="text-brand-dark/60">{t(`species.${appointment.pet.species}`)}</span>
       </div>
 
       {/* Vet Name */}
       {appointment.vet && (
-        <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+        <div className="flex items-center gap-1 text-xs text-brand-dark/60 mb-1">
           <UserIcon className="w-3 h-3" />
           <span className="truncate">
             {appointment.vet.firstName} {appointment.vet.lastName}
@@ -241,7 +241,7 @@ export const FlowBoardCard = ({
       {/* Visit type and Check-In button */}
       <div className="flex items-center justify-between mt-1">
         {appointment.visitType && (
-          <div className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+          <div className="text-xs text-brand-dark/60 bg-primary-100 px-1.5 py-0.5 rounded inline-block">
             {t(`visitTypes.${appointment.visitType}`)}
           </div>
         )}

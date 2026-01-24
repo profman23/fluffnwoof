@@ -30,9 +30,11 @@ export const medicalRecordsApi = {
     return response.data.data;
   },
 
-  // Get medical record by ID
+  // Get medical record by ID (with cache-busting to ensure fresh data)
   getById: async (id: string): Promise<MedicalRecord> => {
-    const response = await apiClient.get(`/medical-records/${id}`);
+    const response = await apiClient.get(`/medical-records/${id}`, {
+      params: { _t: Date.now() },
+    });
     return response.data.data;
   },
 

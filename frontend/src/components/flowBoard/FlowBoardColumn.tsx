@@ -37,8 +37,8 @@ export const FlowBoardColumn = ({
 
   return (
     <div
-      className={`flex flex-col bg-gray-50 rounded-lg h-full w-56 flex-shrink-0 border-2 border-gray-200
-        ${isOver ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}`}
+      className={`flex flex-col bg-primary-50 rounded-lg h-full w-56 flex-shrink-0 border-2 border-primary-200
+        ${isOver ? 'ring-2 ring-secondary-300 ring-opacity-50' : ''}`}
     >
       {/* Column Header */}
       <div

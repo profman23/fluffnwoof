@@ -58,7 +58,10 @@
     "save": "حفظ",
     "saving": "جاري الحفظ...",
     "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
-    "error": "حدث خطأ أثناء الحفظ"
+    "error": "حدث خطأ أثناء الحفظ",
+    "noSlotsAvailable": "لا توجد مواعيد متاحة",
+    "doctorFullyBooked": "د. {{doctor}} محجوز بالكامل في هذا التاريخ",
+    "selectAnotherDateOrDoctor": "يرجى اختيار تاريخ آخر أو طبيب آخر"
   },
   "card": {
     "vet": "الطبيب"
@@ -69,7 +72,8 @@
   "tabs": {
     "soap": "السجل الطبي",
     "services": "الخدمات والمنتجات",
-    "payment": "الدفع"
+    "payment": "الدفع",
+    "attachments": "المرفقات"
   },
   "services": {
     "title": "الخدمات والمنتجات"
@@ -130,6 +134,7 @@
     "closing": "جاري الإغلاق...",
     "reopening": "جاري إعادة الفتح...",
     "closed": "السجل مغلق",
+    "savingBeforeClose": "جاري حفظ التغييرات...",
     "closedBy": "أُغلق بواسطة",
     "closedAt": "أُغلق في",
     "closeWarningTitle": "إغلاق السجل الطبي",

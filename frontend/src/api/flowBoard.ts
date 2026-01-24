@@ -40,6 +40,19 @@ export const flowBoardApi = {
   },
 
   /**
+   * Create multiple appointments in batch
+   * Used for booking next appointments from PatientRecordModal
+   * Returns created and skipped appointments with reasons
+   */
+  createBatchAppointments: async (appointments: CreateFlowBoardAppointmentInput[]): Promise<{
+    created: Appointment[];
+    skipped: Array<{ visitType?: VisitType; appointmentTime: string; appointmentDate: string; reason: string }>;
+  }> => {
+    const response = await api.post('/appointments/batch', { appointments });
+    return response.data.data;
+  },
+
+  /**
    * Get staff/vets list for appointment assignment
    */
   getStaff: async (): Promise<User[]> => {

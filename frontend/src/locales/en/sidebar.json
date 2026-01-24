@@ -14,6 +14,9 @@
     "upcoming": "Upcoming",
     "userManagement": "User Management",
     "rolesPermissions": "Roles & Permissions",
-    "audit": "Audit Log"
+    "audit": "Audit Log",
+    "sms": "SMS",
+    "myProfile": "My Profile",
+    "logout": "Logout"
   }
 }

@@ -14,6 +14,10 @@ import { FlowBoardPage } from './pages/FlowBoardPage';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NextAppointmentsReport } from './pages/reports/NextAppointmentsReport';
 import { ServiceProductsPage } from './pages/ServiceProductsPage';
+import { MyProfile } from './pages/MyProfile';
+import { SmsPage } from './pages/SmsPage';
+import { ThemeProvider } from './components/ThemeProvider';
+import { LogoLoader } from './components/common/LogoLoader';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,17 +70,14 @@ function App() {
 
   // انتظار تهيئة المصادقة قبل عرض التطبيق
   if (!isInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
-      </div>
-    );
+    return <LogoLoader fullScreen />;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route
             path="/dashboard"
@@ -166,9 +167,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <MyProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sms"
+            element={
+              <ProtectedRoute>
+                <SmsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

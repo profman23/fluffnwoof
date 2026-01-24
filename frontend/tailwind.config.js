@@ -1,51 +1,64 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // Enable RTL support
+  future: {
+    respectDefaultRingColorOpacity: true,
+  },
   theme: {
     extend: {
       colors: {
-        // Sage Green - Primary brand color
+        // Brand Colors from Fluff N' Woof Guidelines
+        brand: {
+          white: '#FDFEFF',
+          dark: '#211E1F',
+          mint: '#CEE8DC',
+          pink: '#EAB8D5',
+          gold: '#F5DF59',
+        },
+        // Primary - Mint Green palette (based on brand mint #CEE8DC)
         primary: {
-          50: '#f0f5f3',
-          100: '#dce8e2',
-          200: '#b9d1c5',
-          300: '#8fb8a3',
-          400: '#6a9c82',
-          500: '#5B7B6D',
-          600: '#4a6459',
-          700: '#3d5249',
-          800: '#33443d',
-          900: '#2b3833',
+          50: '#f5fbf8',
+          100: '#e8f5ef',
+          200: '#CEE8DC',  // Brand mint
+          300: '#a8d4be',
+          400: '#7dbf9e',
+          500: '#5a9f7d',
+          600: '#478066',
+          700: '#3a6653',
+          800: '#315244',
+          900: '#2a4439',
         },
-        // Golden Yellow - Logo & accent
+        // Secondary - Gold/Yellow palette (based on brand gold #F5DF59)
         secondary: {
-          50: '#fffdf5',
-          100: '#fef9e7',
-          200: '#fdf3cf',
-          300: '#fbe9a7',
-          400: '#F4D03F',
-          500: '#e6c02e',
-          600: '#c9a526',
-          700: '#a8891f',
-          800: '#876e19',
-          900: '#665314',
+          50: '#fffef5',
+          100: '#fffce6',
+          200: '#fef7c3',
+          300: '#F5DF59',  // Brand gold
+          400: '#e8ce3d',
+          500: '#d4b82e',
+          600: '#b89a24',
+          700: '#947a1e',
+          800: '#7a641d',
+          900: '#67531e',
         },
-        // Dusty Pink - Accent color
+        // Accent - Pink palette (based on brand pink #EAB8D5)
         accent: {
-          50: '#fdf5f6',
-          100: '#fce9eb',
-          200: '#f9d3d8',
-          300: '#f3b7bf',
-          400: '#E8B4B8',
-          500: '#d89da3',
-          600: '#c4858c',
-          700: '#a86b72',
-          800: '#8c5a60',
-          900: '#744d52',
+          50: '#fdf5f9',
+          100: '#fceaf2',
+          200: '#f9d5e6',
+          300: '#EAB8D5',  // Brand pink
+          400: '#e09dc2',
+          500: '#d07ba9',
+          600: '#bc5c8e',
+          700: '#9d4873',
+          800: '#823e60',
+          900: '#6d3752',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['DIN Next', 'Inter', 'system-ui', 'sans-serif'],
+        arabic: ['GE Dinar One', 'Cairo', 'system-ui', 'sans-serif'],
       },
     },
   },

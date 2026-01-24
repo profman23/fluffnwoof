@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none" stroke="#F5DF59" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Circle (sun/moon behind animals) -->
+  <circle cx="200" cy="120" r="85" class="logo-circle" />
+
+  <!-- Cat outline -->
+  <g class="logo-cat">
+    <!-- Cat ear left -->
+    <path d="M130 105 L115 70 L145 90" />
+    <!-- Cat ear right -->
+    <path d="M160 85 L155 55 L180 75" />
+    <!-- Cat head -->
+    <path d="M115 105 Q110 130 120 150 Q130 170 145 175" />
+    <!-- Cat face details -->
+    <path d="M125 120 L115 125 M125 122 L117 130" />
+    <!-- Cat whiskers -->
+    <path d="M115 135 L95 130 M115 140 L95 142 M115 145 L98 150" />
+    <!-- Cat body curve -->
+    <path d="M145 175 Q150 185 160 195" />
+  </g>
+
+  <!-- Dog outline -->
+  <g class="logo-dog">
+    <!-- Dog ear -->
+    <path d="M240 70 Q270 80 280 120 Q285 150 270 170" />
+    <!-- Dog head top -->
+    <path d="M200 65 Q220 55 240 70" />
+    <!-- Dog face -->
+    <path d="M270 170 Q280 180 275 195 Q260 210 245 205" />
+    <!-- Dog nose -->
+    <ellipse cx="262" cy="175" rx="15" ry="20" />
+    <!-- Dog body curve -->
+    <path d="M245 205 Q235 215 225 220" />
+  </g>
+
+  <!-- Text "Fluff" -->
+  <g class="logo-text-fluff">
+    <path d="M40 220 Q30 230 35 250 L35 280" />
+    <path d="M30 235 L50 235" />
+    <path d="M60 235 L60 280" />
+    <path d="M80 250 Q75 235 85 230 Q100 225 105 240 L105 280" />
+    <path d="M75 255 L105 255" />
+    <path d="M115 240 Q110 230 120 225 Q135 220 140 235 L140 270 Q145 285 130 290" />
+    <path d="M115 255 L140 255" />
+  </g>
+
+  <!-- Text "N'" -->
+  <g class="logo-text-n">
+    <path d="M165 210 L165 250 L180 210 L180 250" />
+    <path d="M185 215 Q192 205 195 215" />
+  </g>
+
+  <!-- Text "Woof" -->
+  <g class="logo-text-woof">
+    <path d="M210 230 L225 280 L240 245 L255 280 L270 230" />
+    <path d="M285 250 Q280 230 295 225 Q315 220 320 245 Q325 270 305 280 Q285 285 280 265 Q275 245 295 240" />
+    <path d="M335 250 Q330 230 345 225 Q365 220 370 245 Q375 270 355 280 Q335 285 330 265 Q325 245 345 240" />
+    <path d="M385 240 Q380 225 390 220 Q405 215 410 235 L410 270 Q415 285 400 290" />
+    <path d="M385 255 L410 255" />
+  </g>
+</svg>

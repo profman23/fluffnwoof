@@ -8,7 +8,9 @@ import {
   MagnifyingGlassIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ShoppingBagIcon,
 } from '@heroicons/react/24/outline';
+import { LogoLoader } from '../components/common/LogoLoader';
 import { serviceProductsApi, ServiceProduct, Category } from '../api/serviceProducts';
 import { AddEditServiceProductModal } from '../components/serviceProducts/AddEditModal';
 import { ImportExcelModal } from '../components/serviceProducts/ImportExcelModal';
@@ -132,7 +134,8 @@ export const ServiceProductsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <ShoppingBagIcon className="w-7 h-7 text-brand-dark" />
+          <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
           {isReadOnly && (
             <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
               {t('readOnly')}
@@ -195,9 +198,7 @@ export const ServiceProductsPage = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
+          <LogoLoader />
         ) : items.length === 0 ? (
           <div className="text-center py-20 text-gray-500">{t('noData')}</div>
         ) : (

@@ -73,6 +73,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  avatarUrl?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -350,5 +351,56 @@ export interface AuditLog {
   resourceId?: string;
   details?: unknown;
   ipAddress?: string;
+  createdAt: string;
+}
+
+// User Preferences & Theme Customization
+export interface FlowBoardColorConfig {
+  scheduled?: string;
+  checkIn?: string;
+  inProgress?: string;
+  hospitalized?: string;
+  completed?: string;
+}
+
+export interface UserPreferences {
+  id: string | null;
+  userId: string;
+  headerBgColor?: string;
+  sidebarBgColor?: string;
+  sidebarHoverColor?: string;
+  flowBoardColors?: FlowBoardColorConfig;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface UpdatePreferencesInput {
+  headerBgColor?: string;
+  sidebarBgColor?: string;
+  sidebarHoverColor?: string;
+  flowBoardColors?: FlowBoardColorConfig;
+}
+
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string;
+}
+
+// Medical Attachment for lab reports, x-rays, etc.
+export interface MedicalAttachment {
+  id: string;
+  medicalRecordId: string;
+  fileName: string;
+  fileUrl: string;
+  publicId?: string;
+  fileType: 'image' | 'pdf' | 'document';
+  fileSize: number;
+  description?: string;
+  uploadedBy: string;
+  uploader?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
   createdAt: string;
 }

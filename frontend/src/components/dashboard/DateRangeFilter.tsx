@@ -75,8 +75,8 @@ export const DateRangeFilter = ({
             onClick={() => handlePresetClick(key)}
             className={`px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
               preset === key
-                ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-secondary-300 text-brand-dark shadow-md'
+                : 'bg-primary-50 text-brand-dark hover:bg-primary-100'
             }`}
           >
             {label}
@@ -85,27 +85,27 @@ export const DateRangeFilter = ({
       </div>
 
       {/* Separator */}
-      <div className="hidden sm:block h-6 w-px bg-gray-300" />
+      <div className="hidden sm:block h-6 w-px bg-primary-200" />
 
       {/* Custom Date Inputs */}
       <div className="flex items-center gap-2">
-        <CalendarDaysIcon className="w-4 h-4 text-gray-500" />
+        <CalendarDaysIcon className="w-4 h-4 text-brand-dark/60" />
         <div className="flex items-center gap-1.5">
           <input
             type="date"
             value={formatDateForInput(startDate)}
             onChange={(e) => handleCustomDateChange('start', e.target.value)}
-            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              preset === 'custom' ? 'border-primary-400' : 'border-gray-300'
+            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 ${
+              preset === 'custom' ? 'border-secondary-300' : 'border-primary-200'
             }`}
           />
-          <span className="text-gray-500 text-sm">-</span>
+          <span className="text-brand-dark/60 text-sm">-</span>
           <input
             type="date"
             value={formatDateForInput(endDate)}
             onChange={(e) => handleCustomDateChange('end', e.target.value)}
-            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              preset === 'custom' ? 'border-primary-400' : 'border-gray-300'
+            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 ${
+              preset === 'custom' ? 'border-secondary-300' : 'border-primary-200'
             }`}
           />
         </div>

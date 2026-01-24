@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDaysIcon, FunnelIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, FunnelIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { reportsApi, PaginatedResult, GetNextAppointmentsParams } from '../../api/reports';
 import { flowBoardApi } from '../../api/flowBoard';
 import { FlowBoardAppointment, User } from '../../types';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 import { getTodayDate } from '../../utils/appointmentUtils';
+import { LogoLoader } from '../../components/common/LogoLoader';
 
 export const NextAppointmentsReport = () => {
   const { t } = useTranslation('reports');
@@ -114,8 +115,8 @@ export const NextAppointmentsReport = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <CalendarDaysIcon className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">
+          <CalendarDaysIcon className="w-7 h-7 text-brand-dark" />
+          <h1 className="text-2xl font-bold text-brand-dark">
             {t('nextAppointments.title')}
           </h1>
         </div>
@@ -228,9 +229,7 @@ export const NextAppointmentsReport = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <ArrowPathIcon className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
+          <LogoLoader />
         ) : appointments.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             {t('nextAppointments.noData')}

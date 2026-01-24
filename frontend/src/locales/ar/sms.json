@@ -1,0 +1,37 @@
+{
+  "title": "الرسائل النصية SMS",
+  "readOnlyMode": "وضع القراءة فقط",
+  "balance": {
+    "title": "رصيد الرسائل",
+    "credits": "رصيد متبقي",
+    "refresh": "تحديث"
+  },
+  "send": {
+    "title": "إرسال رسالة",
+    "phone": "رقم الهاتف",
+    "recipientName": "اسم المستلم (اختياري)",
+    "recipientNamePlaceholder": "اسم المستلم",
+    "message": "نص الرسالة",
+    "messagePlaceholder": "اكتب رسالتك هنا...",
+    "characters": "حرف",
+    "sendButton": "إرسال",
+    "sending": "جاري الإرسال...",
+    "success": "تم إرسال الرسالة بنجاح",
+    "failed": "فشل إرسال الرسالة",
+    "error": "حدث خطأ أثناء إرسال الرسالة"
+  },
+  "logs": {
+    "title": "سجل الرسائل",
+    "recipient": "المستلم",
+    "message": "الرسالة",
+    "status": "الحالة",
+    "date": "التاريخ",
+    "empty": "لا توجد رسائل مرسلة"
+  },
+  "status": {
+    "PENDING": "قيد الانتظار",
+    "SENT": "تم الإرسال",
+    "DELIVERED": "تم التسليم",
+    "FAILED": "فشل"
+  }
+}

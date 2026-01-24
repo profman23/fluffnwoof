@@ -18,9 +18,12 @@ export const generateTimeSlots = (durationMinutes: number, selectedDate: string)
   const endMinute = 30; // End at 11:30 PM
   const slotInterval = 30; // Always use 30-minute intervals for slot display
 
-  // Check if selected date is today
+  // Check if selected date is today (using local date, not UTC)
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
   const isToday = selectedDate === today;
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
@@ -72,14 +75,21 @@ export const isSlotBooked = (
   return false;
 };
 
-// Get tomorrow's date in YYYY-MM-DD format
+// Get tomorrow's date in YYYY-MM-DD format (local time)
 export const getTomorrowDate = (): string => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
-// Get today's date in YYYY-MM-DD format
+// Get today's date in YYYY-MM-DD format (local time)
 export const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };

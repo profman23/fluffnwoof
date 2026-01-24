@@ -1,0 +1,39 @@
+{
+  "title": "الملف الشخصي",
+  "profile": {
+    "title": "معلومات الملف الشخصي",
+    "firstName": "الاسم الأول",
+    "lastName": "الاسم الأخير",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "avatar": "الصورة الشخصية",
+    "editProfile": "تعديل الملف الشخصي",
+    "saveChanges": "حفظ التغييرات",
+    "cancel": "إلغاء"
+  },
+  "theme": {
+    "title": "تخصيص الألوان",
+    "layoutColors": "ألوان التخطيط",
+    "headerColor": "لون الهيدر",
+    "sidebarColor": "لون السايد بار",
+    "sidebarHoverColor": "لون التمرير",
+    "flowBoardColors": "ألوان أعمدة لوحة المتابعة",
+    "columns": {
+      "scheduled": "مجدول",
+      "checkIn": "تسجيل الدخول",
+      "inProgress": "قيد التنفيذ",
+      "hospitalized": "في المستشفى",
+      "completed": "مكتمل"
+    },
+    "resetDefaults": "إعادة للافتراضي",
+    "saveTheme": "حفظ الألوان"
+  },
+  "messages": {
+    "profileUpdated": "تم تحديث الملف الشخصي بنجاح",
+    "themeUpdated": "تم حفظ تفضيلات الألوان",
+    "themeReset": "تم إعادة الألوان للافتراضي",
+    "avatarUpdated": "تم تحديث الصورة الشخصية",
+    "avatarRemoved": "تم إزالة الصورة الشخصية",
+    "error": "حدث خطأ"
+  }
+}

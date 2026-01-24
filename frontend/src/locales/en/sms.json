@@ -1,0 +1,37 @@
+{
+  "title": "SMS Messages",
+  "readOnlyMode": "Read Only Mode",
+  "balance": {
+    "title": "SMS Balance",
+    "credits": "Credits Remaining",
+    "refresh": "Refresh"
+  },
+  "send": {
+    "title": "Send Message",
+    "phone": "Phone Number",
+    "recipientName": "Recipient Name (Optional)",
+    "recipientNamePlaceholder": "Recipient name",
+    "message": "Message Text",
+    "messagePlaceholder": "Write your message here...",
+    "characters": "characters",
+    "sendButton": "Send",
+    "sending": "Sending...",
+    "success": "Message sent successfully",
+    "failed": "Failed to send message",
+    "error": "An error occurred while sending the message"
+  },
+  "logs": {
+    "title": "Message Log",
+    "recipient": "Recipient",
+    "message": "Message",
+    "status": "Status",
+    "date": "Date",
+    "empty": "No messages sent yet"
+  },
+  "status": {
+    "PENDING": "Pending",
+    "SENT": "Sent",
+    "DELIVERED": "Delivered",
+    "FAILED": "Failed"
+  }
+}

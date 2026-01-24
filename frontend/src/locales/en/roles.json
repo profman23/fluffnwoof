@@ -28,7 +28,8 @@
     "medical": "Medical Records",
     "userManagement": "User Management",
     "rolesPermissions": "Roles & Permissions",
-    "serviceProducts": "Services & Products"
+    "serviceProducts": "Services & Products",
+    "sms": "SMS Messages"
   },
   "specialPermissions": {
     "title": "Special Permissions",

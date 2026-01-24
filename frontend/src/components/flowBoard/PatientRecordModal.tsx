@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, DocumentTextIcon, ShoppingBagIcon, CreditCardIcon } from '@heroicons/react/24/outline';
-import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment } from '../../types';
+import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, DocumentTextIcon, ShoppingBagIcon, CreditCardIcon, PaperClipIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment, MedicalAttachment } from '../../types';
 import { medicalRecordsApi } from '../../api/medicalRecords';
 import { flowBoardApi } from '../../api/flowBoard';
 import { invoicesApi, Invoice } from '../../api/invoices';
 import { AuditLogSection } from '../medical/AuditLogSection';
+import { FileAttachment } from '../common/FileAttachment';
+import { uploadApi } from '../../api/upload';
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked, getTomorrowDate } from '../../utils/appointmentUtils';
 import { ServiceProductSelector, SelectedItem } from './ServiceProductSelector';
@@ -26,6 +28,42 @@ const HYDRATION_LEVELS = ['Normal', 'Mild', 'Moderate', 'Severe'];
 const ATTITUDES = ['BAR', 'QAR', 'Depressed', 'Lethargic', 'Comatose'];
 const MUCOUS_MEMBRANES = ['Pink', 'Pale', 'Cyanotic', 'Icteric', 'Injected'];
 
+/**
+ * Sanitize form data before sending to API
+ * Filters out empty strings to prevent overwriting existing data
+ */
+const sanitizeFormDataForApi = (data: MedicalRecordInput): MedicalRecordInput => {
+  const result: MedicalRecordInput = {};
+
+  // String fields - only include if non-empty
+  const stringFields = [
+    'chiefComplaint', 'history', 'diagnosis', 'treatment', 'notes',
+    'muscleCondition', 'hydration', 'attitude', 'behaviour', 'mucousMembranes'
+  ] as const;
+
+  for (const field of stringFields) {
+    const value = data[field];
+    if (typeof value === 'string' && value.trim() !== '') {
+      (result as Record<string, unknown>)[field] = value;
+    }
+  }
+
+  // Number fields - include if defined and valid
+  const numberFields = [
+    'weight', 'temperature', 'heartRate', 'respirationRate',
+    'bodyConditionScore', 'painScore', 'crt'
+  ] as const;
+
+  for (const field of numberFields) {
+    const value = data[field];
+    if (typeof value === 'number' && !isNaN(value)) {
+      (result as Record<string, unknown>)[field] = value;
+    }
+  }
+
+  return result;
+};
+
 export const PatientRecordModal = ({
   isOpen,
   onClose,
@@ -36,8 +74,10 @@ export const PatientRecordModal = ({
   const { t } = useTranslation('patientRecord');
   const { t: tFlow } = useTranslation('flowBoard');
   const { isReadOnly } = useScreenPermission('medical');
-  const { isFullControl: canCreateAppointments } = useScreenPermission('flowBoard');
+  const { isFullControl: canCreateAppointments, canModify: canModifyFlowBoard } = useScreenPermission('flowBoard');
   const { canViewPhone } = usePhonePermission();
+  // Allow reopen if user has flowBoard modify permission OR medical full permission
+  const canReopenRecord = canModifyFlowBoard || !isReadOnly;
   const isMountedRef = useRef(true);
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -81,6 +121,7 @@ export const PatientRecordModal = ({
   const [bookingAppointment, setBookingAppointment] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingWarning, setBookingWarning] = useState<string | null>(null);
   const [staff, setStaff] = useState<User[]>([]);
   // Booked appointments for each date (to show available time slots)
   const [checkupBookedSlots, setCheckupBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
@@ -104,10 +145,18 @@ export const PatientRecordModal = ({
   const [closingRecord, setClosingRecord] = useState(false);
   const [reopeningRecord, setReopeningRecord] = useState(false);
 
+  // Track unsaved changes and save-before-close state
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSavingBeforeClose, setIsSavingBeforeClose] = useState(false);
+
   // Upcoming appointments state (scheduled from this record)
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   // All upcoming appointments for this pet (for showing existing booked appointments)
   const [petUpcomingAppointments, setPetUpcomingAppointments] = useState<Appointment[]>([]);
+
+  // Medical Attachments state
+  const [attachments, setAttachments] = useState<MedicalAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
 
   // Mandatory fields validation
   const mandatoryFieldsValid = useMemo(() => {
@@ -145,6 +194,8 @@ export const PatientRecordModal = ({
       setRecord(null);
       setFormData({});
       setLoading(false);
+      setHasUnsavedChanges(false);
+      setLastSaved(null);
       setUpcomingAppointments([]); // Reset scheduled appointments when modal closes
       return;
     }
@@ -152,6 +203,7 @@ export const PatientRecordModal = ({
     const loadRecord = async () => {
       setLoading(true);
       setError(null);
+      setHasUnsavedChanges(false); // Reset unsaved changes on load
       try {
         let data: MedicalRecord;
 
@@ -357,6 +409,43 @@ export const PatientRecordModal = ({
     fetchPetAppointments();
   }, [isOpen, effectiveAppointment?.pet?.id, record?.pet?.id, loading, bookingSuccess]);
 
+  // Fetch medical attachments when record is loaded
+  useEffect(() => {
+    const fetchAttachments = async () => {
+      if (!record?.id || !isOpen) return;
+
+      setAttachmentsLoading(true);
+      try {
+        const data = await uploadApi.getMedicalAttachments(record.id);
+        if (isMountedRef.current) {
+          setAttachments(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch attachments:', err);
+      } finally {
+        if (isMountedRef.current) {
+          setAttachmentsLoading(false);
+        }
+      }
+    };
+
+    fetchAttachments();
+  }, [isOpen, record?.id]);
+
+  // Handle attachment upload
+  const handleAttachmentUpload = async (file: File, description?: string) => {
+    if (!record?.id) return;
+
+    const attachment = await uploadApi.uploadMedicalAttachment(record.id, file, description);
+    setAttachments(prev => [attachment, ...prev]);
+  };
+
+  // Handle attachment delete
+  const handleAttachmentDelete = async (attachmentId: string) => {
+    await uploadApi.deleteMedicalAttachment(attachmentId);
+    setAttachments(prev => prev.filter(a => a.id !== attachmentId));
+  };
+
   // Count how many appointments will be booked (requires both date AND time)
   const appointmentsToBookCount = useMemo(() => {
     let count = 0;
@@ -395,7 +484,7 @@ export const PatientRecordModal = ({
   }, [petUpcomingAppointments]);
 
 
-  // Handle booking next appointments (multiple)
+  // Handle booking next appointments (multiple) - Uses batch API for reliability
   const handleBookNextAppointments = async () => {
     const petId = effectiveAppointment?.pet?.id || record?.pet?.id;
     const recordId = record?.id;
@@ -436,26 +525,41 @@ export const PatientRecordModal = ({
         });
       }
 
-      // Book all appointments with scheduledFromRecordId
-      for (const appt of appointmentsToBook) {
-        await flowBoardApi.createAppointment({
-          petId,
-          vetId: appointmentVetId,
-          appointmentDate: appt.date,
-          appointmentTime: appt.time,
-          visitType: appt.visitType,
-          duration: VISIT_TYPE_DURATION[appt.visitType],
-          notes: appt.notes + (appointmentNotes ? ` - ${appointmentNotes}` : ''),
-          scheduledFromRecordId: recordId,
-        });
-      }
+      // Convert to batch API format
+      const batchAppointments = appointmentsToBook.map(appt => ({
+        petId,
+        vetId: appointmentVetId,
+        appointmentDate: appt.date,
+        appointmentTime: appt.time,
+        visitType: appt.visitType,
+        duration: VISIT_TYPE_DURATION[appt.visitType],
+        notes: appt.notes + (appointmentNotes ? ` - ${appointmentNotes}` : ''),
+        scheduledFromRecordId: recordId,
+      }));
+
+      // Use batch API - single transaction for all appointments
+      const result = await flowBoardApi.createBatchAppointments(batchAppointments);
 
       if (isMountedRef.current) {
-        setBookingSuccess(true);
+        // Check if any appointments were skipped
+        if (result.skipped && result.skipped.length > 0) {
+          if (result.created.length > 0) {
+            // Some created, some skipped
+            setBookingWarning(`تم حجز ${result.created.length} موعد بنجاح. تم تخطي ${result.skipped.length} موعد بسبب تعارض.`);
+          } else {
+            // All skipped
+            setBookingError(`لم يتم إنشاء أي موعد. تم تخطي ${result.skipped.length} موعد بسبب تعارض في المواعيد.`);
+          }
+        } else if (result.created.length > 0) {
+          // All created successfully
+          setBookingSuccess(true);
+        }
+
         setTimeout(() => {
           if (isMountedRef.current) {
             setShowNextAppointment(false);
             setBookingSuccess(false);
+            setBookingWarning(null);
             // Reset all appointment dates and times
             setCheckupDate('');
             setCheckupTime('');
@@ -466,7 +570,7 @@ export const PatientRecordModal = ({
             setAppointmentNotes('');
             setAppointmentVetId(effectiveAppointment?.vet?.id || '');
           }
-        }, 2000);
+        }, 3000);
       }
     } catch (err) {
       console.error('Failed to book appointments:', err);
@@ -807,7 +911,11 @@ export const PatientRecordModal = ({
       }
 
       // Save medical record data first to ensure all fields are persisted
-      await medicalRecordsApi.update(record.id, formData);
+      // Sanitize data to prevent empty strings from overwriting existing values
+      const sanitizedData = sanitizeFormDataForApi(formData);
+      if (Object.keys(sanitizedData).length > 0) {
+        await medicalRecordsApi.update(record.id, sanitizedData);
+      }
       // Then close the record
       const closedRecord = await medicalRecordsApi.closeRecord(record.id);
       if (isMountedRef.current) {
@@ -818,9 +926,15 @@ export const PatientRecordModal = ({
         onSuccess?.();
       }
     } catch (err: unknown) {
-      console.error('Failed to close record:', err);
+      // Extract error message from axios response
+      let errorMessage = 'Failed to close record';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        errorMessage = axiosErr.response?.data?.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
       if (isMountedRef.current) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to close record';
         setError(errorMessage);
         setShowCloseWarning(false);
       }
@@ -875,19 +989,36 @@ export const PatientRecordModal = ({
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
-  const saveRecord = useCallback(async (dataToSave?: MedicalRecordInput) => {
-    if (!record || !isMountedRef.current) return;
+  const saveRecord = useCallback(async (dataToSave?: MedicalRecordInput): Promise<boolean> => {
+    // Don't check isMountedRef here - save must complete even if modal is closing
+    if (!record) return false;
 
     const data = dataToSave || formDataRef.current;
+    // Sanitize data to prevent empty strings from overwriting existing values
+    const sanitizedData = sanitizeFormDataForApi(data);
+
+    // If no actual data to save, skip the API call
+    if (Object.keys(sanitizedData).length === 0) {
+      if (isMountedRef.current) {
+        setHasUnsavedChanges(false);
+      }
+      return true;
+    }
+
     setSaving(true);
     try {
-      await medicalRecordsApi.update(record.id, data);
-      if (!isMountedRef.current) return;
-      setLastSaved(new Date());
+      await medicalRecordsApi.update(record.id, sanitizedData);
+      if (isMountedRef.current) {
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+      }
+      return true;
     } catch (err) {
       console.error('Failed to save medical record:', err);
-      if (!isMountedRef.current) return;
-      setError(t('errors.saveFailed') || 'Failed to save');
+      if (isMountedRef.current) {
+        setError(t('errors.saveFailed') || 'Failed to save');
+      }
+      return false;
     } finally {
       if (isMountedRef.current) {
         setSaving(false);
@@ -897,8 +1028,12 @@ export const PatientRecordModal = ({
 
   // Handle form field changes with auto-save
   const handleFieldChange = useCallback((field: keyof MedicalRecordInput, value: string | number | undefined) => {
+    setHasUnsavedChanges(true);
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
+
+      // Update ref immediately to ensure latest data is available for save
+      formDataRef.current = newData;
 
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -906,11 +1041,23 @@ export const PatientRecordModal = ({
 
       autoSaveTimeoutRef.current = setTimeout(() => {
         saveRecord(newData);
-      }, 2000);
+      }, 1000); // Reduced from 2000ms to 1000ms for faster auto-save
 
       return newData;
     });
   }, [saveRecord]);
+
+  // Save immediately when user leaves a field (blur)
+  // Can be added to form inputs with onBlur={handleFieldBlur} for immediate save on field exit
+  const handleFieldBlur = useCallback(() => {
+    if (hasUnsavedChanges && autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+      saveRecord(formDataRef.current);
+    }
+  }, [hasUnsavedChanges, saveRecord]);
+  // Suppress unused warning - available for future use on form inputs
+  void handleFieldBlur;
 
   // Manual save
   const handleManualSave = useCallback(async () => {
@@ -920,14 +1067,27 @@ export const PatientRecordModal = ({
     await saveRecord();
   }, [saveRecord]);
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
+    // Cancel any pending auto-save
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
     }
-    // Always save before closing to ensure data is not lost
-    saveRecord();
+
+    // If there are unsaved changes or a save is in progress, save first
+    if (hasUnsavedChanges || saving) {
+      setIsSavingBeforeClose(true);
+      const success = await saveRecord(formDataRef.current);
+      setIsSavingBeforeClose(false);
+
+      if (!success) {
+        // Save failed, don't close the modal
+        return;
+      }
+    }
+
     onClose();
-  }, [onClose, saveRecord]);
+  }, [onClose, saveRecord, hasUnsavedChanges, saving]);
 
   // Disabled backdrop click - modal closes only with X button
   // const handleBackdropClick = useCallback((e: React.MouseEvent) => {
@@ -947,55 +1107,65 @@ export const PatientRecordModal = ({
       style={{ zIndex: 9999 }}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[98vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[98vh] overflow-hidden flex flex-col relative"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Saving before close overlay */}
+        {isSavingBeforeClose && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50 rounded-xl">
+            <div className="bg-white rounded-lg p-6 shadow-xl flex items-center gap-4">
+              <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-500" />
+              <span className="text-lg font-medium text-gray-700">{tFlow('record.savingBeforeClose')}</span>
+            </div>
+          </div>
+        )}
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-emerald-600 to-emerald-700 text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-primary-200 to-primary-300 text-brand-dark">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold">{t('title')}</h2>
             {record?.isClosed && (
-              <span className="flex items-center gap-1 text-sm bg-red-500/80 px-3 py-1 rounded-full">
+              <span className="flex items-center gap-1 text-sm bg-accent-300 text-brand-dark px-3 py-1 rounded-full">
                 {tFlow('record.closed')}
               </span>
             )}
             {saving && (
-              <span className="flex items-center gap-1 text-sm bg-white/20 px-3 py-1 rounded-full">
+              <span className="flex items-center gap-1 text-sm bg-secondary-300/50 text-brand-dark px-3 py-1 rounded-full">
                 <ArrowPathIcon className="w-4 h-4 animate-spin" />
                 {t('saving')}
               </span>
             )}
             {!saving && lastSaved && !record?.isClosed && (
-              <span className="text-sm text-emerald-100">
+              <span className="text-sm text-primary-700">
                 {t('lastSaved')}: {lastSaved.toLocaleTimeString()}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* Close/Reopen Record Button */}
-            {record && !isReadOnly && (
-              record.isClosed ? (
-                <button
-                  onClick={handleReopenRecord}
-                  disabled={reopeningRecord}
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors disabled:opacity-50"
-                  type="button"
-                >
-                  {reopeningRecord ? (
-                    <>
-                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                      {tFlow('record.reopening')}
-                    </>
-                  ) : (
-                    tFlow('record.reopen')
-                  )}
-                </button>
-              ) : (
+            {/* Reopen Record Button - shown when record is closed and user has permission */}
+            {record && record.isClosed && canReopenRecord && (
+              <button
+                onClick={handleReopenRecord}
+                disabled={reopeningRecord}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary-300 hover:bg-secondary-400 text-brand-dark rounded-lg transition-colors disabled:opacity-50 font-medium"
+                type="button"
+              >
+                {reopeningRecord ? (
+                  <>
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                    {tFlow('record.reopening')}
+                  </>
+                ) : (
+                  tFlow('record.reopen')
+                )}
+              </button>
+            )}
+            {/* Close Record Button - shown when record is open and user has write permission */}
+            {record && !record.isClosed && !isReadOnly && (
                 <div className="relative group">
                   <button
                     onClick={() => setShowCloseWarning(true)}
                     disabled={closingRecord || !mandatoryFieldsValid}
-                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-4 py-2 bg-accent-300 hover:bg-accent-400 text-brand-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     type="button"
                   >
                     {tFlow('record.close')}
@@ -1007,11 +1177,10 @@ export const PatientRecordModal = ({
                     </div>
                   )}
                 </div>
-              )
             )}
             <button
               onClick={handleClose}
-              className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+              className="text-brand-dark/70 hover:text-brand-dark hover:bg-primary-300/50 p-2 rounded-lg transition-colors"
               type="button"
             >
               <XMarkIcon className="w-6 h-6" />
@@ -1023,7 +1192,7 @@ export const PatientRecordModal = ({
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <ArrowPathIcon className="w-8 h-8 animate-spin text-blue-600" />
+              <ArrowPathIcon className="w-8 h-8 animate-spin text-primary-500" />
             </div>
           ) : error ? (
             <div className="m-6 p-4 bg-red-50 text-red-600 rounded-lg">
@@ -1032,7 +1201,7 @@ export const PatientRecordModal = ({
           ) : (appointment || record) ? (
             <div className="p-6 space-y-8">
               {/* Patient Info Card */}
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200">
+              <div className="bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl p-5 border border-primary-200">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   <div>
                     <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.owner')}</label>
@@ -1074,16 +1243,16 @@ export const PatientRecordModal = ({
               </div>
 
               {/* SOAP Section */}
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-blue-50 px-5 py-3 border-b border-blue-100 flex items-center gap-2">
-                  <DocumentTextIcon className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-blue-900">{tFlow('tabs.soap')}</h3>
+              <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">
+                <div className="bg-primary-100 px-5 py-3 border-b border-primary-200 flex items-center gap-2">
+                  <DocumentTextIcon className="w-5 h-5 text-primary-600" />
+                  <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.soap')}</h3>
                 </div>
                 <div className="p-5 space-y-6">
                   {/* Subjective */}
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">S</span>
+                      <span className="w-6 h-6 bg-primary-200 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">S</span>
                       {t('sections.subjective')}
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1115,7 +1284,7 @@ export const PatientRecordModal = ({
                   {/* Objective */}
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">O</span>
+                      <span className="w-6 h-6 bg-secondary-200 text-secondary-700 rounded-full flex items-center justify-center text-xs font-bold">O</span>
                       {t('sections.objective')}
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -1300,7 +1469,7 @@ export const PatientRecordModal = ({
                   {/* Assessment */}
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xs font-bold">A</span>
+                      <span className="w-6 h-6 bg-accent-200 text-accent-700 rounded-full flex items-center justify-center text-xs font-bold">A</span>
                       {t('sections.assessment')}
                     </h4>
                     <textarea
@@ -1316,7 +1485,7 @@ export const PatientRecordModal = ({
                   {/* Plan */}
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs font-bold">P</span>
+                      <span className="w-6 h-6 bg-primary-300 text-primary-800 rounded-full flex items-center justify-center text-xs font-bold">P</span>
                       {t('sections.plan')}
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1348,19 +1517,19 @@ export const PatientRecordModal = ({
               </div>
 
               {/* Services & Products Section */}
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-emerald-50 px-5 py-3 border-b border-emerald-100 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-secondary-200 overflow-hidden">
+                <div className="bg-secondary-100 px-5 py-3 border-b border-secondary-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ShoppingBagIcon className="w-5 h-5 text-emerald-600" />
-                    <h3 className="text-lg font-semibold text-emerald-900">{tFlow('tabs.services')}</h3>
+                    <ShoppingBagIcon className="w-5 h-5 text-secondary-600" />
+                    <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.services')}</h3>
                     {selectedItems.length > 0 && (
-                      <span className="bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                      <span className="bg-secondary-300 text-brand-dark px-2 py-0.5 rounded-full text-xs font-medium">
                         {selectedItems.length}
                       </span>
                     )}
                   </div>
                   {invoice?.isFinalized && (
-                    <span className="text-sm text-emerald-700 font-medium">
+                    <span className="text-sm text-primary-700 font-medium">
                       {tFlow('invoice.number')}: {invoice.invoiceNumber}
                     </span>
                   )}
@@ -1381,11 +1550,11 @@ export const PatientRecordModal = ({
               </div>
 
               {/* Payment Section */}
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-violet-50 px-5 py-3 border-b border-violet-100 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-accent-200 overflow-hidden">
+                <div className="bg-accent-100 px-5 py-3 border-b border-accent-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CreditCardIcon className="w-5 h-5 text-violet-600" />
-                    <h3 className="text-lg font-semibold text-violet-900">{tFlow('tabs.payment')}</h3>
+                    <CreditCardIcon className="w-5 h-5 text-accent-600" />
+                    <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.payment')}</h3>
                   </div>
                   {invoice && (
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -1424,17 +1593,17 @@ export const PatientRecordModal = ({
 
               {/* Next Appointment Section */}
               {canCreateAppointments && (effectiveAppointment || record?.pet) && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="bg-sky-50 px-5 py-3 border-b border-sky-100 flex items-center justify-between">
+                <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">
+                  <div className="bg-primary-50 px-5 py-3 border-b border-primary-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CalendarDaysIcon className="w-5 h-5 text-sky-600" />
-                      <h3 className="text-lg font-semibold text-sky-900">{t('nextAppointment.title')}</h3>
+                      <CalendarDaysIcon className="w-5 h-5 text-primary-600" />
+                      <h3 className="text-lg font-semibold text-brand-dark">{t('nextAppointment.title')}</h3>
                     </div>
                     {!showNextAppointment && (
                       <button
                         type="button"
                         onClick={() => setShowNextAppointment(true)}
-                        className="flex items-center gap-1 px-4 py-2 text-sm bg-sky-600 text-white rounded-lg hover:bg-sky-700 font-medium transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 text-sm bg-secondary-300 text-brand-dark rounded-lg hover:bg-secondary-400 font-medium transition-colors"
                       >
                         <PlusIcon className="w-4 h-4" />
                         {t('nextAppointment.schedule')}
@@ -1448,6 +1617,11 @@ export const PatientRecordModal = ({
                         <div className="flex items-center justify-center gap-2 py-6 text-green-600">
                           <CheckCircleIcon className="w-8 h-8" />
                           <span className="font-semibold text-lg">{t('nextAppointment.success')}</span>
+                        </div>
+                      ) : bookingWarning ? (
+                        <div className="flex flex-col items-center justify-center gap-2 py-6 text-amber-600">
+                          <ExclamationTriangleIcon className="w-8 h-8" />
+                          <span className="font-semibold text-lg text-center">{bookingWarning}</span>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -1752,11 +1926,11 @@ export const PatientRecordModal = ({
 
               {/* Upcoming Appointments Section */}
               {upcomingAppointments.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="bg-indigo-50 px-5 py-3 border-b border-indigo-100 flex items-center gap-2">
-                    <CalendarDaysIcon className="w-5 h-5 text-indigo-600" />
-                    <h3 className="text-lg font-semibold text-indigo-900">{t('upcomingAppointments.title')}</h3>
-                    <span className="bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">
+                  <div className="bg-primary-100 px-5 py-3 border-b border-primary-200 flex items-center gap-2">
+                    <CalendarDaysIcon className="w-5 h-5 text-primary-600" />
+                    <h3 className="text-lg font-semibold text-brand-dark">{t('upcomingAppointments.title')}</h3>
+                    <span className="bg-primary-200 text-primary-700 px-2 py-0.5 rounded-full text-xs font-medium">
                       {upcomingAppointments.length}
                     </span>
                   </div>
@@ -1765,18 +1939,18 @@ export const PatientRecordModal = ({
                       {upcomingAppointments.map((appt) => (
                         <div
                           key={appt.id}
-                          className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100"
+                          className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border border-primary-100"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="text-sm font-medium text-indigo-700">
+                            <div className="text-sm font-medium text-primary-700">
                               {new Date(appt.appointmentDate).toLocaleDateString()}
                             </div>
-                            <div className="text-sm text-indigo-600" dir="ltr">
+                            <div className="text-sm text-primary-600" dir="ltr">
                               {appt.appointmentTime}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                            <span className="px-2 py-1 bg-secondary-200 text-brand-dark rounded text-xs font-medium">
                               {appt.notes || (appt.visitType && tFlow(`visitTypes.${appt.visitType}`))}
                             </span>
                             {appt.vet && (
@@ -1792,6 +1966,30 @@ export const PatientRecordModal = ({
                 </div>
               )}
 
+              {/* Medical Attachments Section */}
+              {record && (
+                <div className="bg-white rounded-xl border border-secondary-200 overflow-hidden">
+                  <div className="bg-secondary-100 px-5 py-3 border-b border-secondary-200 flex items-center gap-2">
+                    <PaperClipIcon className="w-5 h-5 text-secondary-600" />
+                    <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.attachments')}</h3>
+                    {attachments.length > 0 && (
+                      <span className="bg-secondary-300 text-brand-dark px-2 py-0.5 rounded-full text-xs font-medium">
+                        {attachments.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <FileAttachment
+                      attachments={attachments}
+                      onUpload={handleAttachmentUpload}
+                      onDelete={handleAttachmentDelete}
+                      readonly={isReadOnly || record?.isClosed}
+                      loading={attachmentsLoading}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Audit Log Section */}
               {record && (
                 <AuditLogSection recordId={record.id} />
@@ -1801,11 +1999,11 @@ export const PatientRecordModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-primary-50">
           <button
             type="button"
             onClick={handleClose}
-            className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium transition-colors"
+            className="px-5 py-2.5 border border-primary-300 rounded-lg text-brand-dark hover:bg-primary-100 font-medium transition-colors"
           >
             {t('close')}
           </button>
@@ -1814,7 +2012,7 @@ export const PatientRecordModal = ({
               type="button"
               onClick={handleManualSave}
               disabled={saving || loading}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              className="px-5 py-2.5 bg-secondary-300 text-brand-dark rounded-lg hover:bg-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
             >
               {saving ? t('saving') : t('save')}
             </button>

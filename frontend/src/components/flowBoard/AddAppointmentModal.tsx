@@ -291,7 +291,7 @@ export const AddAppointmentModal = ({
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -307,7 +307,7 @@ export const AddAppointmentModal = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
               {error}
@@ -437,24 +437,39 @@ export const AddAppointmentModal = ({
             </select>
           </div>
 
-          {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.date')}
-              </label>
-              <input
-                type="date"
-                value={appointmentDate}
-                onChange={(e) => setAppointmentDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.time')}
-              </label>
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('form.date')}
+            </label>
+            <input
+              type="date"
+              value={appointmentDate}
+              onChange={(e) => setAppointmentDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('form.time')} {timeSlots.length > 0 && <span className="text-gray-400">({timeSlots.length})</span>}
+            </label>
+            {timeSlots.length === 0 ? (
+              <div className="px-4 py-3 border border-orange-200 rounded-lg bg-orange-50 text-orange-700 text-sm">
+                <p className="font-medium">{t('form.noSlotsAvailable') || 'No available time slots'}</p>
+                <p className="mt-1 text-orange-600">
+                  {selectedStaff && staff.find(s => s.id === selectedStaff) ? (
+                    t('form.doctorFullyBooked', {
+                      doctor: `${staff.find(s => s.id === selectedStaff)?.firstName} ${staff.find(s => s.id === selectedStaff)?.lastName}`
+                    }) || `Dr. ${staff.find(s => s.id === selectedStaff)?.firstName} ${staff.find(s => s.id === selectedStaff)?.lastName} is fully booked on this date`
+                  ) : (
+                    t('form.selectAnotherDateOrDoctor') || 'Please select another date or doctor'
+                  )}
+                </p>
+              </div>
+            ) : (
               <select
                 value={appointmentTime}
                 onChange={(e) => setAppointmentTime(e.target.value)}
@@ -466,7 +481,7 @@ export const AddAppointmentModal = ({
                   </option>
                 ))}
               </select>
-            </div>
+            )}
           </div>
 
           {/* Actions */}

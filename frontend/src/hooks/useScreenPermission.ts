@@ -22,6 +22,11 @@ export const useScreenPermission = (screenName: string) => {
   const { permissions } = useAuthStore();
 
   const getPermissionLevel = (): PermissionLevel => {
+    // Profile screen is always accessible to all authenticated users
+    if (screenName === 'profile') {
+      return 'full';
+    }
+
     // Check for FULL control first (highest priority)
     if (permissions.includes(`screens.${screenName}.full`)) {
       return 'full';

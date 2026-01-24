@@ -42,7 +42,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-primary-200 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-2xl p-6 sm:p-8 md:p-10 w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
           <img src="/logo.png" alt="Fluff N' Woof" className="h-24 w-auto mx-auto mb-4" />

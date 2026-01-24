@@ -18,7 +18,9 @@ import {
   UserIcon,
   EyeIcon,
   EyeSlashIcon,
+  ViewColumnsIcon,
 } from '@heroicons/react/24/outline';
+import { LogoLoader } from '../components/common/LogoLoader';
 import { FlowBoardColumn } from '../components/flowBoard/FlowBoardColumn';
 import { FlowBoardCard } from '../components/flowBoard/FlowBoardCard';
 import { AddAppointmentModal } from '../components/flowBoard/AddAppointmentModal';
@@ -27,14 +29,7 @@ import { RescheduleModal } from '../components/flowBoard/RescheduleModal';
 import { flowBoardApi } from '../api/flowBoard';
 import { FlowBoardData, FlowBoardAppointment, AppointmentStatus, User } from '../types';
 import { useScreenPermission } from '../hooks/useScreenPermission';
-
-const columnConfig = [
-  { id: 'scheduled', color: '#22C55E' }, // light green
-  { id: 'checkIn', color: '#F97316' }, // vibrant orange
-  { id: 'inProgress', color: '#FBBF24' }, // golden yellow
-  { id: 'hospitalized', color: '#EC4899' }, // vibrant pink
-  { id: 'completed', color: '#10B981' }, // success green
-];
+import { useThemeStore } from '../store/themeStore';
 
 const statusMap: Record<string, AppointmentStatus> = {
   scheduled: AppointmentStatus.SCHEDULED,
@@ -47,6 +42,16 @@ const statusMap: Record<string, AppointmentStatus> = {
 export const FlowBoardPage = () => {
   const { t } = useTranslation('flowBoard');
   const { isFullControl: hasFullAccess, isReadOnly } = useScreenPermission('flowBoard');
+  const flowBoardColors = useThemeStore((state) => state.flowBoardColors);
+
+  // Column config using theme colors - memoized to prevent infinite re-renders
+  const columnConfig = useMemo(() => [
+    { id: 'scheduled', color: flowBoardColors?.scheduled || '#CEE8DC' },
+    { id: 'checkIn', color: flowBoardColors?.checkIn || '#F5DF59' },
+    { id: 'inProgress', color: flowBoardColors?.inProgress || '#EAB8D5' },
+    { id: 'hospitalized', color: flowBoardColors?.hospitalized || '#EAB8D5' },
+    { id: 'completed', color: flowBoardColors?.completed || '#CEE8DC' },
+  ], [flowBoardColors]);
 
   const [data, setData] = useState<FlowBoardData>({
     scheduled: [],
@@ -262,7 +267,8 @@ export const FlowBoardPage = () => {
       <div className="bg-white rounded-lg shadow-sm px-3 py-1.5 mb-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-gray-900">{t('title')}</h1>
+            <ViewColumnsIcon className="w-6 h-6 text-brand-dark" />
+            <h1 className="text-xl font-bold text-brand-dark">{t('title')}</h1>
             <span className="text-xs text-gray-500">{formatDisplayDate(selectedDate)}</span>
             {isReadOnly && (
               <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
@@ -343,9 +349,7 @@ export const FlowBoardPage = () => {
       {/* Board */}
       <div className="overflow-x-auto pb-2 flex-1 min-h-0">
         {loading ? (
-          <div className="flex items-center justify-center py-20 h-full">
-            <ArrowPathIcon className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
+          <LogoLoader />
         ) : (
           <DndContext
             sensors={isReadOnly ? [] : sensors}

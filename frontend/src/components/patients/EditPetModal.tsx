@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '../common/Modal';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { ImageUpload } from '../common/ImageUpload';
 import { petsApi, UpdatePetInput, PetWithOwner } from '../../api/pets';
+import { uploadApi } from '../../api/upload';
 import { Species, Gender } from '../../types';
 import { breedsBySpecies, getBreedLabel, Breed } from '../../data/breeds';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
@@ -56,6 +58,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [availableBreeds, setAvailableBreeds] = useState<Breed[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
 
   // Load pet data when modal opens
   useEffect(() => {
@@ -70,6 +74,7 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
         weight: pet.weight?.toString() || '',
         notes: pet.notes || '',
       });
+      setPhotoUrl(pet.photoUrl || null);
       setAvailableBreeds(breedsBySpecies[pet.species] || []);
       setErrors({});
       setApiError('');
@@ -150,6 +155,30 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
     { value: Species.OTHER, label: t('species.OTHER') },
   ];
 
+  const handlePhotoUpload = async (file: File) => {
+    setPhotoLoading(true);
+    try {
+      const updatedPet = await uploadApi.uploadPetPhoto(pet.id, file);
+      setPhotoUrl(updatedPet.photoUrl || null);
+    } catch (error: any) {
+      setApiError(error.response?.data?.message || t('messages.error'));
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    setPhotoLoading(true);
+    try {
+      const updatedPet = await uploadApi.removePetPhoto(pet.id);
+      setPhotoUrl(updatedPet.photoUrl || null);
+    } catch (error: any) {
+      setApiError(error.response?.data?.message || t('messages.error'));
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={t('editPet')} size="lg">
       <form onSubmit={handleSubmit}>
@@ -169,7 +198,27 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
             </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Pet Photo */}
+          <div className="flex flex-col items-center">
+            <label className="label mb-2">{t('pet.photo')}</label>
+            <ImageUpload
+              currentImage={photoUrl}
+              onUpload={handlePhotoUpload}
+              onRemove={photoUrl ? handlePhotoRemove : undefined}
+              shape="square"
+              size="lg"
+              loading={photoLoading}
+              maxSizeMB={5}
+              placeholder={
+                <div className="flex flex-col items-center text-gray-400">
+                  <span className="text-4xl">🐾</span>
+                </div>
+              }
+            />
+          </div>
+
+        <div className="flex-1 space-y-4">
           <Input
             label={t('pet.name')}
             value={formData.name}
@@ -301,6 +350,7 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
               rows={3}
             />
           </div>
+        </div>
         </div>
 
         {/* Action Buttons */}

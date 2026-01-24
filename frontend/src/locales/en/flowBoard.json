@@ -58,7 +58,10 @@
     "save": "Save",
     "saving": "Saving...",
     "requiredFields": "Please fill in all required fields",
-    "error": "An error occurred while saving"
+    "error": "An error occurred while saving",
+    "noSlotsAvailable": "No available time slots",
+    "doctorFullyBooked": "Dr. {{doctor}} is fully booked on this date",
+    "selectAnotherDateOrDoctor": "Please select another date or doctor"
   },
   "card": {
     "vet": "Doctor"
@@ -69,7 +72,8 @@
   "tabs": {
     "soap": "Medical Record",
     "services": "Services & Products",
-    "payment": "Payment"
+    "payment": "Payment",
+    "attachments": "Attachments"
   },
   "services": {
     "title": "Services & Products"
@@ -130,6 +134,7 @@
     "closing": "Closing...",
     "reopening": "Reopening...",
     "closed": "Record Closed",
+    "savingBeforeClose": "Saving changes...",
     "closedBy": "Closed by",
     "closedAt": "Closed at",
     "closeWarningTitle": "Close Medical Record",

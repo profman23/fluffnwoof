@@ -9,6 +9,7 @@ router.use(authenticate);
 router.use(auditMiddleware('Appointment'));
 
 router.post('/', requirePermission('appointments.create', 'screens.flowBoard.full'), appointmentController.create);
+router.post('/batch', requirePermission('appointments.create', 'screens.flowBoard.full'), appointmentController.createBatch);
 router.get('/', requirePermission('appointments.read', 'screens.flowBoard.read', 'screens.flowBoard.full'), appointmentController.findAll);
 router.get('/upcoming', requirePermission('appointments.read', 'screens.flowBoard.read', 'screens.flowBoard.full'), appointmentController.getUpcoming);
 router.get('/flow-board', requirePermission('screens.flowBoard.read', 'screens.flowBoard.full'), appointmentController.getFlowBoardData);

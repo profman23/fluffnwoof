@@ -24,6 +24,55 @@ export const appointmentController = {
     }
   },
 
+  /**
+   * Create multiple appointments in batch
+   * Used for booking next appointments from PatientRecordModal
+   * Returns created and skipped appointments with reasons
+   */
+  async createBatch(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { appointments } = req.body;
+
+      if (!Array.isArray(appointments) || appointments.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'يجب توفير قائمة بالمواعيد',
+        });
+      }
+
+      // Convert date strings to Date objects
+      const appointmentsWithDates = appointments.map((appt: any) => ({
+        ...appt,
+        appointmentDate: new Date(appt.appointmentDate + 'T00:00:00.000Z'),
+      }));
+
+      const result = await appointmentService.createBatch(appointmentsWithDates);
+
+      // إنشاء رسالة مناسبة
+      let message = '';
+      if (result.created.length > 0 && result.skipped.length === 0) {
+        message = `تم إنشاء ${result.created.length} موعد بنجاح`;
+      } else if (result.created.length > 0 && result.skipped.length > 0) {
+        message = `تم إنشاء ${result.created.length} موعد بنجاح، وتم تخطي ${result.skipped.length} موعد بسبب تعارض`;
+      } else if (result.created.length === 0 && result.skipped.length > 0) {
+        message = `لم يتم إنشاء أي موعد. تم تخطي ${result.skipped.length} موعد بسبب تعارض`;
+      } else {
+        message = 'لا توجد مواعيد للإنشاء';
+      }
+
+      res.status(201).json({
+        success: true,
+        message,
+        data: {
+          created: result.created,
+          skipped: result.skipped,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async findAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { page, limit, vetId, status, date } = req.query;

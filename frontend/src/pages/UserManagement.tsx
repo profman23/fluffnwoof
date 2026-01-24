@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { UsersIcon } from '@heroicons/react/24/outline';
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { LogoLoader } from '../components/common/LogoLoader';
 import { usersApi } from '../api/users';
 import { User, Role } from '../types';
 import { AddUserModal } from '../components/users/AddUserModal';
@@ -120,7 +122,10 @@ export const UserManagement: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">{t('title')}</h1>
+            <div className="flex items-center gap-3">
+              <UsersIcon className="w-7 h-7 text-brand-dark" />
+              <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+            </div>
             {isReadOnly && (
               <span className="inline-block mt-2 px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
                 {t('readOnly')}
@@ -161,9 +166,7 @@ export const UserManagement: React.FC = () => {
 
           {/* Users Table */}
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">{t('loading')}</p>
-            </div>
+            <LogoLoader />
           ) : users.length === 0 ? (
             <div className="flex items-center justify-center h-64">
               <p className="text-gray-500">{t('noUsers')}</p>

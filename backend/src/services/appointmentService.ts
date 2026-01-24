@@ -2,6 +2,21 @@ import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { AppointmentStatus, VisitType } from '@prisma/client';
+import { sendSms } from './smsService';
+
+// دالة تنسيق التاريخ بالعربية
+function formatDateArabic(date: Date): string {
+  const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+  const d = new Date(date);
+  const dayName = days[d.getDay()];
+  const dayNum = d.getDate();
+  const monthName = months[d.getMonth()];
+
+  return `${dayName} ${dayNum} ${monthName}`;
+}
 
 export const appointmentService = {
   /**
@@ -72,7 +87,7 @@ export const appointmentService = {
     scheduledFromRecordId?: string;
   }) {
     // استخدام Transaction لمنع Race Conditions عند الحجز المتزامن
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // التحقق من تعارض المواعيد داخل الـ transaction
       const [startHour, startMin] = data.appointmentTime.split(':').map(Number);
       const newStartMinutes = startHour * 60 + startMin;
@@ -141,6 +156,141 @@ export const appointmentService = {
       });
 
       return appointment;
+    });
+
+    // إرسال SMS تلقائي للعميل (غير معطل - fire and forget)
+    if (result.pet.owner?.phone) {
+      const ownerName = `${result.pet.owner.firstName} ${result.pet.owner.lastName}`;
+      const petName = result.pet.name;
+      const dateStr = formatDateArabic(result.appointmentDate);
+      const timeStr = result.appointmentTime;
+
+      const message = `عزيزنا ${ownerName}، تم حجز موعد لـ ${petName} يوم ${dateStr} الساعة ${timeStr}. نتطلع لرؤيتكم! - Fluff N' Woof`;
+
+      sendSms({
+        phone: result.pet.owner.phone,
+        message,
+        recipientName: ownerName,
+      }).catch(err => console.error('SMS send failed:', err));
+    }
+
+    return result;
+  },
+
+  /**
+   * Create multiple appointments in a single transaction
+   * Used for booking next appointments from PatientRecordModal
+   * Returns both created and skipped appointments with reasons
+   */
+  async createBatch(appointments: Array<{
+    petId: string;
+    vetId: string;
+    appointmentDate: Date;
+    appointmentTime: string;
+    duration?: number;
+    visitType?: VisitType;
+    reason?: string;
+    notes?: string;
+    scheduledFromRecordId?: string;
+  }>): Promise<{
+    created: any[];
+    skipped: Array<{ visitType?: VisitType; appointmentTime: string; appointmentDate: Date; reason: string }>;
+  }> {
+    if (!appointments || appointments.length === 0) {
+      return { created: [], skipped: [] };
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const created: any[] = [];
+      const skipped: Array<{ visitType?: VisitType; appointmentTime: string; appointmentDate: Date; reason: string }> = [];
+
+      for (const data of appointments) {
+        // التحقق من تعارض المواعيد داخل الـ transaction
+        const [startHour, startMin] = data.appointmentTime.split(':').map(Number);
+        const newStartMinutes = startHour * 60 + startMin;
+        const newEndMinutes = newStartMinutes + (data.duration || 30);
+
+        const targetDate = typeof data.appointmentDate === 'string'
+          ? new Date(data.appointmentDate)
+          : data.appointmentDate;
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // جلب كل مواعيد الدكتور في نفس اليوم
+        const existingAppointments = await tx.appointment.findMany({
+          where: {
+            vetId: data.vetId,
+            appointmentDate: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+            status: { not: 'CANCELLED' },
+          },
+          select: {
+            appointmentTime: true,
+            duration: true,
+          },
+        });
+
+        // التحقق من التعارض
+        let conflictTime: string | null = null;
+        for (const appt of existingAppointments) {
+          const [existHour, existMin] = appt.appointmentTime.split(':').map(Number);
+          const existStartMinutes = existHour * 60 + existMin;
+          const existEndMinutes = existStartMinutes + (appt.duration || 30);
+
+          if (newStartMinutes < existEndMinutes && newEndMinutes > existStartMinutes) {
+            conflictTime = appt.appointmentTime;
+            break;
+          }
+        }
+
+        if (conflictTime) {
+          // تخطي هذا الموعد وتسجيل السبب
+          skipped.push({
+            visitType: data.visitType,
+            appointmentTime: data.appointmentTime,
+            appointmentDate: data.appointmentDate,
+            reason: `تعارض مع موعد آخر في الساعة ${conflictTime}`,
+          });
+          continue;
+        }
+
+        // إنشاء الموعد
+        const appointment = await tx.appointment.create({
+          data: {
+            ...data,
+            duration: data.duration || 30,
+          },
+          include: {
+            pet: {
+              include: {
+                owner: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
+            vet: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        });
+
+        created.push(appointment);
+      }
+
+      return { created, skipped };
     });
   },
 

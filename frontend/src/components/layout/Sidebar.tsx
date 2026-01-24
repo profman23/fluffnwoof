@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { useScreenPermission } from '../../hooks/useScreenPermission';
+import { useAuthStore } from '../../store/authStore';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,7 +21,14 @@ interface MenuItem {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation('sidebar');
   const location = useLocation();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['reports']);
+  const navigate = useNavigate();
+  const { logout } = useAuthStore();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const allMenuItems: MenuItem[] = [
     { path: '/dashboard', key: 'dashboard', icon: '📊', screen: 'dashboard' },
@@ -38,6 +46,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         { path: '/reports/appointments', key: 'upcoming', icon: '📅', screen: 'reports' },
       ],
     },
+    { path: '/sms', key: 'sms', icon: '📱', screen: 'sms' },
+    { path: '/profile', key: 'myProfile', icon: '⚙️', screen: 'profile' },
   ];
 
   const toggleSubmenu = (key: string) => {
@@ -64,13 +74,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div>
           <button
             onClick={() => toggleSubmenu(item.key)}
-            className={`w-full flex items-center justify-between px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors ${
-              hasActiveChild ? 'bg-primary-50 text-primary-600' : ''
+            className={`sidebar-menu-item w-full flex items-center justify-between px-4 py-1.5 text-brand-dark hover:text-primary-700 transition-colors ${
+              hasActiveChild ? 'bg-primary-200 text-primary-700' : ''
             }`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-lg">{item.icon}</span>
-              <span className="font-medium text-sm">{t(`menu.${item.key}`)}</span>
+              <span className="text-xl w-6 text-center">{item.icon}</span>
+              <span className="font-normal text-base">{t(`menu.${item.key}`)}</span>
             </div>
             {isExpanded ? (
               <ChevronUpIcon className="w-3.5 h-3.5" />
@@ -80,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </button>
 
           {isExpanded && (
-            <div className="bg-gray-50">
+            <div className="bg-primary-50">
               {item.children.map(child => (
                 <ChildMenuItemComponent key={child.path} item={child} onClose={onClose} />
               ))}
@@ -95,12 +105,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <Link
         to={item.path!}
         onClick={onClose}
-        className={`flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors ${
-          isActive ? 'bg-primary-100 text-primary-600 border-r-4 border-primary-600' : ''
+        className={`sidebar-menu-item flex items-center gap-2 px-4 py-1.5 text-brand-dark hover:text-primary-700 transition-colors ${
+          isActive ? 'bg-secondary-300 text-brand-dark border-r-4 border-secondary-400' : ''
         }`}
       >
-        <span className="text-lg">{item.icon}</span>
-        <span className="font-medium text-sm">{t(`menu.${item.key}`)}</span>
+        <span className="text-xl w-6 text-center">{item.icon}</span>
+        <span className="font-normal text-base">{t(`menu.${item.key}`)}</span>
       </Link>
     );
   };
@@ -116,40 +126,65 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <Link
         to={item.path!}
         onClick={onClose}
-        className={`flex items-center gap-2 ps-10 pe-4 py-1.5 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors ${
-          isActive ? 'bg-primary-100 text-primary-600 border-r-4 border-primary-600' : ''
+        className={`sidebar-menu-item flex items-center gap-2 ps-10 pe-4 py-1 text-brand-dark hover:text-primary-700 transition-colors ${
+          isActive ? 'bg-secondary-300 text-brand-dark border-r-4 border-secondary-400' : ''
         }`}
       >
-        <span className="text-base">{item.icon}</span>
-        <span className="font-medium text-xs">{t(`menu.${item.key}`)}</span>
+        <span className="text-lg w-5 text-center">{item.icon}</span>
+        <span className="font-normal text-sm">{t(`menu.${item.key}`)}</span>
       </Link>
     );
   };
 
+  // Logout button component
+  const LogoutButton = () => (
+    <div className="p-3 border-t border-primary-300">
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center gap-2 px-4 py-1.5 text-brand-dark hover:bg-primary-200 rounded-lg transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span className="font-normal text-base">{t('menu.logout')}</span>
+      </button>
+    </div>
+  );
+
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-56 flex-shrink-0 bg-white shadow-lg h-screen sticky top-0">
-        <div className="p-2 pt-1 flex flex-col items-center">
-          <img src="/logo.png" alt="Fluff N' Woof" className="h-12 w-auto" />
+      <aside
+        className="hidden lg:flex lg:flex-col w-56 flex-shrink-0 shadow-lg h-screen sticky top-0"
+        style={{ backgroundColor: 'var(--sidebar-bg-color)' }}
+      >
+        {/* Logo */}
+        <div className="p-4 pt-6 flex flex-col items-center">
+          <img src="/logo.png" alt="Fluff N' Woof" className="h-20 w-auto" />
         </div>
 
-        <nav className="mt-1 flex-1 overflow-y-auto">
+        {/* Navigation - flex-1 to push footer down */}
+        <nav className="mt-4 flex-1 overflow-y-auto">
           {allMenuItems.map((item) => (
             <MenuItemComponent key={item.key} item={item} />
           ))}
         </nav>
+
+        {/* Footer with Logout button */}
+        <LogoutButton />
       </aside>
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed top-0 left-0 lg:hidden z-30 w-52 sm:w-56 bg-white shadow-lg h-full transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 lg:hidden z-30 w-52 sm:w-56 shadow-lg h-full flex flex-col transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ backgroundColor: 'var(--sidebar-bg-color)' }}
       >
-        <div className="p-2 flex items-center justify-between">
+        {/* Logo & Close button */}
+        <div className="p-3 pt-4 flex items-center justify-between">
           <div className="flex flex-col items-center flex-1">
-            <img src="/logo.png" alt="Fluff N' Woof" className="h-10 w-auto" />
+            <img src="/logo.png" alt="Fluff N' Woof" className="h-16 w-auto" />
           </div>
           <button
             onClick={onClose}
@@ -160,11 +195,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="mt-1 flex-1 overflow-y-auto pb-4">
+        {/* Navigation */}
+        <nav className="mt-4 flex-1 overflow-y-auto pb-4">
           {allMenuItems.map((item) => (
             <MenuItemComponent key={item.key} item={item} />
           ))}
         </nav>
+
+        {/* Footer with Logout button */}
+        <LogoutButton />
       </aside>
     </>
   );

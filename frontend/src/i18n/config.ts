@@ -15,6 +15,8 @@ import arFlowBoard from '../locales/ar/flowBoard.json';
 import arPatientRecord from '../locales/ar/patientRecord.json';
 import arMedicalRecords from '../locales/ar/medicalRecords.json';
 import arReports from '../locales/ar/reports.json';
+import arProfile from '../locales/ar/profile.json';
+import arSms from '../locales/ar/sms.json';
 
 import enCommon from '../locales/en/common.json';
 import enAuth from '../locales/en/auth.json';
@@ -28,6 +30,8 @@ import enFlowBoard from '../locales/en/flowBoard.json';
 import enPatientRecord from '../locales/en/patientRecord.json';
 import enMedicalRecords from '../locales/en/medicalRecords.json';
 import enReports from '../locales/en/reports.json';
+import enProfile from '../locales/en/profile.json';
+import enSms from '../locales/en/sms.json';
 
 const resources = {
   ar: {
@@ -43,6 +47,8 @@ const resources = {
     patientRecord: arPatientRecord,
     medicalRecords: arMedicalRecords,
     reports: arReports,
+    profile: arProfile,
+    sms: arSms,
   },
   en: {
     common: enCommon,
@@ -57,6 +63,8 @@ const resources = {
     patientRecord: enPatientRecord,
     medicalRecords: enMedicalRecords,
     reports: enReports,
+    profile: enProfile,
+    sms: enSms,
   },
 };
 

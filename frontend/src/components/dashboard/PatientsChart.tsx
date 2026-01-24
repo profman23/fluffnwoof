@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   PieChart,
@@ -17,13 +18,14 @@ interface SpeciesData {
 interface PatientsChartProps {
   data: SpeciesData[];
   loading?: boolean;
+  animationKey?: number;
 }
 
-// Modern color palette
+// Brand color palette
 const COLORS = [
-  '#5B7B6D', // Primary green
-  '#F4D03F', // Secondary yellow
-  '#E8B4B8', // Accent pink
+  '#5a9f7d', // Primary green (from brand mint)
+  '#F5DF59', // Brand gold
+  '#EAB8D5', // Brand pink
   '#3B82F6', // Blue
   '#8B5CF6', // Purple
   '#EC4899', // Pink
@@ -45,8 +47,16 @@ const speciesEmoji: Record<string, string> = {
   OTHER: '🐾',
 };
 
-export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => {
+export const PatientsChart = ({ data, loading = false, animationKey = 0 }: PatientsChartProps) => {
   const { t } = useTranslation('dashboard');
+
+  // Animation key to force re-render and trigger animation
+  const [localAnimationKey, setLocalAnimationKey] = useState(0);
+
+  useEffect(() => {
+    // Increment key when data changes to trigger fresh animation
+    setLocalAnimationKey(prev => prev + 1);
+  }, [data]);
 
   // Calculate total
   const total = data.reduce((sum, item) => sum + item.count, 0);
@@ -96,11 +106,11 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
       const speciesName = t(`species.${item.species}`) || item.species;
 
       return (
-        <div className="bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
-          <p className="font-semibold text-gray-800">
+        <div className="bg-brand-white px-4 py-3 rounded-lg shadow-lg border border-primary-200">
+          <p className="font-semibold text-brand-dark">
             {emoji} {speciesName}
           </p>
-          <p className="text-gray-600">
+          <p className="text-brand-dark/70">
             {item.count} ({((item.count / total) * 100).toFixed(1)}%)
           </p>
         </div>
@@ -125,16 +135,16 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
           return (
             <div
               key={`legend-${index}`}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-50"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-50"
             >
               <div
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-brand-dark">
                 {emoji} {speciesName}
               </span>
-              <span className="text-sm text-gray-500">({item.count})</span>
+              <span className="text-sm text-brand-dark/60">({item.count})</span>
             </div>
           );
         })}
@@ -146,9 +156,9 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
     return (
       <Card>
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-40 mb-4" />
+          <div className="h-6 bg-primary-100 rounded w-40 mb-4" />
           <div className="h-64 flex items-center justify-center">
-            <div className="w-40 h-40 bg-gray-100 rounded-full" />
+            <div className="w-40 h-40 bg-primary-50 rounded-full" />
           </div>
         </div>
       </Card>
@@ -157,13 +167,13 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-brand-dark mb-4 flex items-center gap-2">
         <span className="text-xl">🥧</span>
         {t('analytics.patientsBySpecies')}
       </h3>
 
       {data.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-gray-500">
+        <div className="h-64 flex items-center justify-center text-brand-dark/60">
           <div className="text-center">
             <span className="text-4xl block mb-2">🐾</span>
             <p>{t('noData')}</p>
@@ -172,7 +182,7 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
       ) : (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart key={`pie-${localAnimationKey}-${animationKey}`}>
               <Pie
                 data={data}
                 dataKey="count"
@@ -184,6 +194,10 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
                 paddingAngle={2}
                 labelLine={false}
                 label={renderCustomLabel}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationBegin={300}
+                animationEasing="ease-out"
               >
                 {data.map((_, index) => (
                   <Cell
@@ -204,8 +218,8 @@ export const PatientsChart = ({ data, loading = false }: PatientsChartProps) => 
       {/* Total count */}
       {data.length > 0 && (
         <div className="mt-4 text-center">
-          <span className="text-sm text-gray-500">{t('analytics.totalPatients')}: </span>
-          <span className="font-bold text-gray-800">{total}</span>
+          <span className="text-sm text-brand-dark/60">{t('analytics.totalPatients')}: </span>
+          <span className="font-bold text-brand-dark">{total}</span>
         </div>
       )}
     </Card>

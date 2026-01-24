@@ -67,6 +67,13 @@ enum PaymentMethod {
   BANK_TRANSFER
 }
 
+enum SmsStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
 // Models
 model Role {
   id              String   @id @default(uuid())
@@ -94,6 +101,7 @@ model User {
   firstName String
   lastName  String
   phone     String?
+  avatarUrl String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -108,9 +116,33 @@ model User {
   vaccinations          Vaccination[]
   permissions           UserPermission[]
   auditLogs             AuditLog[]
+  preferences           UserPreferences?
+  uploadedAttachments   MedicalAttachment[] @relation("UploadedAttachments")
+  sentSmsLogs           SmsLog[]
 
   @@index([roleId])
   @@map("users")
+}
+
+model UserPreferences {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+
+  // Theme Colors (hex values)
+  headerBgColor     String?
+  sidebarBgColor    String?
+  sidebarHoverColor String?
+
+  // FlowBoard Column Colors (JSON)
+  flowBoardColors   Json?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Foreign Key
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
 }
 
 model Permission {
@@ -307,6 +339,9 @@ model MedicalRecord {
   closedById String?
   recordCode String?   @unique // كود السجل المغلق مثل: MR-20260119-001
 
+  // Optimistic Locking
+  version    Int       @default(1)
+
   // Foreign Keys
   petId String
   pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
@@ -316,12 +351,13 @@ model MedicalRecord {
 
   closedBy User? @relation("ClosedRecords", fields: [closedById], references: [id])
 
-  appointmentId String?
+  appointmentId String?      @unique // لضمان سجل واحد لكل موعد
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   // Relations
   prescriptions         Prescription[]
   scheduledAppointments Appointment[]  @relation("ScheduledAppointments")
+  attachments           MedicalAttachment[]
 
   @@index([petId])
   @@index([vetId])
@@ -469,4 +505,48 @@ model ServiceProduct {
   @@index([categoryId])
   @@index([name])
   @@map("service_products")
+}
+
+// Medical Attachments (lab reports, x-rays, etc.)
+model MedicalAttachment {
+  id              String   @id @default(uuid())
+  medicalRecordId String
+  fileName        String
+  fileUrl         String
+  publicId        String?  // Cloudinary public ID for deletion
+  fileType        String   // image, pdf, etc.
+  fileSize        Int      // bytes
+  description     String?
+  uploadedBy      String
+  createdAt       DateTime @default(now())
+
+  // Foreign Keys
+  medicalRecord MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  uploader      User          @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
+
+  @@index([medicalRecordId])
+  @@index([uploadedBy])
+  @@map("medical_attachments")
+}
+
+// SMS Log
+model SmsLog {
+  id             String    @id @default(uuid())
+  messageId      String?   // Madar message ID for status tracking
+  recipientPhone String
+  recipientName  String?
+  messageBody    String    @db.Text
+  status         SmsStatus @default(PENDING)
+  sentAt         DateTime?
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+
+  // Foreign Key
+  sentById String?
+  sentBy   User?   @relation(fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([recipientPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sms_logs")
 }

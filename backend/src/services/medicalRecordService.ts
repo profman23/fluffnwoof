@@ -53,6 +53,8 @@ export interface UpdateMedicalRecordInput {
   notes?: string;
   // Metadata
   updatedById?: string;
+  // Optimistic Locking
+  version?: number;
 }
 
 export const medicalRecordService = {
@@ -106,54 +108,53 @@ export const medicalRecordService = {
 
   /**
    * Create a new medical record
+   * Handles unique constraint violations gracefully
    */
   async create(data: CreateMedicalRecordInput) {
-    // Check if appointment already has a medical record
-    if (data.appointmentId) {
-      const existing = await prisma.medicalRecord.findFirst({
-        where: { appointmentId: data.appointmentId },
+    try {
+      return await prisma.medicalRecord.create({
+        data: {
+          petId: data.petId,
+          vetId: data.vetId,
+          appointmentId: data.appointmentId,
+          visitDate: data.visitDate || new Date(),
+          chiefComplaint: data.chiefComplaint,
+          history: data.history,
+          weight: data.weight,
+          temperature: data.temperature,
+          heartRate: data.heartRate,
+          respirationRate: data.respirationRate,
+          bodyConditionScore: data.bodyConditionScore,
+          muscleCondition: data.muscleCondition,
+          painScore: data.painScore,
+          hydration: data.hydration,
+          attitude: data.attitude,
+          behaviour: data.behaviour,
+          mucousMembranes: data.mucousMembranes,
+          crt: data.crt,
+          diagnosis: data.diagnosis,
+          treatment: data.treatment,
+          notes: data.notes,
+          createdById: data.createdById,
+        },
+        include: {
+          pet: {
+            include: { owner: true },
+          },
+          vet: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          appointment: true,
+          prescriptions: true,
+        },
       });
-      if (existing) {
-        throw new AppError('This appointment already has a medical record', 400);
+    } catch (error: any) {
+      // Handle unique constraint violation (P2002)
+      if (error.code === 'P2002' && error.meta?.target?.includes('appointmentId')) {
+        throw new AppError('هذا الموعد لديه سجل طبي بالفعل', 400);
       }
+      throw error;
     }
-
-    return prisma.medicalRecord.create({
-      data: {
-        petId: data.petId,
-        vetId: data.vetId,
-        appointmentId: data.appointmentId,
-        visitDate: data.visitDate || new Date(),
-        chiefComplaint: data.chiefComplaint,
-        history: data.history,
-        weight: data.weight,
-        temperature: data.temperature,
-        heartRate: data.heartRate,
-        respirationRate: data.respirationRate,
-        bodyConditionScore: data.bodyConditionScore,
-        muscleCondition: data.muscleCondition,
-        painScore: data.painScore,
-        hydration: data.hydration,
-        attitude: data.attitude,
-        behaviour: data.behaviour,
-        mucousMembranes: data.mucousMembranes,
-        crt: data.crt,
-        diagnosis: data.diagnosis,
-        treatment: data.treatment,
-        notes: data.notes,
-        createdById: data.createdById,
-      },
-      include: {
-        pet: {
-          include: { owner: true },
-        },
-        vet: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        appointment: true,
-        prescriptions: true,
-      },
-    });
   },
 
   /**
@@ -237,47 +238,105 @@ export const medicalRecordService = {
   },
 
   /**
-   * Update medical record
+   * Build update data object, filtering out empty/undefined values
+   * This prevents overwriting existing data with empty strings
    */
-  async update(id: string, data: UpdateMedicalRecordInput) {
-    // Check if record exists
-    const existing = await prisma.medicalRecord.findUnique({ where: { id } });
-    if (!existing) {
-      throw new AppError('Medical record not found', 404);
+  buildUpdateData(data: UpdateMedicalRecordInput): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    // String fields - only include if non-empty
+    const stringFields = [
+      'chiefComplaint', 'history', 'muscleCondition', 'hydration',
+      'attitude', 'behaviour', 'mucousMembranes', 'diagnosis', 'treatment', 'notes'
+    ] as const;
+
+    for (const field of stringFields) {
+      const value = data[field];
+      // Only include if it's a non-empty string
+      if (value !== undefined && value !== null && typeof value === 'string' && value.trim() !== '') {
+        result[field] = value;
+      }
     }
 
-    return prisma.medicalRecord.update({
-      where: { id },
-      data: {
-        chiefComplaint: data.chiefComplaint,
-        history: data.history,
-        weight: data.weight,
-        temperature: data.temperature,
-        heartRate: data.heartRate,
-        respirationRate: data.respirationRate,
-        bodyConditionScore: data.bodyConditionScore,
-        muscleCondition: data.muscleCondition,
-        painScore: data.painScore,
-        hydration: data.hydration,
-        attitude: data.attitude,
-        behaviour: data.behaviour,
-        mucousMembranes: data.mucousMembranes,
-        crt: data.crt,
-        diagnosis: data.diagnosis,
-        treatment: data.treatment,
-        notes: data.notes,
-        updatedById: data.updatedById,
-      },
-      include: {
-        pet: {
-          include: { owner: true },
+    // Number fields - include if defined and valid (0 is a valid value)
+    const numberFields = [
+      'weight', 'temperature', 'heartRate', 'respirationRate',
+      'bodyConditionScore', 'painScore', 'crt'
+    ] as const;
+
+    for (const field of numberFields) {
+      const value = data[field];
+      if (value !== undefined && value !== null && typeof value === 'number' && !isNaN(value)) {
+        result[field] = value;
+      }
+    }
+
+    // Always include updatedById if provided
+    if (data.updatedById) {
+      result.updatedById = data.updatedById;
+    }
+
+    return result;
+  },
+
+  /**
+   * Update medical record
+   * Only updates fields that are explicitly provided and non-empty
+   * Uses transaction with optimistic locking to prevent race conditions
+   */
+  async update(id: string, data: UpdateMedicalRecordInput) {
+    // Build sanitized update data - only includes non-empty values
+    const updateData = this.buildUpdateData(data);
+    const expectedVersion = data.version;
+
+    return await prisma.$transaction(async (tx) => {
+      // Check if record exists and get current version
+      const existing = await tx.medicalRecord.findUnique({ where: { id } });
+      if (!existing) {
+        throw new AppError('Medical record not found', 404);
+      }
+
+      // Optimistic locking: check version if provided
+      if (expectedVersion !== undefined && existing.version !== expectedVersion) {
+        throw new AppError('السجل تم تعديله من مستخدم آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 409);
+      }
+
+      // If no actual changes, return the existing record with full relations
+      if (Object.keys(updateData).length === 0 ||
+          (Object.keys(updateData).length === 1 && updateData.updatedById)) {
+        return tx.medicalRecord.findUnique({
+          where: { id },
+          include: {
+            pet: {
+              include: { owner: true },
+            },
+            vet: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+            appointment: true,
+            prescriptions: true,
+          },
+        });
+      }
+
+      // Update with version increment
+      return tx.medicalRecord.update({
+        where: { id },
+        data: {
+          ...updateData,
+          version: { increment: 1 },
         },
-        vet: {
-          select: { id: true, firstName: true, lastName: true },
+        include: {
+          pet: {
+            include: { owner: true },
+          },
+          vet: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          appointment: true,
+          prescriptions: true,
         },
-        appointment: true,
-        prescriptions: true,
-      },
+      });
     });
   },
 
@@ -297,155 +356,191 @@ export const medicalRecordService = {
   /**
    * Create or get medical record for appointment
    * Used when opening patient record from FlowBoard
+   * Uses findFirst + create with race condition handling
    */
   async getOrCreateForAppointment(appointmentId: string, userId: string) {
-    // Try to find existing record
-    let record = await this.findByAppointmentId(appointmentId);
+    // Get appointment details first (needed for create operation)
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        pet: true,
+        vet: true,
+      },
+    });
 
-    if (!record) {
-      // Get appointment details to create record
-      const appointment = await prisma.appointment.findUnique({
-        where: { id: appointmentId },
-        include: {
-          pet: true,
-          vet: true,
-        },
-      });
-
-      if (!appointment) {
-        throw new AppError('Appointment not found', 404);
-      }
-
-      // Create new record
-      const newRecord = await this.create({
-        petId: appointment.petId,
-        vetId: appointment.vetId,
-        appointmentId: appointmentId,
-        visitDate: appointment.appointmentDate,
-        createdById: userId,
-      });
-
-      // Fetch with full relations
-      record = await this.findByAppointmentId(appointmentId);
-      if (!record) {
-        return newRecord;
-      }
+    if (!appointment) {
+      throw new AppError('Appointment not found', 404);
     }
 
-    return record;
+    const includeRelations = {
+      pet: {
+        include: { owner: true },
+      },
+      vet: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      appointment: true,
+      prescriptions: true,
+    };
+
+    // أولاً: حاول البحث عن السجل الموجود
+    let record = await prisma.medicalRecord.findFirst({
+      where: { appointmentId },
+      include: includeRelations,
+    });
+
+    // إذا موجود، أرجعه
+    if (record) {
+      return record;
+    }
+
+    // إذا غير موجود، حاول إنشاءه مع التعامل مع race condition
+    try {
+      record = await prisma.medicalRecord.create({
+        data: {
+          petId: appointment.petId,
+          vetId: appointment.vetId,
+          appointmentId: appointmentId,
+          visitDate: appointment.appointmentDate,
+          createdById: userId,
+        },
+        include: includeRelations,
+      });
+      return record;
+    } catch (error: any) {
+      // في حالة unique constraint violation، معناها مستخدم آخر أنشأه
+      if (error.code === 'P2002') {
+        // أعد البحث وأرجع السجل الذي أنشأه المستخدم الآخر
+        record = await prisma.medicalRecord.findFirst({
+          where: { appointmentId },
+          include: includeRelations,
+        });
+        if (record) return record;
+      }
+      throw error;
+    }
   },
 
   /**
    * Close medical record
+   * Uses transaction with row-level locking to prevent race conditions
    */
   async closeRecord(id: string, userId: string) {
-    const existing = await prisma.medicalRecord.findUnique({
-      where: { id },
-      include: { appointment: true },
-    });
-    if (!existing) {
-      throw new AppError('Medical record not found', 404);
-    }
+    return await prisma.$transaction(async (tx) => {
+      // 1. قفل الصف باستخدام FOR UPDATE لمنع التزامن
+      // نحول الـ UUID column إلى text للمقارنة مع المعامل النصي
+      const existingRows = await tx.$queryRaw<any[]>`
+        SELECT id, "isClosed", "recordCode", "appointmentId"
+        FROM medical_records
+        WHERE id::text = ${id}
+        FOR UPDATE
+      `;
 
-    if (existing.isClosed) {
-      throw new AppError('Medical record is already closed', 400);
-    }
-
-    // Generate unique record code: MR-YYYYMMDD-XXX
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-
-    const countToday = await prisma.medicalRecord.count({
-      where: {
-        isClosed: true,
-        closedAt: {
-          gte: startOfDay
-        }
+      if (!existingRows || existingRows.length === 0) {
+        throw new AppError('Medical record not found', 404);
       }
-    });
 
-    const recordCode = `MR-${dateStr}-${String(countToday + 1).padStart(3, '0')}`;
+      const existing = existingRows[0];
 
-    // Update medical record
-    const updatedRecord = await prisma.medicalRecord.update({
-      where: { id },
-      data: {
-        isClosed: true,
-        closedAt: new Date(),
-        closedById: userId,
-        recordCode: recordCode,
-      },
-      include: {
-        pet: {
-          include: { owner: true },
-        },
-        vet: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        closedBy: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        appointment: true,
-        prescriptions: true,
-      },
-    });
+      if (existing.isClosed) {
+        throw new AppError('Medical record is already closed', 400);
+      }
 
-    // Move appointment to COMPLETED if it exists
-    if (existing.appointmentId) {
-      await prisma.appointment.update({
-        where: { id: existing.appointmentId },
-        data: { status: 'COMPLETED' },
+      // 2. توليد recordCode باستخدام database function (atomic)
+      let recordCode = existing.recordCode;
+      if (!recordCode) {
+        const result = await tx.$queryRaw<{ generate_record_code: string }[]>`
+          SELECT generate_record_code()
+        `;
+        recordCode = result[0].generate_record_code;
+      }
+
+      // 3. تحديث السجل مع زيادة version
+      const updatedRecord = await tx.medicalRecord.update({
+        where: { id },
+        data: {
+          isClosed: true,
+          closedAt: new Date(),
+          closedById: userId,
+          recordCode: recordCode,
+          version: { increment: 1 },
+        },
+        include: {
+          pet: {
+            include: { owner: true },
+          },
+          vet: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          closedBy: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          appointment: true,
+          prescriptions: true,
+        },
       });
-    }
 
-    return updatedRecord;
+      // 4. نقل الموعد إلى COMPLETED إذا موجود
+      if (existing.appointmentId) {
+        await tx.appointment.update({
+          where: { id: existing.appointmentId },
+          data: { status: 'COMPLETED' },
+        });
+      }
+
+      return updatedRecord;
+    });
   },
 
   /**
    * Reopen medical record
+   * Uses transaction to ensure atomicity and prevent race conditions
    */
   async reopenRecord(id: string) {
-    const existing = await prisma.medicalRecord.findUnique({
-      where: { id },
-      include: { appointment: true },
-    });
-    if (!existing) {
-      throw new AppError('Medical record not found', 404);
-    }
-
-    if (!existing.isClosed) {
-      throw new AppError('Medical record is not closed', 400);
-    }
-
-    // Update medical record
-    const updatedRecord = await prisma.medicalRecord.update({
-      where: { id },
-      data: {
-        isClosed: false,
-        closedAt: null,
-        closedById: null,
-      },
-      include: {
-        pet: {
-          include: { owner: true },
-        },
-        vet: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        appointment: true,
-        prescriptions: true,
-      },
-    });
-
-    // Move appointment back to IN_PROGRESS if it exists and is COMPLETED
-    if (existing.appointmentId && existing.appointment?.status === 'COMPLETED') {
-      await prisma.appointment.update({
-        where: { id: existing.appointmentId },
-        data: { status: 'IN_PROGRESS' },
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.medicalRecord.findUnique({
+        where: { id },
+        include: { appointment: true },
       });
-    }
 
-    return updatedRecord;
+      if (!existing) {
+        throw new AppError('Medical record not found', 404);
+      }
+
+      if (!existing.isClosed) {
+        throw new AppError('Medical record is not closed', 400);
+      }
+
+      // Update medical record with version increment
+      const updatedRecord = await tx.medicalRecord.update({
+        where: { id },
+        data: {
+          isClosed: false,
+          closedAt: null,
+          closedById: null,
+          version: { increment: 1 },
+        },
+        include: {
+          pet: {
+            include: { owner: true },
+          },
+          vet: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          appointment: true,
+          prescriptions: true,
+        },
+      });
+
+      // Move appointment back to IN_PROGRESS if it exists and is COMPLETED
+      if (existing.appointmentId && existing.appointment?.status === 'COMPLETED') {
+        await tx.appointment.update({
+          where: { id: existing.appointmentId },
+          data: { status: 'IN_PROGRESS' },
+        });
+      }
+
+      return updatedRecord;
+    });
   },
 };

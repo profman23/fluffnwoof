@@ -18,6 +18,9 @@ import dashboardRoutes from './routes/dashboardRoutes';
 import reportRoutes from './routes/reportRoutes';
 import serviceProductRoutes from './routes/serviceProductRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
+import profileRoutes from './routes/profileRoutes';
+import uploadRoutes from './routes/uploadRoutes';
+import smsRoutes from './routes/smsRoutes';
 
 const app = express();
 
@@ -49,6 +52,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/service-products', serviceProductRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/sms', smsRoutes);
 
 // 404 Handler
 app.use(notFound);

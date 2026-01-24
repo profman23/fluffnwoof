@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeartIcon } from '@heroicons/react/24/outline';
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../hooks/useScreenPermission';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import { LogoLoader } from '../components/common/LogoLoader';
 import { petsApi, PetWithOwner } from '../api/pets';
 import { PatientDetails } from '../components/patients/PatientDetails';
 import { AddPetModal } from '../components/patients/AddPetModal';
@@ -123,7 +125,10 @@ export const PatientsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
+          <div className="flex items-center gap-3">
+            <HeartIcon className="w-7 h-7 text-brand-dark" />
+            <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+          </div>
           {isReadOnly && (
             <span className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">
               {t('readOnly')}
@@ -156,49 +161,46 @@ export const PatientsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="w-10"></th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.customerCode')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.ownerName')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.phone')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.petCode')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.petName')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.species')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.breed')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.gender')}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('table.actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
+      {loading ? (
+        <LogoLoader />
+      ) : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
-                    {t('loading')}
-                  </td>
+                  <th className="w-10"></th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.customerCode')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.ownerName')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.phone')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.petCode')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.petName')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.species')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.breed')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.gender')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('table.actions')}
+                  </th>
                 </tr>
-              ) : pets.length === 0 ? (
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pets.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     <div className="flex flex-col items-center">
@@ -301,29 +303,30 @@ export const PatientsPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-200 flex justify-center gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              {isRtl ? '←' : '→'}
-            </Button>
-            <span className="flex items-center px-4 text-sm text-gray-600">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              {isRtl ? '→' : '←'}
-            </Button>
-          </div>
-        )}
-      </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                {isRtl ? '←' : '→'}
+              </Button>
+              <span className="flex items-center px-4 text-sm text-gray-600">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="secondary"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                {isRtl ? '→' : '←'}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modals */}
       <AddPetModal

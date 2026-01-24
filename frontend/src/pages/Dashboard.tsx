@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowPathIcon, CalendarDaysIcon, UserGroupIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, CalendarDaysIcon, UserGroupIcon, ClipboardDocumentListIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import { Card } from '../components/common/Card';
+import { LogoLoader } from '../components/common/LogoLoader';
+import { AnimatedNumber } from '../components/common/AnimatedNumber';
 import { dashboardApi, DashboardData, AnalyticsData } from '../api/dashboard';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import { DateRangeFilter, DateRangePreset } from '../components/dashboard/DateRangeFilter';
@@ -29,6 +31,7 @@ export const Dashboard: React.FC = () => {
     return { startDate, endDate };
   });
   const [preset, setPreset] = useState<DateRangePreset>('thisMonth');
+
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -116,9 +119,7 @@ export const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="page-container">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <ArrowPathIcon className="w-8 h-8 animate-spin text-primary-600" />
-        </div>
+        <LogoLoader />
       </div>
     );
   }
@@ -144,7 +145,8 @@ export const Dashboard: React.FC = () => {
       {/* Header with Title and Date Range Filter */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          <ChartBarIcon className="w-7 h-7 text-brand-dark" />
+          <h1 className="text-2xl font-bold text-brand-dark">
             {t('title')}
           </h1>
           <button
@@ -152,7 +154,7 @@ export const Dashboard: React.FC = () => {
               fetchDashboardData();
               fetchAnalytics();
             }}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-brand-dark/60 hover:text-brand-dark hover:bg-primary-100 rounded-lg transition-colors"
             title={t('refresh') || 'Refresh'}
           >
             <ArrowPathIcon className="w-5 h-5" />
@@ -167,7 +169,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 animate-fade-in-up">
         <StatsCard
           title={t('analytics.totalAppointments')}
           value={analytics?.appointments.total || 0}
@@ -176,6 +178,7 @@ export const Dashboard: React.FC = () => {
           changeLabel={t('analytics.changeFromPrevious')}
           color="primary"
           loading={analyticsLoading}
+          animationDelay={0}
         />
         <StatsCard
           title={t('analytics.newPatients')}
@@ -185,6 +188,7 @@ export const Dashboard: React.FC = () => {
           changeLabel={t('analytics.changeFromPrevious')}
           color="secondary"
           loading={analyticsLoading}
+          animationDelay={100}
         />
         <StatsCard
           title={t('analytics.newOwners')}
@@ -194,6 +198,7 @@ export const Dashboard: React.FC = () => {
           changeLabel={t('analytics.changeFromPrevious')}
           color="accent"
           loading={analyticsLoading}
+          animationDelay={200}
         />
         <StatsCard
           title={t('stats.pendingInvoices')}
@@ -201,11 +206,12 @@ export const Dashboard: React.FC = () => {
           icon={<ClipboardDocumentListIcon className="w-7 h-7" />}
           color="warning"
           loading={loading}
+          animationDelay={300}
         />
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         {/* Appointments Trend Chart - Takes 2 columns */}
         <div className="lg:col-span-2">
           <AppointmentsChart
@@ -223,7 +229,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Vet Performance and Lists Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
         {/* Vet Performance Chart */}
         <VetsChart
           data={analytics?.vets.performance || []}
@@ -237,28 +243,28 @@ export const Dashboard: React.FC = () => {
               data.upcomingAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg gap-2 hover:bg-gray-100 transition-colors"
+                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-primary-50 rounded-lg gap-2 hover:bg-primary-100 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">
+                    <p className="font-medium text-sm md:text-base text-brand-dark">
                       {getVisitTypeLabel(appointment.type)} - {appointment.petName}
                     </p>
-                    <p className="text-xs md:text-sm text-gray-500">
+                    <p className="text-xs md:text-sm text-brand-dark/60">
                       {appointment.vetName}
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-xs md:text-sm font-medium">
+                    <p className="text-xs md:text-sm font-medium text-brand-dark">
                       {formatTime(appointment.time)}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-brand-dark/60">
                       {formatDate(appointment.date)}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-brand-dark/60">
                 <span className="text-3xl mb-2 block">📅</span>
                 <p>{t('noAppointments') || 'No upcoming appointments'}</p>
               </div>
@@ -268,7 +274,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Vaccinations Section */}
-      <div className="grid grid-cols-1 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
         <Card title={t('upcomingVaccinations')}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {data?.upcomingVaccinations && data.upcomingVaccinations.length > 0 ? (
@@ -278,10 +284,10 @@ export const Dashboard: React.FC = () => {
                   className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-secondary-50 rounded-lg gap-2 hover:bg-secondary-100 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">
+                    <p className="font-medium text-sm md:text-base text-brand-dark">
                       {vaccination.petName}
                     </p>
-                    <p className="text-xs md:text-sm text-gray-500">
+                    <p className="text-xs md:text-sm text-brand-dark/60">
                       {vaccination.vaccineName}
                     </p>
                   </div>
@@ -307,7 +313,7 @@ export const Dashboard: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center py-8 text-gray-500">
+              <div className="col-span-full text-center py-8 text-brand-dark/60">
                 <span className="text-3xl mb-2 block">💉</span>
                 <p>{t('noVaccinations') || 'No upcoming vaccinations'}</p>
               </div>
@@ -317,22 +323,46 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Summary Stats at Bottom */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
-          <p className="text-3xl font-bold text-primary-600">{data?.stats.todayAppointments || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">{t('stats.todayAppointments')}</p>
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
+          <p className="text-3xl font-bold text-primary-600">
+            <AnimatedNumber
+              value={data?.stats.todayAppointments || 0}
+              duration={1500}
+              delay={0}
+            />
+          </p>
+          <p className="text-sm text-brand-dark/60 mt-1">{t('stats.todayAppointments')}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
-          <p className="text-3xl font-bold text-secondary-500">{analytics?.patients.totalPets || data?.stats.registeredPets || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">{t('stats.registeredPets')}</p>
+        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
+          <p className="text-3xl font-bold text-secondary-500">
+            <AnimatedNumber
+              value={analytics?.patients.totalPets || data?.stats.registeredPets || 0}
+              duration={1500}
+              delay={100}
+            />
+          </p>
+          <p className="text-sm text-brand-dark/60 mt-1">{t('stats.registeredPets')}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
-          <p className="text-3xl font-bold text-accent-500">{analytics?.patients.totalOwners || data?.stats.registeredOwners || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">{t('stats.registeredOwners')}</p>
+        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
+          <p className="text-3xl font-bold text-accent-500">
+            <AnimatedNumber
+              value={analytics?.patients.totalOwners || data?.stats.registeredOwners || 0}
+              duration={1500}
+              delay={200}
+            />
+          </p>
+          <p className="text-sm text-brand-dark/60 mt-1">{t('stats.registeredOwners')}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
-          <p className="text-3xl font-bold text-primary-400">{analytics?.vets.totalVets || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">{t('analytics.totalVets')}</p>
+        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
+          <p className="text-3xl font-bold text-primary-400">
+            <AnimatedNumber
+              value={analytics?.vets.totalVets || 0}
+              duration={1500}
+              delay={300}
+            />
+          </p>
+          <p className="text-sm text-brand-dark/60 mt-1">{t('analytics.totalVets')}</p>
         </div>
       </div>
     </div>
