@@ -5,7 +5,8 @@ import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuar
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
-import { LogoLoader } from '../components/common/LogoLoader';
+import { Input } from '../components/common/Input';
+import { DataTable, Column } from '../components/common/DataTable';
 import { usersApi } from '../api/users';
 import { User, Role } from '../types';
 import { AddUserModal } from '../components/users/AddUserModal';
@@ -116,6 +117,103 @@ export const UserManagement: React.FC = () => {
     });
   };
 
+  // Define columns for DataTable
+  const columns: Column<User>[] = [
+    {
+      id: 'name',
+      header: `${t('firstName')} / ${t('lastName')}`,
+      render: (user) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+            {user.firstName} {user.lastName}
+          </div>
+          {user.phone && (
+            <div className="text-sm text-gray-500" dir="ltr">
+              {user.phone}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'email',
+      header: t('email'),
+      render: (user) => (
+        <span className="text-sm text-gray-600 whitespace-nowrap" dir="ltr">
+          {user.email}
+        </span>
+      ),
+    },
+    {
+      id: 'role',
+      header: t('role'),
+      render: (user) => (
+        <span className="text-sm text-gray-600 whitespace-nowrap">
+          {getRoleDisplayName(user.role)}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: t('status'),
+      render: (user) => (
+        <span
+          className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+            user.isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {user.isActive ? t('active') : t('inactive')}
+        </span>
+      ),
+    },
+    {
+      id: 'createdAt',
+      header: t('createdAt'),
+      render: (user) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">
+          {formatDate(user.createdAt)}
+        </span>
+      ),
+    },
+  ];
+
+  // Render actions
+  const renderActions = (user: User) => (
+    <div className="flex items-center justify-center gap-2">
+      <button
+        onClick={() => handleEditUser(user)}
+        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+      >
+        {t('edit')}
+      </button>
+      <span className="text-gray-300">|</span>
+      <button
+        onClick={() => handleChangePassword(user)}
+        className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+      >
+        {t('changePassword')}
+      </button>
+      <span className="text-gray-300">|</span>
+      {user.isActive ? (
+        <button
+          onClick={() => handleDeactivate(user.id)}
+          className="text-red-600 hover:text-red-800 text-sm font-medium"
+        >
+          {t('deactivate')}
+        </button>
+      ) : (
+        <button
+          onClick={() => handleReactivate(user.id)}
+          className="text-green-600 hover:text-green-800 text-sm font-medium"
+        >
+          {t('reactivate')}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <ScreenPermissionGuard screenName="userManagement">
       <div className="container mx-auto p-6">
@@ -155,148 +253,30 @@ export const UserManagement: React.FC = () => {
         <Card>
           {/* Search */}
           <div className="mb-6">
-            <input
+            <Input
               type="text"
               placeholder={t('search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full sm:w-80"
             />
           </div>
 
-          {/* Users Table */}
-          {loading ? (
-            <LogoLoader />
-          ) : users.length === 0 ? (
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">{t('noUsers')}</p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-4 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('firstName')} / {t('lastName')}
-                      </th>
-                      <th className="px-6 py-4 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('email')}
-                      </th>
-                      <th className="px-6 py-4 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('role')}
-                      </th>
-                      <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('status')}
-                      </th>
-                      <th className="px-6 py-4 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('createdAt')}
-                      </th>
-                      {canModify && (
-                        <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('actions')}
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          {user.phone && (
-                            <div className="text-sm text-gray-500" dir="ltr">
-                              {user.phone}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600" dir="ltr">
-                          {user.email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {getRoleDisplayName(user.role)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span
-                            className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                              user.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {user.isActive ? t('active') : t('inactive')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(user.createdAt)}
-                        </td>
-                        {canModify && (
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => handleEditUser(user)}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                              >
-                                {t('edit')}
-                              </button>
-                              <span className="text-gray-300">|</span>
-                              <button
-                                onClick={() => handleChangePassword(user)}
-                                className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-                              >
-                                {t('changePassword')}
-                              </button>
-                              <span className="text-gray-300">|</span>
-                              {user.isActive ? (
-                                <button
-                                  onClick={() => handleDeactivate(user.id)}
-                                  className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                >
-                                  {t('deactivate')}
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleReactivate(user.id)}
-                                  className="text-green-600 hover:text-green-800 text-sm font-medium"
-                                >
-                                  {t('reactivate')}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-center gap-2 mt-6 pt-4 border-t">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isRtl ? '→' : '←'}
-                  </button>
-                  <span className="px-4 py-2 text-sm text-gray-600">
-                    {page} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isRtl ? '←' : '→'}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+          {/* DataTable */}
+          <DataTable<User>
+            tableId="users"
+            columns={columns}
+            data={users}
+            loading={loading}
+            emptyIcon="👤"
+            emptyMessage={t('noUsers')}
+            rowKey="id"
+            renderActions={canModify ? renderActions : undefined}
+            actionsHeader={t('actions')}
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </Card>
 
         {/* Add User Modal */}

@@ -4,7 +4,7 @@ import { HeartIcon } from '@heroicons/react/24/outline';
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../hooks/useScreenPermission';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { LogoLoader } from '../components/common/LogoLoader';
+import { DataTable, Column } from '../components/common/DataTable';
 import { petsApi, PetWithOwner } from '../api/pets';
 import { PatientDetails } from '../components/patients/PatientDetails';
 import { AddPetModal } from '../components/patients/AddPetModal';
@@ -64,10 +64,6 @@ export const PatientsPage: React.FC = () => {
   }, [search]);
 
   // Handlers
-  const handleRowClick = (petId: string) => {
-    setExpandedRowId(expandedRowId === petId ? null : petId);
-  };
-
   const handleAddPet = () => {
     setPreSelectedOwnerId(undefined);
     setIsAddModalOpen(true);
@@ -120,6 +116,111 @@ export const PatientsPage: React.FC = () => {
     return gender === 'MALE' ? t('gender.MALE') : t('gender.FEMALE');
   };
 
+  // Define columns for DataTable
+  const columns: Column<PetWithOwner>[] = [
+    {
+      id: 'customerCode',
+      header: t('table.customerCode'),
+      render: (pet) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {pet.owner.customerCode || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'ownerName',
+      header: t('table.ownerName'),
+      render: (pet) => (
+        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+          {pet.owner.firstName} {pet.owner.lastName}
+        </div>
+      ),
+    },
+    {
+      id: 'phone',
+      header: t('table.phone'),
+      render: (pet) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap" dir="ltr">
+          {canViewPhone ? pet.owner.phone : maskPhoneNumber(pet.owner.phone)}
+        </span>
+      ),
+    },
+    {
+      id: 'petCode',
+      header: t('table.petCode'),
+      render: (pet) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          {pet.petCode || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'petName',
+      header: t('table.petName'),
+      render: (pet) => (
+        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">{pet.name}</div>
+      ),
+    },
+    {
+      id: 'species',
+      header: t('table.species'),
+      render: (pet) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">{getSpeciesLabel(pet.species)}</span>
+      ),
+    },
+    {
+      id: 'breed',
+      header: t('table.breed'),
+      render: (pet) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">
+          {pet.breed ? getBreedDisplayName(pet.species, pet.breed, isRtl) : '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'gender',
+      header: t('table.gender'),
+      render: (pet) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">{getGenderLabel(pet.gender)}</span>
+      ),
+    },
+  ];
+
+  // Render actions
+  const renderActions = (pet: PetWithOwner) => {
+    if (!canModify) return null;
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={() => handleEditPet(pet)}
+          className="text-primary-600 hover:text-primary-800"
+          title={t('actions.edit')}
+        >
+          ✏️
+        </button>
+        <button
+          onClick={() => handleDeactivate(pet)}
+          className="text-red-600 hover:text-red-800"
+          title={t('actions.deactivate')}
+        >
+          🗑️
+        </button>
+      </div>
+    );
+  };
+
+  // Render expanded row
+  const renderExpandedRow = (pet: PetWithOwner) => (
+    <PatientDetails
+      pet={pet}
+      canModify={canModify}
+      onEditPet={() => handleEditPet(pet)}
+      onEditOwner={() => handleEditOwner(pet.owner as Owner)}
+      onAddAnotherPet={() => handleAddAnotherPet(pet.owner.id)}
+      onDeactivate={() => handleDeactivate(pet)}
+    />
+  );
+
   return (
     <div className="page-container">
       {/* Header */}
@@ -160,173 +261,25 @@ export const PatientsPage: React.FC = () => {
         />
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <LogoLoader />
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="w-10"></th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.customerCode')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.ownerName')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.phone')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.petCode')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.petName')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.species')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.breed')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.gender')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {pets.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
-                    <div className="flex flex-col items-center">
-                      <span className="text-4xl mb-2">🐾</span>
-                      <p>{t('noPatients')}</p>
-                      {canModify && (
-                        <Button onClick={handleAddPet} className="mt-4">
-                          + {t('addPet')}
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                pets.map((pet) => (
-                  <React.Fragment key={pet.id}>
-                    <tr
-                      className={`hover:bg-gray-50 cursor-pointer ${
-                        expandedRowId === pet.id ? 'bg-primary-50' : ''
-                      }`}
-                      onClick={() => handleRowClick(pet.id)}
-                    >
-                      <td className="px-2 py-3 text-center">
-                        <span className="text-gray-400">
-                          {expandedRowId === pet.id ? '▼' : '▶'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {pet.owner.customerCode || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {pet.owner.firstName} {pet.owner.lastName}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500" dir="ltr">
-                        {canViewPhone ? pet.owner.phone : maskPhoneNumber(pet.owner.phone)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {pet.petCode || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{pet.name}</div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {getSpeciesLabel(pet.species)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {pet.breed ? getBreedDisplayName(pet.species, pet.breed, isRtl) : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {getGenderLabel(pet.gender)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          {canModify && (
-                            <>
-                              <button
-                                onClick={() => handleEditPet(pet)}
-                                className="text-primary-600 hover:text-primary-800"
-                                title={t('actions.edit')}
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => handleDeactivate(pet)}
-                                className="text-red-600 hover:text-red-800"
-                                title={t('actions.deactivate')}
-                              >
-                                🗑️
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    {/* Expanded Details Row */}
-                    {expandedRowId === pet.id && (
-                      <tr>
-                        <td colSpan={10} className="px-4 py-4 bg-gray-50">
-                          <PatientDetails
-                            pet={pet}
-                            canModify={canModify}
-                            onEditPet={() => handleEditPet(pet)}
-                            onEditOwner={() => handleEditOwner(pet.owner as Owner)}
-                            onAddAnotherPet={() => handleAddAnotherPet(pet.owner.id)}
-                            onDeactivate={() => handleDeactivate(pet)}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex justify-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                {isRtl ? '←' : '→'}
-              </Button>
-              <span className="flex items-center px-4 text-sm text-gray-600">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                {isRtl ? '→' : '←'}
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* DataTable */}
+      <DataTable<PetWithOwner>
+        tableId="patients"
+        columns={columns}
+        data={pets}
+        loading={loading}
+        emptyIcon="🐾"
+        emptyMessage={t('noPatients')}
+        rowKey="id"
+        showExpandColumn={true}
+        expandedRowId={expandedRowId}
+        onExpandToggle={setExpandedRowId}
+        renderExpandedRow={renderExpandedRow}
+        renderActions={canModify ? renderActions : undefined}
+        actionsHeader={t('table.actions')}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
 
       {/* Modals */}
       <AddPetModal

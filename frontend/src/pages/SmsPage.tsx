@@ -5,6 +5,7 @@ import { smsApi, SmsLog, SendSmsInput } from '../api/sms';
 import { Card } from '../components/common/Card';
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';
+import { DataTable, Column } from '../components/common/DataTable';
 
 export const SmsPage: React.FC = () => {
   const { t } = useTranslation('sms');
@@ -68,6 +69,50 @@ export const SmsPage: React.FC = () => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('ar-SA');
   };
+
+  // Define columns for DataTable
+  const columns: Column<SmsLog>[] = [
+    {
+      id: 'recipient',
+      header: t('logs.recipient'),
+      render: (log) => (
+        <div>
+          <div className="font-medium text-gray-800" dir="ltr">{log.recipientPhone}</div>
+          {log.recipientName && (
+            <div className="text-xs text-gray-500">{log.recipientName}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'message',
+      header: t('logs.message'),
+      render: (log) => (
+        <div>
+          <div className="max-w-xs truncate text-gray-600" title={log.messageBody}>
+            {log.messageBody}
+          </div>
+          {log.errorMessage && (
+            <div className="text-xs text-red-500 mt-1">{log.errorMessage}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: t('logs.status'),
+      render: (log) => getStatusBadge(log.status),
+    },
+    {
+      id: 'date',
+      header: t('logs.date'),
+      render: (log) => (
+        <span className="text-gray-500 text-xs whitespace-nowrap">
+          {formatDate(log.createdAt)}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <ScreenPermissionGuard screenName="sms">
@@ -181,56 +226,15 @@ export const SmsPage: React.FC = () => {
       {/* SMS Logs */}
       <Card className="mt-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">{t('logs.title')}</h2>
-        {logsLoading ? (
-          <div className="animate-pulse space-y-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        ) : logsData?.data && logsData.data.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-right font-medium text-gray-600">{t('logs.recipient')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-600">{t('logs.message')}</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-600">{t('logs.status')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-600">{t('logs.date')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {logsData.data.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-800" dir="ltr">{log.recipientPhone}</div>
-                      {log.recipientName && (
-                        <div className="text-xs text-gray-500">{log.recipientName}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="max-w-xs truncate text-gray-600" title={log.messageBody}>
-                        {log.messageBody}
-                      </div>
-                      {log.errorMessage && (
-                        <div className="text-xs text-red-500 mt-1">{log.errorMessage}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {getStatusBadge(log.status)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {formatDate(log.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            {t('logs.empty')}
-          </div>
-        )}
+        <DataTable<SmsLog>
+          tableId="sms-logs"
+          columns={columns}
+          data={logsData?.data || []}
+          loading={logsLoading}
+          emptyIcon="📱"
+          emptyMessage={t('logs.empty')}
+          rowKey="id"
+        />
       </Card>
       </div>
     </ScreenPermissionGuard>

@@ -5,9 +5,8 @@ import { useScreenPermission } from '../hooks/useScreenPermission';
 import { medicalRecordsApi } from '../api/medicalRecords';
 import { MedicalRecord, Species } from '../types';
 import { PatientRecordModal } from '../components/flowBoard/PatientRecordModal';
-import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { LogoLoader } from '../components/common/LogoLoader';
+import { DataTable, Column } from '../components/common/DataTable';
 
 const speciesIcons: Record<Species, string> = {
   DOG: '🐕',
@@ -93,6 +92,96 @@ export const MedicalRecordsPage = () => {
     });
   };
 
+  // Define columns for DataTable
+  const columns: Column<MedicalRecord>[] = [
+    {
+      id: 'visitDate',
+      header: t('table.visitDate'),
+      render: (record) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {formatDate(record.visitDate)}
+        </span>
+      ),
+    },
+    {
+      id: 'petName',
+      header: t('table.petName'),
+      render: (record) => (
+        <div className="flex items-center gap-2">
+          <span>{speciesIcons[record.pet?.species || 'OTHER']}</span>
+          <span className="text-sm font-medium text-gray-900">
+            {record.pet?.name || '-'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'species',
+      header: t('table.species'),
+      render: (record) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">
+          {record.pet?.species || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'owner',
+      header: t('table.owner'),
+      render: (record) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {record.pet?.owner
+            ? `${record.pet.owner.firstName} ${record.pet.owner.lastName}`
+            : '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'chiefComplaint',
+      header: t('table.chiefComplaint'),
+      render: (record) => (
+        <span className="text-sm text-gray-500 max-w-[200px] truncate block">
+          {record.chiefComplaint || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'diagnosis',
+      header: t('table.diagnosis'),
+      render: (record) => (
+        <span className="text-sm text-gray-500 max-w-[200px] truncate block">
+          {record.diagnosis || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'vet',
+      header: t('table.vet'),
+      render: (record) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">
+          {record.vet
+            ? `${record.vet.firstName} ${record.vet.lastName}`
+            : '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'lastUpdated',
+      header: t('table.lastUpdated'),
+      render: (record) => (
+        <div className="flex flex-col">
+          <span className="text-sm text-gray-500 whitespace-nowrap">
+            {formatDateTime(record.updatedAt)}
+          </span>
+          {record.updatedBy && (
+            <span className="text-xs text-gray-400">
+              {record.updatedBy.firstName} {record.updatedBy.lastName}
+            </span>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="page-container">
       {/* Header */}
@@ -131,129 +220,20 @@ export const MedicalRecordsPage = () => {
         </div>
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <LogoLoader />
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.visitDate')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.petName')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.species')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.owner')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.chiefComplaint')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.diagnosis')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.vet')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('table.lastUpdated')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {records.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                    <div className="flex flex-col items-center">
-                      <span className="text-4xl mb-2">📋</span>
-                      <p>{t('noRecords')}</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                records.map((record) => (
-                  <tr
-                    key={record.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => handleRowClick(record)}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(record.visitDate)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span>{speciesIcons[record.pet?.species || 'OTHER']}</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {record.pet?.name || '-'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {record.pet?.species || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {record.pet?.owner
-                        ? `${record.pet.owner.firstName} ${record.pet.owner.lastName}`
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">
-                      {record.chiefComplaint || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">
-                      {record.diagnosis || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {record.vet
-                        ? `${record.vet.firstName} ${record.vet.lastName}`
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex flex-col">
-                        <span>{formatDateTime(record.updatedAt)}</span>
-                        {record.updatedBy && (
-                          <span className="text-xs text-gray-400">
-                            {record.updatedBy.firstName} {record.updatedBy.lastName}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex justify-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                {isRtl ? '→' : '←'}
-              </Button>
-              <span className="flex items-center px-4 text-sm text-gray-600">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                {isRtl ? '←' : '→'}
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* DataTable */}
+      <DataTable<MedicalRecord>
+        tableId="medical-records"
+        columns={columns}
+        data={records}
+        loading={loading}
+        emptyIcon="📋"
+        emptyMessage={t('noRecords')}
+        rowKey="id"
+        onRowClick={handleRowClick}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
 
       {/* Patient Record Modal */}
       {showModal && selectedRecord && (

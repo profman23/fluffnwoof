@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDaysIcon, FunnelIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { reportsApi, PaginatedResult, GetNextAppointmentsParams } from '../../api/reports';
 import { flowBoardApi } from '../../api/flowBoard';
 import { FlowBoardAppointment, User } from '../../types';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 import { getTodayDate } from '../../utils/appointmentUtils';
-import { LogoLoader } from '../../components/common/LogoLoader';
+import { DataTable, Column } from '../../components/common/DataTable';
 
 export const NextAppointmentsReport = () => {
   const { t } = useTranslation('reports');
@@ -109,6 +109,84 @@ export const NextAppointmentsReport = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Define columns for DataTable
+  const columns: Column<FlowBoardAppointment>[] = [
+    {
+      id: 'date',
+      header: t('nextAppointments.table.date'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {formatDate(apt.appointmentDate)}
+        </span>
+      ),
+    },
+    {
+      id: 'time',
+      header: t('nextAppointments.table.time'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {apt.appointmentTime}
+        </span>
+      ),
+    },
+    {
+      id: 'pet',
+      header: t('nextAppointments.table.pet'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {apt.pet?.name} ({apt.pet?.species})
+        </span>
+      ),
+    },
+    {
+      id: 'owner',
+      header: t('nextAppointments.table.owner'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {apt.pet?.owner?.firstName} {apt.pet?.owner?.lastName}
+        </span>
+      ),
+    },
+    {
+      id: 'phone',
+      header: t('nextAppointments.table.phone'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap" dir="ltr">
+          {canViewPhone
+            ? apt.pet?.owner?.phone
+            : maskPhoneNumber(apt.pet?.owner?.phone || '')}
+        </span>
+      ),
+    },
+    {
+      id: 'vet',
+      header: t('nextAppointments.table.vet'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {apt.vet?.firstName} {apt.vet?.lastName}
+        </span>
+      ),
+    },
+    {
+      id: 'visitType',
+      header: t('nextAppointments.table.visitType'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap">
+          {tFlow(`visitTypes.${apt.visitType}`)}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: t('nextAppointments.table.status'),
+      render: (apt) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(apt.status)}`}>
+          {tFlow(`statuses.${apt.status}`)}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="p-6">
@@ -226,111 +304,26 @@ export const NextAppointmentsReport = () => {
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <LogoLoader />
-        ) : appointments.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            {t('nextAppointments.noData')}
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.date')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.time')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.pet')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.owner')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.phone')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.vet')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.visitType')}
-                    </th>
-                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('nextAppointments.table.status')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {appointments.map((apt) => (
-                    <tr key={apt.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(apt.appointmentDate)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {apt.appointmentTime}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {apt.pet?.name} ({apt.pet?.species})
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {apt.pet?.owner?.firstName} {apt.pet?.owner?.lastName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" dir="ltr">
-                        {canViewPhone
-                          ? apt.pet?.owner?.phone
-                          : maskPhoneNumber(apt.pet?.owner?.phone || '')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {apt.vet?.firstName} {apt.vet?.lastName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {tFlow(`visitTypes.${apt.visitType}`)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(apt.status)}`}>
-                          {tFlow(`statuses.${apt.status}`)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* DataTable */}
+      <DataTable<FlowBoardAppointment>
+        tableId="next-appointments"
+        columns={columns}
+        data={appointments}
+        loading={loading}
+        emptyIcon="📅"
+        emptyMessage={t('nextAppointments.noData')}
+        rowKey="id"
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        onPageChange={handlePageChange}
+      />
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                {t('nextAppointments.total')}: {pagination.total}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeftIcon className="w-5 h-5" />
-                </button>
-                <span className="text-sm text-gray-700">
-                  {pagination.page} / {pagination.totalPages || 1}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page >= pagination.totalPages}
-                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRightIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      {/* Total Count */}
+      {!loading && appointments.length > 0 && (
+        <div className="mt-2 text-sm text-gray-500">
+          {t('nextAppointments.total')}: {pagination.total}
+        </div>
+      )}
     </div>
   );
 };

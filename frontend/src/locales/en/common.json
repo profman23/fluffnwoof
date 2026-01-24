@@ -1,5 +1,7 @@
 {
   "underDevelopment": "{{page}} Page - Under Development",
+  "actions": "Actions",
+  "noData": "No data available",
   "pages": {
     "owners": "Owners",
     "pets": "Pets",

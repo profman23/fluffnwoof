@@ -357,7 +357,7 @@ export const FlowBoardPage = () => {
             onDragStart={isReadOnly ? undefined : handleDragStart}
             onDragEnd={isReadOnly ? undefined : handleDragEnd}
           >
-            <div className="flex gap-3 h-full" style={{ minWidth: 'max-content' }}>
+            <div className="flex gap-3 h-full w-full">
               {columnConfig.map((column) => (
                 <FlowBoardColumn
                   key={column.id}

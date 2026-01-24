@@ -37,7 +37,7 @@ export const FlowBoardColumn = ({
 
   return (
     <div
-      className={`flex flex-col bg-primary-50 rounded-lg h-full w-56 flex-shrink-0 border-2 border-primary-200
+      className={`flex flex-col bg-primary-50 rounded-lg h-full flex-1 min-w-[200px] border-2 border-primary-200
         ${isOver ? 'ring-2 ring-secondary-300 ring-opacity-50' : ''}`}
     >
       {/* Column Header */}
@@ -46,8 +46,8 @@ export const FlowBoardColumn = ({
         style={{ backgroundColor: color }}
       >
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <h3 className="font-semibold text-white text-sm truncate">{title}</h3>
-          <span className="bg-white bg-opacity-30 text-white px-1.5 py-0.5 rounded-full text-xs flex-shrink-0">
+          <h3 className="font-medium text-gray-900 text-sm truncate">{title}</h3>
+          <span className="bg-black bg-opacity-20 text-gray-900 px-1.5 py-0.5 rounded-full text-xs flex-shrink-0">
             {appointments.length}
           </span>
         </div>
@@ -56,22 +56,22 @@ export const FlowBoardColumn = ({
           {onSortChange && (
             <button
               onClick={onSortChange}
-              className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded transition-colors"
+              className="p-1 bg-black bg-opacity-10 hover:bg-opacity-20 rounded transition-colors"
               title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
             >
               {sortOrder === 'asc' ? (
-                <ArrowUpIcon className="w-4 h-4 text-white" />
+                <ArrowUpIcon className="w-4 h-4 text-gray-900" />
               ) : (
-                <ArrowDownIcon className="w-4 h-4 text-white" />
+                <ArrowDownIcon className="w-4 h-4 text-gray-900" />
               )}
             </button>
           )}
           {showAddButton && onAddClick && (
             <button
               onClick={onAddClick}
-              className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-lg transition-colors"
+              className="p-1 bg-black bg-opacity-10 hover:bg-opacity-20 rounded-lg transition-colors"
             >
-              <PlusIcon className="w-5 h-5 text-white" />
+              <PlusIcon className="w-5 h-5 text-gray-900" />
             </button>
           )}
         </div>

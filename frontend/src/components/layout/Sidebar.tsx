@@ -47,7 +47,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       ],
     },
     { path: '/sms', key: 'sms', icon: '📱', screen: 'sms' },
-    { path: '/profile', key: 'myProfile', icon: '⚙️', screen: 'profile' },
   ];
 
   const toggleSubmenu = (key: string) => {

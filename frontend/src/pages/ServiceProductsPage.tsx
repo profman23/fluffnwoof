@@ -6,16 +6,14 @@ import {
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   ShoppingBagIcon,
 } from '@heroicons/react/24/outline';
-import { LogoLoader } from '../components/common/LogoLoader';
 import { serviceProductsApi, ServiceProduct, Category } from '../api/serviceProducts';
 import { AddEditServiceProductModal } from '../components/serviceProducts/AddEditModal';
 import { ImportExcelModal } from '../components/serviceProducts/ImportExcelModal';
 import { CategoryModal } from '../components/serviceProducts/CategoryModal';
 import { useScreenPermission } from '../hooks/useScreenPermission';
+import { DataTable, Column } from '../components/common/DataTable';
 
 export const ServiceProductsPage = () => {
   const { t } = useTranslation('serviceProducts');
@@ -129,6 +127,73 @@ export const ServiceProductsPage = () => {
     return numPrice.toFixed(2);
   };
 
+  // Define columns for DataTable
+  const columns: Column<ServiceProduct>[] = [
+    {
+      id: 'name',
+      header: t('table.name'),
+      render: (item) => (
+        <span className="text-sm font-medium text-gray-900">{item.name}</span>
+      ),
+    },
+    {
+      id: 'category',
+      header: t('table.category'),
+      render: (item) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
+          {item.category?.name || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'priceBeforeTax',
+      header: t('table.priceBeforeTax'),
+      render: (item) => (
+        <span className="text-sm text-gray-900 whitespace-nowrap" dir="ltr">
+          {formatPrice(item.priceBeforeTax)} SAR
+        </span>
+      ),
+    },
+    {
+      id: 'taxRate',
+      header: t('table.taxRate'),
+      render: (item) => (
+        <span className="text-sm text-gray-500 whitespace-nowrap">
+          {formatPrice(item.taxRate)}%
+        </span>
+      ),
+    },
+    {
+      id: 'priceAfterTax',
+      header: t('table.priceAfterTax'),
+      render: (item) => (
+        <span className="text-sm font-medium text-green-600 whitespace-nowrap" dir="ltr">
+          {formatPrice(item.priceAfterTax)} SAR
+        </span>
+      ),
+    },
+  ];
+
+  // Render actions
+  const renderActions = (item: ServiceProduct) => (
+    <div className="flex items-center justify-center gap-1">
+      <button
+        onClick={() => handleEdit(item)}
+        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+        title={t('edit')}
+      >
+        <PencilIcon className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => handleDelete(item.id)}
+        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+        title={t('delete')}
+      >
+        <TrashIcon className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -195,114 +260,28 @@ export const ServiceProductsPage = () => {
         </form>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <LogoLoader />
-        ) : items.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">{t('noData')}</div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      {t('table.name')}
-                    </th>
-                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      {t('table.category')}
-                    </th>
-                    <th className="px-4 py-3 text-end text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      {t('table.priceBeforeTax')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      {t('table.taxRate')}
-                    </th>
-                    <th className="px-4 py-3 text-end text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      {t('table.priceAfterTax')}
-                    </th>
-                    {canModify && (
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                        {t('table.actions')}
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {items.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {item.name}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {item.category?.name || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 text-end whitespace-nowrap" dir="ltr">
-                        {formatPrice(item.priceBeforeTax)} SAR
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 text-center whitespace-nowrap">
-                        {formatPrice(item.taxRate)}%
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-green-600 text-end whitespace-nowrap" dir="ltr">
-                        {formatPrice(item.priceAfterTax)} SAR
-                      </td>
-                      {canModify && (
-                        <td className="px-4 py-3 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title={t('edit')}
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                              title={t('delete')}
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* DataTable */}
+      <DataTable<ServiceProduct>
+        tableId="service-products"
+        columns={columns}
+        data={items}
+        loading={loading}
+        emptyIcon="🛒"
+        emptyMessage={t('noData')}
+        rowKey="id"
+        renderActions={canModify ? renderActions : undefined}
+        actionsHeader={t('table.actions')}
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        onPageChange={handlePageChange}
+      />
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                {t('total')}: {pagination.total}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeftIcon className="w-5 h-5" />
-                </button>
-                <span className="text-sm text-gray-700">
-                  {pagination.page} / {pagination.totalPages || 1}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page >= pagination.totalPages}
-                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRightIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      {/* Total Count */}
+      {!loading && items.length > 0 && (
+        <div className="mt-2 text-sm text-gray-500">
+          {t('total')}: {pagination.total}
+        </div>
+      )}
 
       {/* Modals */}
       {showAddEdit && (
