@@ -29,6 +29,7 @@
     "userManagement": "User Management",
     "rolesPermissions": "Roles & Permissions",
     "serviceProducts": "Services & Products",
+    "reports": "Reports",
     "sms": "SMS Messages"
   },
   "specialPermissions": {

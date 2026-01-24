@@ -17,6 +17,7 @@ const SCREEN_NAMES = [
   'userManagement',
   'rolesPermissions',
   'serviceProducts',
+  'reports',
   'sms',
 ];
 
