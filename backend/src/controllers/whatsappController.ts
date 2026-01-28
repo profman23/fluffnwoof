@@ -32,7 +32,6 @@ export const whatsappController = {
         phone,
         message,
         recipientName,
-        sentById: req.user?.id,
       });
 
       res.json(result);
@@ -44,33 +43,12 @@ export const whatsappController = {
     }
   },
 
-  // Send template message
+  // Send template message (TODO: implement when templates are set up)
   async sendTemplate(req: AuthRequest, res: Response) {
-    try {
-      const { phone, templateName, templateLanguage, parameters, recipientName } = req.body;
-
-      if (!phone || !templateName) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone and templateName are required',
-        });
-      }
-
-      const result = await whatsappService.sendWhatsappTemplate({
-        phone,
-        templateName,
-        templateLanguage,
-        parameters,
-        recipientName,
-      });
-
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    return res.status(501).json({
+      success: false,
+      message: 'Template messaging not yet implemented',
+    });
   },
 
   // Get templates

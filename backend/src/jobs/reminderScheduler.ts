@@ -31,9 +31,10 @@ const processPendingReminders = cron.schedule('*/5 * * * *', async () => {
   } finally {
     isSchedulerRunning = false;
   }
-}, {
-  scheduled: false, // Don't start automatically
 });
+
+// Stop initially - will be started manually
+processPendingReminders.stop();
 
 // Schedule pre-appointment reminders every hour
 const schedulePreAppointmentReminders = cron.schedule('0 * * * *', async () => {
@@ -47,9 +48,10 @@ const schedulePreAppointmentReminders = cron.schedule('0 * * * *', async () => {
   } catch (error) {
     console.error('[Reminder Scheduler] Error scheduling pre-appointment reminders:', error);
   }
-}, {
-  scheduled: false,
 });
+
+// Stop initially - will be started manually
+schedulePreAppointmentReminders.stop();
 
 // Schedule follow-up reminders daily at 8:00 AM
 const scheduleFollowUpReminders = cron.schedule('0 8 * * *', async () => {
@@ -63,9 +65,10 @@ const scheduleFollowUpReminders = cron.schedule('0 8 * * *', async () => {
   } catch (error) {
     console.error('[Reminder Scheduler] Error scheduling follow-up reminders:', error);
   }
-}, {
-  scheduled: false,
 });
+
+// Stop initially - will be started manually
+scheduleFollowUpReminders.stop();
 
 export const reminderScheduler = {
   /**
