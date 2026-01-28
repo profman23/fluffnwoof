@@ -30,7 +30,12 @@
     "rolesPermissions": "Roles & Permissions",
     "serviceProducts": "Services & Products",
     "reports": "Reports",
-    "sms": "SMS Messages"
+    "crm": "CRM",
+    "sms": "SMS Messages",
+    "reminders": "Reminders",
+    "clinicSetup": "Clinic Setup",
+    "shiftsManagement": "Shifts Management",
+    "visitTypes": "Visit Types"
   },
   "specialPermissions": {
     "title": "Special Permissions",

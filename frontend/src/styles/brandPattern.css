@@ -1,0 +1,52 @@
+/* Brand Pattern Background - Combined sprite */
+
+.brand-pattern-bg-visible {
+  position: relative;
+  background-color: #f8fafc;
+}
+
+.brand-pattern-bg-visible::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.06;
+  background-image: url('../assets/patterns/pattern-sprite.svg');
+  background-size: 450px auto;
+  background-repeat: repeat;
+}
+
+.brand-pattern-bg-visible > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle version */
+.brand-pattern-bg {
+  position: relative;
+  background-color: #f8fafc;
+}
+
+.brand-pattern-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  background-image: url('../assets/patterns/pattern-sprite.svg');
+  background-size: 400px auto;
+  background-repeat: repeat;
+}
+
+.brand-pattern-bg > * {
+  position: relative;
+  z-index: 1;
+}

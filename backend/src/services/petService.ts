@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { Species, Gender } from '@prisma/client';
+import { reminderService } from './reminderService';
 
 // Generate next pet code (P00000001, P00000002, etc.)
 async function generatePetCode(): Promise<string> {
@@ -32,12 +33,14 @@ export const petService = {
     photoUrl?: string;
     notes?: string;
     ownerId: string;
+    sendWelcomeEmail?: boolean;
   }) {
+    const { sendWelcomeEmail, ...petData } = data;
     const petCode = await generatePetCode();
 
     const pet = await prisma.pet.create({
       data: {
-        ...data,
+        ...petData,
         petCode,
       },
       include: {
@@ -52,6 +55,13 @@ export const petService = {
         },
       },
     });
+
+    // Send welcome email if requested (for new owners)
+    if (sendWelcomeEmail && pet.owner) {
+      reminderService.sendOwnerWelcomeReminder(pet.owner.id, pet.name).catch((error) => {
+        console.error('[PetService] Failed to send welcome reminder:', error);
+      });
+    }
 
     return pet;
   },

@@ -49,6 +49,9 @@ export const ownerService = {
       },
     });
 
+    // Welcome email is now sent after pet creation (in petService.create)
+    // to include pet name in the email
+
     return owner;
   },
 

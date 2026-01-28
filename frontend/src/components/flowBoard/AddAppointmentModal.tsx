@@ -2,10 +2,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { XMarkIcon, MagnifyingGlassIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { useQuery } from '@tanstack/react-query';
 import { Owner, User, VisitType, Species } from '../../types';
 import { ownersApi } from '../../api/owners';
 import { petsApi } from '../../api/pets';
 import { flowBoardApi } from '../../api/flowBoard';
+import { shiftsApi, UnavailableReason } from '../../api/shifts';
+import { visitTypesApi, VisitType as VisitTypeConfig } from '../../api/visitTypes';
 import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked } from '../../utils/appointmentUtils';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 
@@ -28,13 +31,21 @@ export const AddAppointmentModal = ({
   onSuccess,
   selectedDate,
 }: AddAppointmentModalProps) => {
-  const { t } = useTranslation('flowBoard');
+  const { t, i18n } = useTranslation('flowBoard');
   const { canViewPhone } = usePhonePermission();
+  const isRTL = i18n.language === 'ar';
   const isMountedRef = useRef(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch visit types from the database
+  const { data: visitTypesConfig = [] } = useQuery({
+    queryKey: ['visit-types-active'],
+    queryFn: () => visitTypesApi.getAll(false),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   // Owner search
   const [ownerSearch, setOwnerSearch] = useState('');
@@ -53,19 +64,45 @@ export const AddAppointmentModal = ({
 
   // Form fields
   const [visitType, setVisitType] = useState<VisitType>(VisitType.GENERAL_CHECKUP);
+  const [selectedVisitTypeConfig, setSelectedVisitTypeConfig] = useState<VisitTypeConfig | null>(null);
   const [appointmentDate, setAppointmentDate] = useState(selectedDate);
   const [appointmentTime, setAppointmentTime] = useState('09:00');
 
   // Booked appointments for selected staff on selected date
   const [bookedAppointments, setBookedAppointments] = useState<{ appointmentTime: string; duration: number }[]>([]);
 
-  // Calculate time slots based on visit type duration, date, and booked appointments
+  // Get the duration from the selected visit type config or fallback to hardcoded values
+  const visitTypeDuration = useMemo(() => {
+    if (selectedVisitTypeConfig) {
+      return selectedVisitTypeConfig.duration;
+    }
+    return VISIT_TYPE_DURATION[visitType] || 30;
+  }, [selectedVisitTypeConfig, visitType]);
+
+  // Fetch availability from shifts API when vet and date are selected
+  // Using V2 endpoint which uses the new schedule period system
+  const { data: availabilityData, isLoading: loadingAvailability } = useQuery({
+    queryKey: ['vet-availability-v2', selectedStaff, appointmentDate, visitTypeDuration],
+    queryFn: () => shiftsApi.getAvailabilityV2(selectedStaff, appointmentDate, visitTypeDuration),
+    enabled: !!selectedStaff && !!appointmentDate && isOpen,
+    staleTime: 1000 * 30, // Cache for 30 seconds
+  });
+
+  // Derive unavailableReason from availabilityData directly
+  const unavailableReason: UnavailableReason = availabilityData?.unavailableReason ?? null;
+
+  // Calculate time slots - prefer availability API, fallback to local calculation
   const timeSlots = useMemo(() => {
-    const duration = VISIT_TYPE_DURATION[visitType];
+    // If we have availability data from the shifts API, use it
+    if (availabilityData && availabilityData.slots) {
+      return availabilityData.slots;
+    }
+    // Fallback to the original local calculation
+    const duration = visitTypeDuration;
     const allSlots = generateTimeSlots(duration, appointmentDate);
     // Filter out booked slots
     return allSlots.filter(slot => !isSlotBooked(slot, duration, bookedAppointments));
-  }, [visitType, appointmentDate, bookedAppointments]);
+  }, [availabilityData, visitTypeDuration, appointmentDate, bookedAppointments]);
 
   // Reset time when visit type changes (to ensure valid slot)
   useEffect(() => {
@@ -78,6 +115,21 @@ export const AddAppointmentModal = ({
   useEffect(() => {
     setAppointmentDate(selectedDate);
   }, [selectedDate]);
+
+  // Sync visit type config when visit types are loaded or visit type changes
+  useEffect(() => {
+    if (visitTypesConfig.length > 0) {
+      // Find the matching config by code
+      const config = visitTypesConfig.find(c => c.code === visitType);
+      if (config) {
+        setSelectedVisitTypeConfig(config);
+      } else {
+        // If no match, use the first active type
+        setSelectedVisitTypeConfig(visitTypesConfig[0]);
+        setVisitType(visitTypesConfig[0].code as VisitType);
+      }
+    }
+  }, [visitTypesConfig, visitType]);
 
   // Track mounted state
   useEffect(() => {
@@ -219,6 +271,7 @@ export const AddAppointmentModal = ({
     setPets([]);
     setOwners([]);
     setVisitType(VisitType.GENERAL_CHECKUP);
+    setSelectedVisitTypeConfig(null);
     setAppointmentDate(selectedDate);
     setAppointmentTime('09:00');
     setError(null);
@@ -248,7 +301,7 @@ export const AddAppointmentModal = ({
         appointmentDate,
         appointmentTime,
         visitType,
-        duration: VISIT_TYPE_DURATION[visitType],
+        duration: visitTypeDuration, // Use configurable duration
       });
       if (!isMountedRef.current) return;
       onSuccess();
@@ -398,20 +451,36 @@ export const AddAppointmentModal = ({
             </label>
             <select
               value={visitType}
-              onChange={(e) => setVisitType(e.target.value as VisitType)}
+              onChange={(e) => {
+                const newType = e.target.value as VisitType;
+                setVisitType(newType);
+                const config = visitTypesConfig.find(c => c.code === newType);
+                if (config) {
+                  setSelectedVisitTypeConfig(config);
+                }
+              }}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {Object.values(VisitType).map((type) => (
-                <option key={type} value={type}>
-                  {t(`visitTypes.${type}`) || type}
-                </option>
-              ))}
+              {/* Use configurable visit types if available, fallback to enum */}
+              {visitTypesConfig.length > 0 ? (
+                visitTypesConfig.map((type) => (
+                  <option key={type.code} value={type.code}>
+                    {isRTL ? type.nameAr : type.nameEn}
+                  </option>
+                ))
+              ) : (
+                Object.values(VisitType).map((type) => (
+                  <option key={type} value={type}>
+                    {t(`visitTypes.${type}`) || type}
+                  </option>
+                ))
+              )}
             </select>
             {/* Duration indicator */}
             <div className="mt-1 flex items-center gap-1 text-sm text-gray-500">
               <ClockIcon className="w-4 h-4" />
               <span>
-                {t('form.duration')}: {VISIT_TYPE_DURATION[visitType]} {t('form.minutes')}
+                {t('form.duration')}: {visitTypeDuration} {t('form.minutes')}
               </span>
             </div>
           </div>
@@ -456,17 +525,46 @@ export const AddAppointmentModal = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t('form.time')} {timeSlots.length > 0 && <span className="text-gray-400">({timeSlots.length})</span>}
             </label>
-            {timeSlots.length === 0 ? (
+            {loadingAvailability ? (
+              <div className="px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{isRTL ? 'جاري تحميل المواعيد المتاحة...' : 'Loading available slots...'}</span>
+              </div>
+            ) : timeSlots.length === 0 ? (
               <div className="px-4 py-3 border border-orange-200 rounded-lg bg-orange-50 text-orange-700 text-sm">
                 <p className="font-medium">{t('form.noSlotsAvailable') || 'No available time slots'}</p>
                 <p className="mt-1 text-orange-600">
-                  {selectedStaff && staff.find(s => s.id === selectedStaff) ? (
-                    t('form.doctorFullyBooked', {
-                      doctor: `${staff.find(s => s.id === selectedStaff)?.firstName} ${staff.find(s => s.id === selectedStaff)?.lastName}`
-                    }) || `Dr. ${staff.find(s => s.id === selectedStaff)?.firstName} ${staff.find(s => s.id === selectedStaff)?.lastName} is fully booked on this date`
-                  ) : (
-                    t('form.selectAnotherDateOrDoctor') || 'Please select another date or doctor'
-                  )}
+                  {(() => {
+                    const doctorName = selectedStaff && staff.find(s => s.id === selectedStaff)
+                      ? `${staff.find(s => s.id === selectedStaff)?.firstName} ${staff.find(s => s.id === selectedStaff)?.lastName}`
+                      : '';
+
+                    switch (unavailableReason) {
+                      case 'dayOff':
+                        return isRTL
+                          ? `الدكتور ${doctorName} في إجازة في هذا اليوم`
+                          : `Dr. ${doctorName} is on day off`;
+                      case 'weekendOff':
+                        return isRTL
+                          ? `الدكتور ${doctorName} لا يعمل في هذا اليوم (عطلة أسبوعية)`
+                          : `Dr. ${doctorName} doesn't work on this day (weekly off)`;
+                      case 'noSchedule':
+                        return isRTL
+                          ? `لا يوجد جدول عمل محدد للدكتور ${doctorName}`
+                          : `No work schedule set for Dr. ${doctorName}`;
+                      case 'fullyBooked':
+                        return isRTL
+                          ? `الدكتور ${doctorName} محجوز بالكامل في هذا اليوم`
+                          : `Dr. ${doctorName} is fully booked on this date`;
+                      default:
+                        return isRTL
+                          ? 'يرجى اختيار تاريخ آخر أو طبيب آخر'
+                          : 'Please select another date or doctor';
+                    }
+                  })()}
                 </p>
               </div>
             ) : (
@@ -495,7 +593,7 @@ export const AddAppointmentModal = ({
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedOwner || !selectedPet || !selectedStaff}
+              disabled={loading || !selectedOwner || !selectedPet || !selectedStaff || timeSlots.length === 0}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (t('form.saving') || 'Saving...') : (t('form.save') || 'Save')}

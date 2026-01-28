@@ -13,6 +13,7 @@ export interface CreatePetInput {
   microchipId?: string;
   photoUrl?: string;
   notes?: string;
+  sendWelcomeEmail?: boolean;
 }
 
 export interface UpdatePetInput {

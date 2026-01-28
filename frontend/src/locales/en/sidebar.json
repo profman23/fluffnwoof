@@ -15,7 +15,12 @@
     "userManagement": "User Management",
     "rolesPermissions": "Roles & Permissions",
     "audit": "Audit Log",
+    "crm": "CRM Management",
     "sms": "SMS",
+    "reminders": "Reminder Management",
+    "clinicSetup": "Clinic Setup",
+    "shiftsManagement": "Shifts Management",
+    "visitTypes": "Visit Types",
     "myProfile": "My Profile",
     "logout": "Logout"
   }

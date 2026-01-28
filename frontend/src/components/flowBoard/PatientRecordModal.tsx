@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, DocumentTextIcon, ShoppingBagIcon, CreditCardIcon, PaperClipIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment, MedicalAttachment } from '../../types';
 import { medicalRecordsApi } from '../../api/medicalRecords';
 import { flowBoardApi } from '../../api/flowBoard';
 import { invoicesApi, Invoice } from '../../api/invoices';
+import { visitTypesApi } from '../../api/visitTypes';
 import { AuditLogSection } from '../medical/AuditLogSection';
 import { FileAttachment } from '../common/FileAttachment';
 import { uploadApi } from '../../api/upload';
@@ -71,9 +73,28 @@ export const PatientRecordModal = ({
   appointment,
   existingRecordId,
 }: PatientRecordModalProps) => {
-  const { t } = useTranslation('patientRecord');
+  const { t, i18n } = useTranslation('patientRecord');
   const { t: tFlow } = useTranslation('flowBoard');
+  const isRTL = i18n.language === 'ar';
   const { isReadOnly } = useScreenPermission('medical');
+
+  // Fetch visit types to get the actual name
+  const { data: visitTypes = [] } = useQuery({
+    queryKey: ['visit-types-all'],
+    queryFn: () => visitTypesApi.getAll(true),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Helper to get visit type name from code
+  const getVisitTypeName = useCallback((code: string | undefined) => {
+    if (!code) return null;
+    const visitType = visitTypes.find(vt => vt.code === code);
+    if (visitType) {
+      return isRTL ? visitType.nameAr : visitType.nameEn;
+    }
+    // Fallback to translation for old enum values
+    return tFlow(`visitTypes.${code}`);
+  }, [visitTypes, isRTL, tFlow]);
   const { isFullControl: canCreateAppointments, canModify: canModifyFlowBoard } = useScreenPermission('flowBoard');
   const { canViewPhone } = usePhonePermission();
   // Allow reopen if user has flowBoard modify permission OR medical full permission
@@ -1230,7 +1251,7 @@ export const PatientRecordModal = ({
                   {effectiveAppointment?.visitType && (
                     <div>
                       <label className="text-xs text-gray-500 uppercase tracking-wide">{tFlow('form.visitType')}</label>
-                      <p className="font-semibold text-gray-900 mt-1">{tFlow(`visitTypes.${effectiveAppointment.visitType}`)}</p>
+                      <p className="font-semibold text-gray-900 mt-1">{getVisitTypeName(effectiveAppointment.visitType)}</p>
                     </div>
                   )}
                   {(effectiveAppointment?.vet || record?.vet) && (
@@ -1951,7 +1972,7 @@ export const PatientRecordModal = ({
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="px-2 py-1 bg-secondary-200 text-brand-dark rounded text-xs font-medium">
-                              {appt.notes || (appt.visitType && tFlow(`visitTypes.${appt.visitType}`))}
+                              {appt.notes || getVisitTypeName(appt.visitType)}
                             </span>
                             {appt.vet && (
                               <span className="text-sm text-gray-600">

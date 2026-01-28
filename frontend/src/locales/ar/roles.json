@@ -30,7 +30,12 @@
     "rolesPermissions": "الأدوار والصلاحيات",
     "serviceProducts": "الخدمات والمنتجات",
     "reports": "التقارير",
-    "sms": "الرسائل النصية"
+    "crm": "إدارة العملاء",
+    "sms": "الرسائل النصية",
+    "reminders": "التذكيرات",
+    "clinicSetup": "إعدادات العيادة",
+    "shiftsManagement": "إدارة الشيفتات",
+    "visitTypes": "أنواع الزيارات"
   },
   "specialPermissions": {
     "title": "صلاحيات خاصة",

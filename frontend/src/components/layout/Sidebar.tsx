@@ -46,7 +46,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         { path: '/reports/appointments', key: 'upcoming', icon: '📅', screen: 'reports' },
       ],
     },
-    { path: '/sms', key: 'sms', icon: '📱', screen: 'sms' },
+    {
+      key: 'crm',
+      icon: '📱',
+      screen: 'crm',
+      children: [
+        { path: '/crm/sms', key: 'sms', icon: '💬', screen: 'sms' },
+        { path: '/crm/reminders', key: 'reminders', icon: '⏰', screen: 'reminders' },
+      ],
+    },
+    {
+      key: 'clinicSetup',
+      icon: '⚙️',
+      screen: 'clinicSetup',
+      children: [
+        { path: '/clinic-setup/shifts', key: 'shiftsManagement', icon: '🕐', screen: 'shiftsManagement' },
+        { path: '/clinic-setup/visit-types', key: 'visitTypes', icon: '📋', screen: 'visitTypes' },
+      ],
+    },
   ];
 
   const toggleSubmenu = (key: string) => {

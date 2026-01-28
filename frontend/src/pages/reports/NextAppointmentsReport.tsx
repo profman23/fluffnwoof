@@ -1,17 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { CalendarDaysIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { reportsApi, PaginatedResult, GetNextAppointmentsParams } from '../../api/reports';
 import { flowBoardApi } from '../../api/flowBoard';
+import { visitTypesApi } from '../../api/visitTypes';
 import { FlowBoardAppointment, User } from '../../types';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 import { getTodayDate } from '../../utils/appointmentUtils';
 import { DataTable, Column } from '../../components/common/DataTable';
 
 export const NextAppointmentsReport = () => {
-  const { t } = useTranslation('reports');
+  const { t, i18n } = useTranslation('reports');
   const { t: tFlow } = useTranslation('flowBoard');
+  const isRTL = i18n.language === 'ar';
   const { canViewPhone } = usePhonePermission();
+
+  // Fetch visit types to get the actual name
+  const { data: visitTypes = [] } = useQuery({
+    queryKey: ['visit-types-all'],
+    queryFn: () => visitTypesApi.getAll(true),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Helper to get visit type name from code
+  const getVisitTypeName = useCallback((code: string | undefined) => {
+    if (!code) return '-';
+    const visitType = visitTypes.find(vt => vt.code === code);
+    if (visitType) {
+      return isRTL ? visitType.nameAr : visitType.nameEn;
+    }
+    return tFlow(`visitTypes.${code}`);
+  }, [visitTypes, isRTL, tFlow]);
 
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<FlowBoardAppointment[]>([]);
@@ -173,7 +193,7 @@ export const NextAppointmentsReport = () => {
       header: t('nextAppointments.table.visitType'),
       render: (apt) => (
         <span className="text-sm text-gray-900 whitespace-nowrap">
-          {tFlow(`visitTypes.${apt.visitType}`)}
+          {getVisitTypeName(apt.visitType)}
         </span>
       ),
     },

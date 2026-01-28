@@ -1,0 +1,132 @@
+{
+  "title": "Reminder Management",
+  "description": "Configure automatic reminders for appointments",
+
+  "channels": {
+    "title": "Notification Channels",
+    "sms": {
+      "title": "SMS",
+      "status": "Connected",
+      "statusDisconnected": "Not Connected",
+      "provider": "Madar SMS"
+    },
+    "whatsapp": {
+      "title": "WhatsApp",
+      "status": "Connected",
+      "statusDisconnected": "Not Connected",
+      "provider": "Twilio"
+    },
+    "email": {
+      "title": "Email",
+      "status": "Connected",
+      "statusDisconnected": "Not Connected",
+      "provider": "Gmail"
+    },
+    "push": {
+      "title": "Mobile App",
+      "status": "Coming Soon",
+      "statusDisconnected": "Not Connected"
+    }
+  },
+
+  "events": {
+    "title": "Reminder Events",
+    "APPOINTMENT_BOOKED": {
+      "title": "New Appointment Booked",
+      "description": "Send notification when a new appointment is created"
+    },
+    "APPOINTMENT_CONFIRMED": {
+      "title": "Appointment Confirmed",
+      "description": "Send notification when appointment is confirmed"
+    },
+    "APPOINTMENT_CANCELLED": {
+      "title": "Appointment Cancelled",
+      "description": "Send notification when appointment is cancelled"
+    },
+    "PRE_APPOINTMENT": {
+      "title": "Pre-Appointment Reminder",
+      "description": "Send reminder before the appointment"
+    },
+    "FOLLOW_UP": {
+      "title": "Follow-up Reminder",
+      "description": "Send reminder for scheduled follow-up appointments"
+    },
+    "OWNER_CREATED": {
+      "title": "New Client Welcome",
+      "description": "Send welcome notification when a new client is registered"
+    }
+  },
+
+  "timing": {
+    "title": "Send Before",
+    "immediately": "Immediately",
+    "1day": "1 Day",
+    "2days": "2 Days",
+    "3days": "3 Days",
+    "1week": "1 Week"
+  },
+
+  "reminderOrder": {
+    "first": "First Reminder",
+    "second": "Second Reminder"
+  },
+
+  "templates": {
+    "title": "Message Templates",
+    "arabic": "Arabic Template",
+    "english": "English Template",
+    "variables": {
+      "title": "Available Variables",
+      "petName": "Pet Name",
+      "ownerName": "Owner Name",
+      "appointmentDate": "Appointment Date",
+      "appointmentTime": "Appointment Time",
+      "visitType": "Visit Type",
+      "vetName": "Veterinarian Name",
+      "clinicName": "Clinic Name",
+      "clinicPhone": "Clinic Phone"
+    }
+  },
+
+  "settings": {
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "save": "Save Settings",
+    "saving": "Saving...",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Failed to save settings"
+  },
+
+  "tabs": {
+    "overview": "Overview",
+    "appointmentReminders": "Appointment Reminders",
+    "preAppointment": "Pre-Appointment",
+    "followUp": "Follow-up Reminders",
+    "templates": "Templates",
+    "logs": "Logs"
+  },
+
+  "logs": {
+    "title": "Reminder Logs",
+    "recipient": "Recipient",
+    "channel": "Channel",
+    "status": "Status",
+    "sentAt": "Sent At",
+    "message": "Message",
+    "noLogs": "No reminder logs yet",
+    "statuses": {
+      "PENDING": "Pending",
+      "SENT": "Sent",
+      "DELIVERED": "Delivered",
+      "FAILED": "Failed",
+      "SKIPPED": "Skipped"
+    }
+  },
+
+  "stats": {
+    "totalSent": "Total Sent",
+    "delivered": "Delivered",
+    "failed": "Failed",
+    "pending": "Pending"
+  }
+}

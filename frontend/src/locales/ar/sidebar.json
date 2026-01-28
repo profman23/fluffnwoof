@@ -15,7 +15,12 @@
     "userManagement": "إدارة المستخدمين",
     "rolesPermissions": "الأدوار والصلاحيات",
     "audit": "سجل العمليات",
+    "crm": "إدارة العملاء",
     "sms": "الرسائل النصية",
+    "reminders": "إدارة التذكيرات",
+    "clinicSetup": "إعدادات العيادة",
+    "shiftsManagement": "إدارة المناوبات",
+    "visitTypes": "أنواع الزيارات",
     "myProfile": "الملف الشخصي",
     "logout": "تسجيل الخروج"
   }

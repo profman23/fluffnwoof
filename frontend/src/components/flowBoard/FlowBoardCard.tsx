@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { UserIcon, ArrowRightOnRectangleIcon, EllipsisVerticalIcon, CheckCircleIcon, XCircleIcon, CalendarIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { FlowBoardAppointment, AppointmentStatus, Species } from '../../types';
 import { flowBoardApi } from '../../api/flowBoard';
+import { visitTypesApi } from '../../api/visitTypes';
 
 interface FlowBoardCardProps {
   appointment: FlowBoardAppointment;
@@ -37,9 +39,28 @@ export const FlowBoardCard = ({
   onReschedule,
   hasFullAccess = false,
 }: FlowBoardCardProps) => {
-  const { t } = useTranslation('flowBoard');
+  const { t, i18n } = useTranslation('flowBoard');
+  const isRTL = i18n.language === 'ar';
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch visit types to get the actual name
+  const { data: visitTypes = [] } = useQuery({
+    queryKey: ['visit-types-all'],
+    queryFn: () => visitTypesApi.getAll(true), // Include inactive to show all
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  // Get the visit type name from the code
+  const visitTypeName = useMemo(() => {
+    if (!appointment.visitType) return null;
+    const visitType = visitTypes.find(vt => vt.code === appointment.visitType);
+    if (visitType) {
+      return isRTL ? visitType.nameAr : visitType.nameEn;
+    }
+    // Fallback to translation for old enum values
+    return t(`visitTypes.${appointment.visitType}`);
+  }, [appointment.visitType, visitTypes, isRTL, t]);
 
   const {
     attributes,
@@ -240,9 +261,9 @@ export const FlowBoardCard = ({
 
       {/* Visit type and Check-In button */}
       <div className="flex items-center justify-between mt-1">
-        {appointment.visitType && (
+        {visitTypeName && (
           <div className="text-xs text-brand-dark/60 bg-primary-100 px-1.5 py-0.5 rounded inline-block">
-            {t(`visitTypes.${appointment.visitType}`)}
+            {visitTypeName}
           </div>
         )}
 

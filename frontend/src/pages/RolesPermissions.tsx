@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { ShieldCheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { rolesApi, ScreenPermissions } from '../api/roles';
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';
@@ -10,16 +10,27 @@ import { LogoLoader } from '../components/common/LogoLoader';
 import { Role } from '../types';
 import { AddRoleModal } from '../components/roles/AddRoleModal';
 
-const SCREEN_NAMES = [
-  'patients',
-  'flowBoard',
-  'medical',
-  'userManagement',
-  'rolesPermissions',
-  'serviceProducts',
-  'reports',
-  'sms',
+interface ScreenItem {
+  name: string;
+  children?: string[];
+}
+
+const SCREEN_GROUPS: ScreenItem[] = [
+  { name: 'patients' },
+  { name: 'flowBoard' },
+  { name: 'medical' },
+  { name: 'userManagement' },
+  { name: 'rolesPermissions' },
+  { name: 'serviceProducts' },
+  { name: 'reports' },
+  { name: 'crm', children: ['sms', 'reminders'] },
+  { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes'] },
 ];
+
+// Flatten for API calls
+const ALL_SCREEN_NAMES = SCREEN_GROUPS.flatMap(group =>
+  group.children ? [group.name, ...group.children] : [group.name]
+);
 
 const SPECIAL_PERMISSIONS = [
   { key: 'patients.hidePhone', screen: 'patients', label: 'hidePhone' },
@@ -38,8 +49,21 @@ export const RolesPermissions: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['crm', 'clinicSetup']));
 
   const isRtl = i18n.language === 'ar';
+
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     loadRoles();
@@ -74,7 +98,7 @@ export const RolesPermissions: React.FC = () => {
 
       // Initialize all screens with 'none' if not present
       const completePermissions: ScreenPermissions = {};
-      SCREEN_NAMES.forEach((screen) => {
+      ALL_SCREEN_NAMES.forEach((screen: string) => {
         completePermissions[screen] = data.screens[screen] || 'none';
       });
 
@@ -240,44 +264,107 @@ export const RolesPermissions: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {SCREEN_NAMES.map((screen) => {
-                      const currentLevel = permissions[screen] || 'none';
+                    {SCREEN_GROUPS.map((group) => {
+                      const hasChildren = group.children && group.children.length > 0;
+                      const isExpanded = expandedGroups.has(group.name);
+                      const parentLevel = permissions[group.name] || 'none';
+                      const ChevronIcon = isExpanded ? ChevronDownIcon : (isRtl ? ChevronLeftIcon : ChevronRightIcon);
+
                       return (
-                        <tr key={screen} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {t(`screens.${screen}`)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <input
-                              type="radio"
-                              name={`permission-${screen}`}
-                              checked={currentLevel === 'none'}
-                              onChange={() => handlePermissionChange(screen, 'none')}
-                              disabled={!canModify}
-                              className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <input
-                              type="radio"
-                              name={`permission-${screen}`}
-                              checked={currentLevel === 'read'}
-                              onChange={() => handlePermissionChange(screen, 'read')}
-                              disabled={!canModify}
-                              className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <input
-                              type="radio"
-                              name={`permission-${screen}`}
-                              checked={currentLevel === 'full'}
-                              onChange={() => handlePermissionChange(screen, 'full')}
-                              disabled={!canModify}
-                              className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                          </td>
-                        </tr>
+                        <React.Fragment key={group.name}>
+                          {/* Parent Row */}
+                          <tr className={`hover:bg-gray-50 ${hasChildren ? 'bg-gray-50' : ''}`}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <div className="flex items-center gap-2">
+                                {hasChildren ? (
+                                  <button
+                                    onClick={() => toggleGroup(group.name)}
+                                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                  >
+                                    <ChevronIcon className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                ) : (
+                                  <span className="w-6" />
+                                )}
+                                <span className={hasChildren ? 'font-semibold' : ''}>
+                                  {t(`screens.${group.name}`)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <input
+                                type="radio"
+                                name={`permission-${group.name}`}
+                                checked={parentLevel === 'none'}
+                                onChange={() => handlePermissionChange(group.name, 'none')}
+                                disabled={!canModify}
+                                className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <input
+                                type="radio"
+                                name={`permission-${group.name}`}
+                                checked={parentLevel === 'read'}
+                                onChange={() => handlePermissionChange(group.name, 'read')}
+                                disabled={!canModify}
+                                className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <input
+                                type="radio"
+                                name={`permission-${group.name}`}
+                                checked={parentLevel === 'full'}
+                                onChange={() => handlePermissionChange(group.name, 'full')}
+                                disabled={!canModify}
+                                className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Children Rows */}
+                          {hasChildren && isExpanded && group.children!.map((child) => {
+                            const childLevel = permissions[child] || 'none';
+                            return (
+                              <tr key={child} className="hover:bg-gray-50 bg-white">
+                                <td className={`px-6 py-3 whitespace-nowrap text-sm text-gray-700 ${isRtl ? 'pr-14' : 'pl-14'}`}>
+                                  {t(`screens.${child}`)}
+                                </td>
+                                <td className="px-6 py-3 whitespace-nowrap text-center">
+                                  <input
+                                    type="radio"
+                                    name={`permission-${child}`}
+                                    checked={childLevel === 'none'}
+                                    onChange={() => handlePermissionChange(child, 'none')}
+                                    disabled={!canModify}
+                                    className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  />
+                                </td>
+                                <td className="px-6 py-3 whitespace-nowrap text-center">
+                                  <input
+                                    type="radio"
+                                    name={`permission-${child}`}
+                                    checked={childLevel === 'read'}
+                                    onChange={() => handlePermissionChange(child, 'read')}
+                                    disabled={!canModify}
+                                    className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  />
+                                </td>
+                                <td className="px-6 py-3 whitespace-nowrap text-center">
+                                  <input
+                                    type="radio"
+                                    name={`permission-${child}`}
+                                    checked={childLevel === 'full'}
+                                    onChange={() => handlePermissionChange(child, 'full')}
+                                    disabled={!canModify}
+                                    className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>

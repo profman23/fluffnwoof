@@ -49,6 +49,34 @@ const permissions = [
   { name: 'screens.serviceProducts.read', description: 'Services & Products - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.serviceProducts.full', description: 'Services & Products - Full Control', category: 'screens', action: 'full' },
 
+  // CRM Management (parent screen)
+  { name: 'screens.crm.read', description: 'CRM Management - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.crm.full', description: 'CRM Management - Full Control', category: 'screens', action: 'full' },
+
+  // SMS
+  { name: 'screens.sms.read', description: 'SMS - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.sms.full', description: 'SMS - Full Control', category: 'screens', action: 'full' },
+
+  // Reminders
+  { name: 'screens.reminders.read', description: 'Reminders - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.reminders.full', description: 'Reminders - Full Control', category: 'screens', action: 'full' },
+
+  // Clinic Setup (parent screen)
+  { name: 'screens.clinicSetup.read', description: 'Clinic Setup - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.clinicSetup.full', description: 'Clinic Setup - Full Control', category: 'screens', action: 'full' },
+
+  // Shifts Management
+  { name: 'screens.shiftsManagement.read', description: 'Shifts Management - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.shiftsManagement.full', description: 'Shifts Management - Full Control', category: 'screens', action: 'full' },
+
+  // Visit Types
+  { name: 'screens.visitTypes.read', description: 'Visit Types - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.visitTypes.full', description: 'Visit Types - Full Control', category: 'screens', action: 'full' },
+
+  // API-level permissions for reminders
+  { name: 'reminders.read', description: 'Reminders - Read', category: 'reminders', action: 'read' },
+  { name: 'reminders.write', description: 'Reminders - Write', category: 'reminders', action: 'write' },
+
   // Special Permissions
   { name: 'patients.hidePhone', description: 'Hide Phone Numbers in Patients', category: 'patients', action: 'hidePhone' },
 
@@ -104,7 +132,15 @@ const rolePermissions: Record<string, string[]> = {
     'screens.flowBoard.full',
     'screens.reports.full',
     'screens.serviceProducts.full',
+    'screens.crm.full',
+    'screens.sms.full',
+    'screens.reminders.full',
+    'screens.clinicSetup.full',
+    'screens.shiftsManagement.full',
+    'screens.visitTypes.full',
     // API-level permissions
+    'reminders.read',
+    'reminders.write',
     'users.read',
     'users.create',
     'users.update',
@@ -130,6 +166,10 @@ const rolePermissions: Record<string, string[]> = {
     'screens.flowBoard.full',
     // Reports - Read Only
     'screens.reports.read',
+    // Clinic Setup - Read Only (for viewing schedules)
+    'screens.clinicSetup.read',
+    'screens.shiftsManagement.read',
+    'screens.visitTypes.read',
     // API-level permissions
     'users.read',
     'appointments.read',
@@ -151,6 +191,10 @@ const rolePermissions: Record<string, string[]> = {
     'screens.flowBoard.full',
     // Reports - Read Only
     'screens.reports.read',
+    // Clinic Setup - Read Only (for booking)
+    'screens.clinicSetup.read',
+    'screens.shiftsManagement.read',
+    'screens.visitTypes.read',
     // API-level permissions
     'users.read',
     'appointments.read',

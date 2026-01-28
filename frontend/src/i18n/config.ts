@@ -17,6 +17,8 @@ import arMedicalRecords from '../locales/ar/medicalRecords.json';
 import arReports from '../locales/ar/reports.json';
 import arProfile from '../locales/ar/profile.json';
 import arSms from '../locales/ar/sms.json';
+import arReminders from '../locales/ar/reminders.json';
+import arClinicSetup from '../locales/ar/clinicSetup.json';
 
 import enCommon from '../locales/en/common.json';
 import enAuth from '../locales/en/auth.json';
@@ -32,6 +34,8 @@ import enMedicalRecords from '../locales/en/medicalRecords.json';
 import enReports from '../locales/en/reports.json';
 import enProfile from '../locales/en/profile.json';
 import enSms from '../locales/en/sms.json';
+import enReminders from '../locales/en/reminders.json';
+import enClinicSetup from '../locales/en/clinicSetup.json';
 
 const resources = {
   ar: {
@@ -49,6 +53,8 @@ const resources = {
     reports: arReports,
     profile: arProfile,
     sms: arSms,
+    reminders: arReminders,
+    clinicSetup: arClinicSetup,
   },
   en: {
     common: enCommon,
@@ -65,6 +71,8 @@ const resources = {
     reports: enReports,
     profile: enProfile,
     sms: enSms,
+    reminders: enReminders,
+    clinicSetup: enClinicSetup,
   },
 };
 

@@ -16,6 +16,9 @@ import { NextAppointmentsReport } from './pages/reports/NextAppointmentsReport';
 import { ServiceProductsPage } from './pages/ServiceProductsPage';
 import { MyProfile } from './pages/MyProfile';
 import { SmsPage } from './pages/SmsPage';
+import { ReminderManagement } from './pages/crm/ReminderManagement';
+import { ShiftsManagement } from './pages/clinicSetup/ShiftsManagement';
+import { VisitTypesPage } from './pages/clinicSetup/VisitTypesPage';
 import { ThemeProvider } from './components/ThemeProvider';
 import { LogoLoader } from './components/common/LogoLoader';
 
@@ -175,14 +178,44 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* CRM Routes */}
           <Route
-            path="/sms"
+            path="/crm/sms"
             element={
               <ProtectedRoute>
                 <SmsPage />
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/crm/reminders"
+            element={
+              <ProtectedRoute>
+                <ReminderManagement />
+              </ProtectedRoute>
+            }
+          />
+          {/* Clinic Setup Routes */}
+          <Route
+            key="clinic-setup-shifts"
+            path="/clinic-setup/shifts"
+            element={
+              <ProtectedRoute>
+                <ShiftsManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            key="clinic-setup-visit-types"
+            path="/clinic-setup/visit-types"
+            element={
+              <ProtectedRoute>
+                <VisitTypesPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* Legacy route redirect */}
+          <Route path="/sms" element={<Navigate to="/crm/sms" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>

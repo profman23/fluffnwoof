@@ -233,6 +233,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
       }
 
       // Create pet
+      const isNewOwner = formData.ownerMode === 'new';
       const petData: CreatePetInput = {
         name: formData.pet.name.trim(),
         species: formData.pet.species as Species,
@@ -243,6 +244,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
         color: formData.pet.color.trim() || undefined,
         weight: formData.pet.weight ? parseFloat(formData.pet.weight) : undefined,
         notes: formData.pet.notes.trim() || undefined,
+        sendWelcomeEmail: isNewOwner, // Send welcome email only for new owners
       };
 
       await petsApi.create(petData);

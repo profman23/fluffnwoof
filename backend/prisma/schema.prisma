@@ -74,6 +74,30 @@ enum SmsStatus {
   FAILED
 }
 
+enum ReminderEventType {
+  APPOINTMENT_BOOKED      // عند حجز موعد جديد
+  APPOINTMENT_CONFIRMED   // عند تأكيد الموعد
+  APPOINTMENT_CANCELLED   // عند إلغاء الموعد
+  PRE_APPOINTMENT         // قبل الموعد
+  FOLLOW_UP               // تذكير المواعيد القادمة
+  OWNER_CREATED           // عند إنشاء عميل جديد
+}
+
+enum NotificationChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+  PUSH
+}
+
+enum ReminderLogStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  SKIPPED
+}
+
 // Models
 model Role {
   id              String   @id @default(uuid())
@@ -119,6 +143,12 @@ model User {
   preferences           UserPreferences?
   uploadedAttachments   MedicalAttachment[] @relation("UploadedAttachments")
   sentSmsLogs           SmsLog[]
+
+  // Clinic Setup Relations
+  vetSchedules       VetSchedule[]       @relation("VetSchedules")
+  vetDaysOff         VetDayOff[]         @relation("VetDaysOff")
+  vetBreaks          VetBreak[]          @relation("VetBreaks")
+  vetSchedulePeriods VetSchedulePeriod[] @relation("VetSchedulePeriods")
 
   @@index([roleId])
   @@map("users")
@@ -225,8 +255,9 @@ model Owner {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  pets     Pet[]
-  invoices Invoice[]
+  pets         Pet[]
+  invoices     Invoice[]
+  reminderLogs ReminderLog[]
 
   @@index([customerCode])
   @@map("owners")
@@ -270,7 +301,7 @@ model Appointment {
   duration        Int               @default(30) // minutes
   status          AppointmentStatus @default(SCHEDULED)
   isConfirmed     Boolean           @default(false) // حالة التأكيد منفصلة عن حالة الـ flow
-  visitType       VisitType         @default(GENERAL_CHECKUP)
+  visitType       String            @default("GENERAL_CHECKUP") // Now uses configurable VisitTypeConfig codes
   reason          String?
   notes           String?
   createdAt       DateTime          @default(now())
@@ -290,6 +321,7 @@ model Appointment {
   // Relations
   medicalRecords MedicalRecord[]
   invoice        Invoice?
+  reminderLogs   ReminderLog[]
 
   @@index([petId])
   @@index([vetId])
@@ -549,4 +581,213 @@ model SmsLog {
   @@index([status])
   @@index([createdAt])
   @@map("sms_logs")
+}
+
+// ===========================================
+// CRM - Reminder Management
+// ===========================================
+
+// إعدادات التذكيرات
+model ReminderSetting {
+  id              String            @id @default(uuid())
+  eventType       ReminderEventType
+  isEnabled       Boolean           @default(true)
+
+  // التوقيت (بالساعات) - للأحداث التي تحتاج توقيت
+  // 24 = يوم، 48 = يومين، 72 = 3 أيام، 168 = أسبوع
+  sendBeforeHours Int?
+
+  // القنوات المفعلة
+  smsEnabled      Boolean           @default(false)
+  whatsappEnabled Boolean           @default(false)
+  emailEnabled    Boolean           @default(false)
+  pushEnabled     Boolean           @default(false)
+
+  // قوالب الرسائل
+  templateAr      String?           @db.Text
+  templateEn      String?           @db.Text
+
+  // هل هذا التذكير الأول أم الثاني (للأحداث التي لها تذكيرين)
+  reminderOrder   Int               @default(1) // 1 = أول، 2 = ثاني
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  logs ReminderLog[]
+
+  @@unique([eventType, reminderOrder])
+  @@map("reminder_settings")
+}
+
+// سجل التذكيرات المرسلة
+model ReminderLog {
+  id              String              @id @default(uuid())
+  settingId       String
+  appointmentId   String?
+  ownerId         String?             // للتذكيرات المتعلقة بالعملاء (OWNER_CREATED)
+  channel         NotificationChannel
+  status          ReminderLogStatus   @default(PENDING)
+
+  // معلومات المستلم
+  recipientPhone  String?
+  recipientEmail  String?
+  recipientName   String?
+
+  // محتوى الرسالة المرسلة
+  messageBody     String?             @db.Text
+
+  // معلومات الإرسال
+  scheduledFor    DateTime?           // الوقت المجدول للإرسال
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  errorMessage    String?
+
+  // معرف خارجي (من مزود الخدمة)
+  externalId      String?
+
+  createdAt       DateTime            @default(now())
+
+  // Foreign Keys
+  setting     ReminderSetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
+  appointment Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  owner       Owner?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([settingId])
+  @@index([appointmentId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@map("reminder_logs")
+}
+
+// قوالب الرسائل الجاهزة
+model MessageTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  contentAr   String   @db.Text
+  contentEn   String   @db.Text
+  variables   String[] // المتغيرات المتاحة مثل: petName, ownerName, appointmentDate
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("message_templates")
+}
+
+// ===========================================
+// Clinic Setup - Shifts & Visit Types
+// ===========================================
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+// جدول الدوام الأسبوعي للطبيب
+model VetSchedule {
+  id           String    @id @default(uuid())
+  vetId        String
+  dayOfWeek    DayOfWeek
+  startTime    String    // "09:00" format
+  endTime      String    // "18:00" format
+  isWorkingDay Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Foreign Key
+  vet User @relation("VetSchedules", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@unique([vetId, dayOfWeek])
+  @@index([vetId])
+  @@map("vet_schedules")
+}
+
+// أيام الإجازة للطبيب
+model VetDayOff {
+  id        String   @id @default(uuid())
+  vetId     String
+  date      DateTime @db.Date
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Key
+  vet User @relation("VetDaysOff", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@unique([vetId, date])
+  @@index([vetId])
+  @@index([date])
+  @@map("vet_days_off")
+}
+
+// فترات الاستراحة للطبيب
+model VetBreak {
+  id           String     @id @default(uuid())
+  vetId        String
+  dayOfWeek    DayOfWeek? // للاستراحة المتكررة أسبوعياً
+  specificDate DateTime?  @db.Date // للاستراحة لمرة واحدة
+  startTime    String     // "12:00" format
+  endTime      String     // "13:00" format
+  description  String?
+  isRecurring  Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Foreign Key
+  vet User @relation("VetBreaks", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@index([vetId])
+  @@index([dayOfWeek])
+  @@index([specificDate])
+  @@map("vet_breaks")
+}
+
+// فترة جدولة للطبيب (نظام جديد بفترات زمنية محددة)
+model VetSchedulePeriod {
+  id             String      @id @default(uuid())
+  vetId          String
+  startDate      DateTime    @db.Date
+  endDate        DateTime    @db.Date
+  workingDays    DayOfWeek[] // أيام العمل في هذه الفترة
+  workStartTime  String      // "09:00" format
+  workEndTime    String      // "18:00" format
+  breakStartTime String?     // "12:00" format (اختياري)
+  breakEndTime   String?     // "13:00" format (اختياري)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Foreign Key
+  vet User @relation("VetSchedulePeriods", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@index([vetId])
+  @@index([startDate, endDate])
+  @@map("vet_schedule_periods")
+}
+
+// أنواع الزيارات (تحل محل enum VisitType الثابت)
+model VisitTypeConfig {
+  id        String   @id @default(uuid())
+  code      String   @unique // "GENERAL_CHECKUP", "CUSTOM_EXAM", etc.
+  nameEn    String
+  nameAr    String
+  duration  Int      @default(30) // بالدقائق - إدخال حر
+  color     String   @default("#3B82F6") // hex color
+  isActive  Boolean  @default(true)
+  isSystem  Boolean  @default(false) // true للأنواع الافتراضية
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("visit_type_configs")
 }

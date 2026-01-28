@@ -21,6 +21,14 @@ import invoiceRoutes from './routes/invoiceRoutes';
 import profileRoutes from './routes/profileRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import smsRoutes from './routes/smsRoutes';
+import whatsappRoutes from './routes/whatsappRoutes';
+import reminderRoutes from './routes/reminderRoutes';
+import emailRoutes from './routes/emailRoutes';
+import shiftRoutes from './routes/shiftRoutes';
+import visitTypeRoutes from './routes/visitTypeRoutes';
+
+// Jobs
+import { reminderScheduler } from './jobs/reminderScheduler';
 
 const app = express();
 
@@ -55,6 +63,11 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/reminders', reminderRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/shifts', shiftRoutes);
+app.use('/api/visit-types', visitTypeRoutes);
 
 // 404 Handler
 app.use(notFound);
@@ -75,6 +88,9 @@ const startServer = async () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📍 Environment: ${config.nodeEnv}`);
       console.log(`🔗 API URL: http://localhost:${PORT}`);
+
+      // Start reminder scheduler
+      reminderScheduler.start();
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -85,12 +101,14 @@ const startServer = async () => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n👋 Shutting down gracefully...');
+  reminderScheduler.stop();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n👋 Shutting down gracefully...');
+  reminderScheduler.stop();
   await prisma.$disconnect();
   process.exit(0);
 });

@@ -346,7 +346,7 @@ export const FlowBoardPage = () => {
         </div>
       </div>
 
-      {/* Board */}
+      {/* Board with Brand Pattern Background */}
       <div className="overflow-x-auto pb-2 flex-1 min-h-0">
         {loading ? (
           <LogoLoader />

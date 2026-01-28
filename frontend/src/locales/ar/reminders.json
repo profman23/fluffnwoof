@@ -1,0 +1,132 @@
+{
+  "title": "إدارة التذكيرات",
+  "description": "إعداد التذكيرات التلقائية للمواعيد",
+
+  "channels": {
+    "title": "قنوات الإشعارات",
+    "sms": {
+      "title": "الرسائل النصية",
+      "status": "متصل",
+      "statusDisconnected": "غير متصل",
+      "provider": "مدار SMS"
+    },
+    "whatsapp": {
+      "title": "واتساب",
+      "status": "متصل",
+      "statusDisconnected": "غير متصل",
+      "provider": "Twilio"
+    },
+    "email": {
+      "title": "البريد الإلكتروني",
+      "status": "متصل",
+      "statusDisconnected": "غير متصل",
+      "provider": "Gmail"
+    },
+    "push": {
+      "title": "تطبيق الجوال",
+      "status": "قريباً",
+      "statusDisconnected": "غير متصل"
+    }
+  },
+
+  "events": {
+    "title": "أحداث التذكيرات",
+    "APPOINTMENT_BOOKED": {
+      "title": "حجز موعد جديد",
+      "description": "إرسال إشعار عند إنشاء موعد جديد"
+    },
+    "APPOINTMENT_CONFIRMED": {
+      "title": "تأكيد الموعد",
+      "description": "إرسال إشعار عند تأكيد الموعد"
+    },
+    "APPOINTMENT_CANCELLED": {
+      "title": "إلغاء الموعد",
+      "description": "إرسال إشعار عند إلغاء الموعد"
+    },
+    "PRE_APPOINTMENT": {
+      "title": "تذكير قبل الموعد",
+      "description": "إرسال تذكير قبل موعد الزيارة"
+    },
+    "FOLLOW_UP": {
+      "title": "تذكير المتابعة",
+      "description": "إرسال تذكير للمواعيد القادمة المجدولة"
+    },
+    "OWNER_CREATED": {
+      "title": "ترحيب بعميل جديد",
+      "description": "إرسال رسالة ترحيب عند تسجيل عميل جديد"
+    }
+  },
+
+  "timing": {
+    "title": "الإرسال قبل",
+    "immediately": "فوراً",
+    "1day": "يوم واحد",
+    "2days": "يومين",
+    "3days": "3 أيام",
+    "1week": "أسبوع"
+  },
+
+  "reminderOrder": {
+    "first": "التذكير الأول",
+    "second": "التذكير الثاني"
+  },
+
+  "templates": {
+    "title": "قوالب الرسائل",
+    "arabic": "القالب العربي",
+    "english": "القالب الإنجليزي",
+    "variables": {
+      "title": "المتغيرات المتاحة",
+      "petName": "اسم الحيوان",
+      "ownerName": "اسم المالك",
+      "appointmentDate": "تاريخ الموعد",
+      "appointmentTime": "وقت الموعد",
+      "visitType": "نوع الزيارة",
+      "vetName": "اسم الطبيب",
+      "clinicName": "اسم العيادة",
+      "clinicPhone": "رقم العيادة"
+    }
+  },
+
+  "settings": {
+    "enabled": "مفعل",
+    "disabled": "معطل",
+    "save": "حفظ الإعدادات",
+    "saving": "جاري الحفظ...",
+    "saveSuccess": "تم حفظ الإعدادات بنجاح",
+    "saveError": "فشل في حفظ الإعدادات"
+  },
+
+  "tabs": {
+    "overview": "نظرة عامة",
+    "appointmentReminders": "تذكيرات المواعيد",
+    "preAppointment": "قبل الموعد",
+    "followUp": "تذكيرات المتابعة",
+    "templates": "القوالب",
+    "logs": "السجلات"
+  },
+
+  "logs": {
+    "title": "سجل التذكيرات",
+    "recipient": "المستلم",
+    "channel": "القناة",
+    "status": "الحالة",
+    "sentAt": "وقت الإرسال",
+    "message": "الرسالة",
+    "noLogs": "لا توجد سجلات تذكيرات",
+    "statuses": {
+      "PENDING": "قيد الانتظار",
+      "SENT": "تم الإرسال",
+      "DELIVERED": "تم التسليم",
+      "FAILED": "فشل",
+      "SKIPPED": "تم التخطي"
+    }
+  },
+
+  "stats": {
+    "totalSent": "إجمالي المرسل",
+    "delivered": "تم التسليم",
+    "failed": "فشل",
+    "pending": "قيد الانتظار"
+  }
+}

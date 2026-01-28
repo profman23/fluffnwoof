@@ -33,7 +33,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <Header onMenuClick={toggleSidebar} />
-        <main className="flex-1 bg-brand-white overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto brand-pattern-bg-visible">{children}</main>
       </div>
     </div>
   );

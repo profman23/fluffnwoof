@@ -1,22 +1,8 @@
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
-import { AppointmentStatus, VisitType } from '@prisma/client';
-import { sendSms } from './smsService';
-
-// دالة تنسيق التاريخ بالعربية
-function formatDateArabic(date: Date): string {
-  const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-  const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-                  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-
-  const d = new Date(date);
-  const dayName = days[d.getDay()];
-  const dayNum = d.getDate();
-  const monthName = months[d.getMonth()];
-
-  return `${dayName} ${dayNum} ${monthName}`;
-}
+import { AppointmentStatus } from '@prisma/client';
+import { reminderService } from './reminderService';
 
 export const appointmentService = {
   /**
@@ -81,7 +67,7 @@ export const appointmentService = {
     appointmentDate: Date;
     appointmentTime: string;
     duration?: number;
-    visitType?: VisitType;
+    visitType?: string;
     reason?: string;
     notes?: string;
     scheduledFromRecordId?: string;
@@ -158,21 +144,9 @@ export const appointmentService = {
       return appointment;
     });
 
-    // إرسال SMS تلقائي للعميل (غير معطل - fire and forget)
-    if (result.pet.owner?.phone) {
-      const ownerName = `${result.pet.owner.firstName} ${result.pet.owner.lastName}`;
-      const petName = result.pet.name;
-      const dateStr = formatDateArabic(result.appointmentDate);
-      const timeStr = result.appointmentTime;
-
-      const message = `عزيزنا ${ownerName}، تم حجز موعد لـ ${petName} يوم ${dateStr} الساعة ${timeStr}. نتطلع لرؤيتكم! - Fluff N' Woof`;
-
-      sendSms({
-        phone: result.pet.owner.phone,
-        message,
-        recipientName: ownerName,
-      }).catch(err => console.error('SMS send failed:', err));
-    }
+    // إرسال تذكير حجز الموعد (يتحقق من الإعدادات تلقائياً)
+    reminderService.sendReminder(result.id, 'APPOINTMENT_BOOKED')
+      .catch(err => console.error('[Reminder] APPOINTMENT_BOOKED send failed:', err));
 
     return result;
   },
@@ -188,13 +162,13 @@ export const appointmentService = {
     appointmentDate: Date;
     appointmentTime: string;
     duration?: number;
-    visitType?: VisitType;
+    visitType?: string;
     reason?: string;
     notes?: string;
     scheduledFromRecordId?: string;
   }>): Promise<{
     created: any[];
-    skipped: Array<{ visitType?: VisitType; appointmentTime: string; appointmentDate: Date; reason: string }>;
+    skipped: Array<{ visitType?: string; appointmentTime: string; appointmentDate: Date; reason: string }>;
   }> {
     if (!appointments || appointments.length === 0) {
       return { created: [], skipped: [] };
@@ -202,7 +176,7 @@ export const appointmentService = {
 
     return await prisma.$transaction(async (tx) => {
       const created: any[] = [];
-      const skipped: Array<{ visitType?: VisitType; appointmentTime: string; appointmentDate: Date; reason: string }> = [];
+      const skipped: Array<{ visitType?: string; appointmentTime: string; appointmentDate: Date; reason: string }> = [];
 
       for (const data of appointments) {
         // التحقق من تعارض المواعيد داخل الـ transaction
@@ -601,6 +575,12 @@ export const appointmentService = {
       },
     });
 
+    // إرسال تذكير إلغاء الموعد (يتحقق من الإعدادات تلقائياً)
+    if (status === 'CANCELLED') {
+      reminderService.sendReminder(appointment.id, 'APPOINTMENT_CANCELLED')
+        .catch(err => console.error('[Reminder] APPOINTMENT_CANCELLED send failed:', err));
+    }
+
     return appointment;
   },
 
@@ -630,6 +610,12 @@ export const appointmentService = {
         },
       },
     });
+
+    // إرسال تذكير تأكيد الموعد (يتحقق من الإعدادات تلقائياً)
+    if (isConfirmed) {
+      reminderService.sendReminder(appointment.id, 'APPOINTMENT_CONFIRMED')
+        .catch(err => console.error('[Reminder] APPOINTMENT_CONFIRMED send failed:', err));
+    }
 
     return appointment;
   },
