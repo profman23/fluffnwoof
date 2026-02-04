@@ -69,9 +69,6 @@
     "tsx": "^4.19.2",
     "vitest": "^2.0.0"
   },
-  "optionalDependencies": {
-    "@sentry/node": "^8.0.0"
-  },
   "engines": {
     "node": ">=18"
   }
