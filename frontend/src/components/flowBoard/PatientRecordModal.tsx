@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, DocumentTextIcon, ShoppingBagIcon, CreditCardIcon, PaperClipIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, CreditCardIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment, MedicalAttachment } from '../../types';
 import { medicalRecordsApi } from '../../api/medicalRecords';
 import { flowBoardApi } from '../../api/flowBoard';

@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { usePortalTheme } from '../../../context/PortalThemeContext';
-import { fadeInUp } from '../../../styles/portal/animations';
+import { fadeInUpSimple } from '../../../styles/portal/animations';
 
 // ============================================
 // ICONS
@@ -109,9 +109,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <main className="flex-1 flex flex-col px-6 py-8">
         {/* Logo & Title */}
         <motion.div
-          initial={fadeInUp.initial}
-          animate={fadeInUp.animate}
-          transition={{ ...fadeInUp.transition, delay: 0 }}
+          initial={fadeInUpSimple.initial}
+          animate={fadeInUpSimple.animate}
+          transition={{ ...fadeInUpSimple.transition, delay: 0 }}
           className="text-center mb-8"
         >
           {/* Logo */}
@@ -142,9 +142,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         {/* Form Content */}
         <motion.div
-          initial={fadeInUp.initial}
-          animate={fadeInUp.animate}
-          transition={{ ...fadeInUp.transition, delay: 0.1 }}
+          initial={fadeInUpSimple.initial}
+          animate={fadeInUpSimple.animate}
+          transition={{ ...fadeInUpSimple.transition, delay: 0.1 }}
           className="flex-1"
         >
           {children}

@@ -122,6 +122,12 @@ export const fadeInUpSimple = {
   transition: smoothTransition,
 };
 
+export const scaleInSimple = {
+  initial: { opacity: 0, scale: 0.9 },
+  animate: { opacity: 1, scale: 1 },
+  transition: smoothTransition,
+};
+
 export const fadeInDown: Variants = {
   initial: {
     opacity: 0,
@@ -180,6 +186,12 @@ export const scaleInBounce: Variants = {
     scale: 1,
     transition: bounceTransition,
   },
+};
+
+export const scaleInBounceSimple = {
+  initial: { opacity: 0, scale: 0.5 },
+  animate: { opacity: 1, scale: 1 },
+  transition: bounceTransition,
 };
 
 // ============================================
@@ -268,6 +280,17 @@ export const bottomSheet: Variants = {
       duration: 0.25,
       ease: 'easeIn',
     },
+  },
+};
+
+export const bottomSheetSimple = {
+  initial: { y: '100%' },
+  animate: { y: 0 },
+  exit: { y: '100%' },
+  transition: {
+    type: 'spring' as const,
+    damping: 30,
+    stiffness: 300,
   },
 };
 

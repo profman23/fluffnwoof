@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { scaleInBounce } from '../../../styles/portal/animations';
+import { scaleInBounceSimple } from '../../../styles/portal/animations';
 
 // ============================================
 // TYPES
@@ -19,6 +19,7 @@ export type BadgeVariant =
   | 'warning'
   | 'error'
   | 'info'
+  | 'pink'
   // Appointment statuses
   | 'scheduled'
   | 'confirmed'
@@ -78,6 +79,10 @@ const variantStyles: Record<BadgeVariant, string> = {
     bg-blue-100 text-blue-700
     dark:bg-blue-900/30 dark:text-blue-400
   `,
+  pink: `
+    bg-pink-100 text-pink-700
+    dark:bg-pink-900/30 dark:text-pink-400
+  `,
   // Appointment status badges
   scheduled: `
     bg-mint-100 text-mint-700
@@ -136,8 +141,8 @@ export const Badge: React.FC<BadgeProps> = ({
   const Component = animated ? motion.span : 'span';
   const motionProps = animated
     ? {
-        initial: scaleInBounce.initial,
-        animate: scaleInBounce.animate,
+        initial: scaleInBounceSimple.initial,
+        animate: scaleInBounceSimple.animate,
       }
     : {};
 
@@ -183,8 +188,20 @@ export interface StatusBadgeProps {
   status: string;
   size?: BadgeSize;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
+
+// Status label mapping
+const statusLabelMap: Record<string, string> = {
+  SCHEDULED: 'Scheduled',
+  CONFIRMED: 'Confirmed',
+  CHECK_IN: 'Check In',
+  IN_PROGRESS: 'In Progress',
+  HOSPITALIZED: 'Hospitalized',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+  NO_SHOW: 'No Show',
+};
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
@@ -193,10 +210,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   children,
 }) => {
   const variant = statusVariantMap[status] || 'default';
+  const label = children || statusLabelMap[status] || status;
 
   return (
     <Badge variant={variant} size={size} dot className={className}>
-      {children}
+      {label}
     </Badge>
   );
 };

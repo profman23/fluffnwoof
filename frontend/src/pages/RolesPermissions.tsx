@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldCheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { rolesApi, ScreenPermissions } from '../api/roles';
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';

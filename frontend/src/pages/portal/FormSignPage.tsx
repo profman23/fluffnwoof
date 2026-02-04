@@ -64,7 +64,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export const FormSignPage: React.FC = () => {
-  const { t, i18n } = useTranslation('portal');
+  const { i18n } = useTranslation('portal');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isDark } = usePortalTheme();
@@ -101,7 +101,7 @@ export const FormSignPage: React.FC = () => {
 
   // Initialize signature pad
   useEffect(() => {
-    if (canvasRef.current && form && !form.status.clientSigned) {
+    if (canvasRef.current && form && !form.clientSignedAt) {
       const canvas = canvasRef.current;
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
 
@@ -267,7 +267,7 @@ export const FormSignPage: React.FC = () => {
             ✍️ {isRtl ? 'توقيعك' : 'Your Signature'}
           </h3>
 
-          {form.status.clientSigned ? (
+          {form.clientSignedAt ? (
             <div className="text-center py-6">
               <CheckCircleIcon className="w-16 h-16 mx-auto text-green-500 mb-4" />
               <p className="text-green-600 dark:text-green-400 font-medium">

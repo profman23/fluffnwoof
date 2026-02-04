@@ -3,7 +3,7 @@
  * Mobile-first booking wizard with modern UI
  */
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -257,17 +257,6 @@ export const BookAppointment: React.FC = () => {
       };
     }
   }, [selectedVet?.id, selectedDate, isConnected, subscribe, unsubscribe]);
-
-  // Filter out booked slots from availability based on WebSocket updates
-  const availableSlots = useMemo(() => {
-    if (!availability?.slots) return [];
-
-    return availability.slots.filter(slot => {
-      const status = slotStatuses[slot];
-      // Slot is available if no status or not booked/reserved by others
-      return !status || (status.status !== 'booked' && !(status.status === 'reserved' && !status.isOwn));
-    });
-  }, [availability?.slots, slotStatuses]);
 
   // Get slot status for display
   const getSlotStatus = useCallback((slot: string): SlotStatus | null => {

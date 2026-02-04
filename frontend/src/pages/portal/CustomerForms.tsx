@@ -9,10 +9,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { customerPortalApi, PortalForm } from '../../api/customerPortal';
 import { Card } from '../../components/portal/ui/Card';
-import { StatusBadge } from '../../components/portal/ui/Badge';
 import { PortalLogoLoader } from '../../components/portal/ui/PortalLogoLoader';
 import { staggerContainer, fadeInUpSimple } from '../../styles/portal/animations';
-import { format } from 'date-fns';
+import { format, Locale } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 
 // Icons

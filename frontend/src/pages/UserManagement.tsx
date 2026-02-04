@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UsersIcon } from '@heroicons/react/24/outline';
+// UsersIcon removed - unused
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { Card } from '../components/common/Card';

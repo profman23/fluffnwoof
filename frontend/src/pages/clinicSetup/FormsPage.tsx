@@ -17,11 +17,8 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  DocumentDuplicateIcon,
-  EyeIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
-import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { LogoLoader } from '../../components/common/LogoLoader';
@@ -151,7 +148,7 @@ export const FormsPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <LogoLoader size="lg" />
+        <LogoLoader />
       </div>
     );
   }
@@ -289,10 +286,10 @@ export const FormsPage: React.FC = () => {
           isOpen={!!deleteConfirm}
           title={t('deleteConfirmTitle')}
           message={t('deleteConfirmMessage', { name: isRTL ? deleteConfirm?.nameAr : deleteConfirm?.nameEn })}
-          confirmLabel={t('delete')}
-          cancelLabel={t('cancel')}
+          confirmText={t('delete')}
+          cancelText={t('cancel')}
           onConfirm={confirmDelete}
-          onCancel={() => setDeleteConfirm(null)}
+          onClose={() => setDeleteConfirm(null)}
           variant="danger"
         />
 

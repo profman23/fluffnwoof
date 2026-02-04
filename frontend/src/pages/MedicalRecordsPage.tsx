@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MagnifyingGlassIcon, ArrowPathIcon, ClipboardDocumentListIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ArrowPathIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { useAuthStore } from '../store/authStore';
 import { medicalRecordsApi } from '../api/medicalRecords';
@@ -19,6 +19,22 @@ const speciesIcons: Record<Species, string> = {
   GUINEA_PIG: '🐹',
   TURTLE: '🐢',
   FISH: '🐟',
+  HORSE: '🐴',
+  GOAT: '🐐',
+  SHEEP: '🐑',
+  COW: '🐄',
+  CAMEL: '🐪',
+  DONKEY: '🫏',
+  MONKEY: '🐒',
+  FERRET: '🦨',
+  HEDGEHOG: '🦔',
+  SNAKE: '🐍',
+  LIZARD: '🦎',
+  FROG: '🐸',
+  CHICKEN: '🐔',
+  DUCK: '🦆',
+  PIG: '🐷',
+  ALPACA: '🦙',
   OTHER: '🐾',
 };
 

@@ -139,14 +139,6 @@ export const PetForm: React.FC<PetFormProps> = ({
     }));
   }, [availableBreeds, isRtl, formData.species]);
 
-  // Gender options
-  const genderOptions: SearchableSelectOption[] = useMemo(() => {
-    return [
-      { value: Gender.MALE, label: t('gender.MALE'), icon: '♂️' },
-      { value: Gender.FEMALE, label: t('gender.FEMALE'), icon: '♀️' },
-    ];
-  }, [t]);
-
   // Get the right translation key based on namespace
   const getLabel = (key: string) => {
     if (translationNamespace === 'portal') {
@@ -155,13 +147,6 @@ export const PetForm: React.FC<PetFormProps> = ({
     }
     // Patients uses pet.xxx structure
     return t(`pet.${key}`);
-  };
-
-  const getErrorKey = (key: string) => {
-    if (translationNamespace === 'portal') {
-      return t(`errors.${key}`);
-    }
-    return t(`errors.${key}`);
   };
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDaysIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon } from '@heroicons/react/24/outline';
 import { reportsApi, PaginatedResult, GetNextAppointmentsParams } from '../../api/reports';
 import { flowBoardApi } from '../../api/flowBoard';
 import { visitTypesApi } from '../../api/visitTypes';

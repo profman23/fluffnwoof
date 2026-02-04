@@ -16,7 +16,7 @@ import { PortalLogoLoader } from '../../components/portal/ui/PortalLogoLoader';
 import { staggerContainer, fadeInUpSimple } from '../../styles/portal/animations';
 import { format, differenceInYears, differenceInMonths } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
-import { speciesList, getBreedLabel } from '../../data/petData';
+import { speciesList, getBreedDisplayName } from '../../data/petData';
 
 // ============================================
 // ICONS
@@ -56,7 +56,7 @@ const ChevronRightIcon: React.FC<{ className?: string }> = ({ className }) => (
 // HELPER FUNCTIONS
 // ============================================
 
-const calculateAge = (birthDate: string, t: any, isRtl: boolean) => {
+const calculateAge = (birthDate: string, t: any) => {
   const birth = new Date(birthDate);
   const now = new Date();
   const years = differenceInYears(now, birth);
@@ -142,7 +142,7 @@ export const PetDetailPage: React.FC = () => {
     ? speciesList.find((s) => s.value === pet.species)?.labelAr
     : speciesList.find((s) => s.value === pet.species)?.labelEn;
 
-  const breedLabel = pet.breed ? getBreedLabel(pet.species, pet.breed, i18n.language) : null;
+  const breedLabel = pet.breed ? getBreedDisplayName(pet.species, pet.breed, i18n.language === 'ar') : null;
 
   return (
     <motion.div
@@ -229,7 +229,7 @@ export const PetDetailPage: React.FC = () => {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('petDetail.age')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">
-                  {calculateAge(pet.birthDate, t, isRtl)}
+                  {calculateAge(pet.birthDate, t)}
                 </p>
               </div>
             )}

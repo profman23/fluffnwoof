@@ -15,7 +15,7 @@ import { StatusBadge } from '../../components/portal/ui/Badge';
 import { BottomSheet } from '../../components/portal/ui/Modal';
 import { NoAppointmentsEmptyState, PortalLogoLoader } from '../../components/portal/ui';
 import { staggerContainer, fadeInUpSimple } from '../../styles/portal/animations';
-import { format, isToday, isTomorrow, isPast } from 'date-fns';
+import { format, isToday, isTomorrow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 
 // ============================================

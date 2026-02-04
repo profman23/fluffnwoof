@@ -7,7 +7,7 @@ import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, PanInfo, useDragControls } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { bottomSheet } from '../../../styles/portal/animations';
+import { bottomSheetSimple } from '../../../styles/portal/animations';
 
 // ============================================
 // ICONS
@@ -239,10 +239,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
           {/* Sheet */}
           <motion.div
-            initial={bottomSheet.initial}
-            animate={bottomSheet.animate}
-            exit={bottomSheet.exit}
-            transition={bottomSheet.transition}
+            initial={bottomSheetSimple.initial}
+            animate={bottomSheetSimple.animate}
+            exit={bottomSheetSimple.exit}
+            transition={bottomSheetSimple.transition}
             drag="y"
             dragControls={dragControls}
             dragConstraints={{ top: 0 }}

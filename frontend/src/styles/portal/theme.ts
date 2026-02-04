@@ -436,7 +436,7 @@ export const breakpoints = {
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
-export type Theme = typeof lightTheme;
+export type Theme = typeof lightTheme | typeof darkTheme;
 
 // ============================================
 // THEME GETTER

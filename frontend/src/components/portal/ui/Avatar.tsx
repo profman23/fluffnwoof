@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { scaleIn } from '../../../styles/portal/animations';
+import { scaleInSimple } from '../../../styles/portal/animations';
 
 // ============================================
 // TYPES
@@ -110,8 +110,8 @@ export const Avatar: React.FC<AvatarProps> = ({
   const Component = animated ? motion.div : 'div';
   const motionProps = animated
     ? {
-        initial: scaleIn.initial,
-        animate: scaleIn.animate,
+        initial: scaleInSimple.initial,
+        animate: scaleInSimple.animate,
       }
     : {};
 
@@ -246,6 +246,7 @@ const speciesIcons: Record<string, string> = {
 
 export interface PetAvatarProps {
   src?: string | null;
+  photoUrl?: string | null; // Alias for src
   name?: string;
   species?: string;
   size?: AvatarSize;
@@ -254,13 +255,16 @@ export interface PetAvatarProps {
 
 export const PetAvatar: React.FC<PetAvatarProps> = ({
   src,
+  photoUrl,
   name,
   species = 'OTHER',
   size = 'md',
   className = '',
 }) => {
+  // Use src or fallback to photoUrl
+  const imageSrc = src ?? photoUrl;
   const [imageError, setImageError] = React.useState(false);
-  const hasImage = src && !imageError;
+  const hasImage = imageSrc && !imageError;
   const icon = speciesIcons[species] || speciesIcons.OTHER;
 
   // Pet-specific background colors based on species
@@ -299,7 +303,7 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
     >
       {hasImage ? (
         <img
-          src={src}
+          src={imageSrc!}
           alt={name || 'Pet'}
           className="w-full h-full object-cover"
           onError={() => setImageError(true)}

@@ -10,19 +10,12 @@ import { motion } from 'framer-motion';
 import { useCustomerAuthStore } from '../../store/customerAuthStore';
 import { Card } from '../../components/portal/ui/Card';
 import { Button } from '../../components/portal/ui/Button';
-import { Input } from '../../components/portal/ui/Input';
 import { usePortalTheme } from '../../context/PortalThemeContext';
 import { staggerContainer, fadeInUpSimple } from '../../styles/portal/animations';
 
 // ============================================
 // ICONS
 // ============================================
-
-const UserIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-  </svg>
-);
 
 const LanguageIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -114,7 +107,6 @@ export const CustomerProfile: React.FC = () => {
   const navigate = useNavigate();
   const { customer, logout } = useCustomerAuthStore();
   const { isDark, toggleTheme } = usePortalTheme();
-  const isRtl = i18n.language === 'ar';
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 

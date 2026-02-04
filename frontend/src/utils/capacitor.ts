@@ -112,7 +112,7 @@ const setupAppListeners = (CapacitorApp: any) => {
 /**
  * Initialize push notifications
  */
-const initializePushNotifications = async () => {
+export const initializePushNotifications = async () => {
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
 
@@ -230,6 +230,7 @@ export default {
   isIOS,
   isWeb,
   initializeCapacitor,
+  initializePushNotifications,
   showSplashScreen,
   hideSplashScreen,
   setStatusBarColor,

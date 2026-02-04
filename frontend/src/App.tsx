@@ -26,7 +26,7 @@ import { DarkModeProvider } from './context/DarkModeContext';
 import { LogoLoader } from './components/common/LogoLoader';
 
 // Customer Portal imports - New Modern Design
-import { PortalLayout, PublicPortalLayout } from './components/portal/layout/PortalLayout';
+import { PortalLayout } from './components/portal/layout/PortalLayout';
 import { CustomerLogin } from './pages/portal/CustomerLogin';
 import { CustomerRegister } from './pages/portal/CustomerRegister';
 import { ForgotPassword } from './pages/portal/ForgotPassword';

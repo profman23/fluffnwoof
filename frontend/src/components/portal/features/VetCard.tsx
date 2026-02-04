@@ -83,8 +83,7 @@ export const VetCard: React.FC<VetCardProps> = ({
   compact = false,
   className = '',
 }) => {
-  const { t, i18n } = useTranslation('portal');
-  const isArabic = i18n.language === 'ar';
+  const { t } = useTranslation('portal');
 
   const fullName = `${vet.firstName} ${vet.lastName}`;
   const workingDays = vet.schedule?.filter((s) => s.isWorkingDay) || [];

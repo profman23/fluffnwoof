@@ -18,7 +18,6 @@ import {
   UserIcon,
   EyeIcon,
   EyeSlashIcon,
-  ViewColumnsIcon,
 } from '@heroicons/react/24/outline';
 import { LogoLoader } from '../components/common/LogoLoader';
 import { FlowBoardColumn } from '../components/flowBoard/FlowBoardColumn';
@@ -98,7 +97,7 @@ export const FlowBoardPage = () => {
       // Debug: Check if recordCode is returned
       console.log('=== FlowBoard Data Debug ===');
       const allAppts = [...(result.scheduled || []), ...(result.checkIn || []), ...(result.inProgress || []), ...(result.completed || [])];
-      allAppts.forEach((appt, i) => {
+      allAppts.forEach((appt) => {
         if (appt.medicalRecord) {
           console.log(`[${appt.status}] ${appt.pet?.name}: recordCode=${appt.medicalRecord?.recordCode}, isClosed=${appt.medicalRecord?.isClosed}`);
         }

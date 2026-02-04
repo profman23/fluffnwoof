@@ -14,6 +14,7 @@ interface CustomerAuthState {
   customer: Customer | null;
   token: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   setAuth: (customer: Customer, token: string) => void;
   logout: () => void;
   initializeAuth: () => void;
@@ -24,6 +25,7 @@ export const useCustomerAuthStore = create<CustomerAuthState>((set, get) => ({
   customer: null,
   token: null,
   isAuthenticated: false,
+  isLoading: true,
 
   setAuth: (customer, token) => {
     localStorage.setItem('customer', JSON.stringify(customer));
@@ -46,7 +48,10 @@ export const useCustomerAuthStore = create<CustomerAuthState>((set, get) => ({
         customer: JSON.parse(customer),
         token,
         isAuthenticated: true,
+        isLoading: false,
       });
+    } else {
+      set({ isLoading: false });
     }
   },
 

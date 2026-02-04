@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { ClockIcon, LockClosedIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import type { SlotStatus } from '../../../context/BookingSocketContext';
 
 interface SlotStatusBadgeProps {

@@ -133,6 +133,7 @@ export interface PortalPet {
   gender: string;
   birthDate?: string;
   photoUrl?: string;
+  photo?: string; // Alias for photoUrl
   color?: string;
   weight?: number;
 }
@@ -236,6 +237,8 @@ export interface PortalAppointment {
     name: string;
     species: string;
     petCode: string;
+    photo?: string;
+    photoUrl?: string;
   };
   vet: {
     id: string;

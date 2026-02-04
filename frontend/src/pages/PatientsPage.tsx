@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeartIcon } from '@heroicons/react/24/outline';
+// Icons removed - unused
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../hooks/useScreenPermission';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';

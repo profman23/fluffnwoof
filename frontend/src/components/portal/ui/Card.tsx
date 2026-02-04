@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
-import { cardHover, fadeInUp } from '../../../styles/portal/animations';
+import { cardHover, fadeInUpSimple } from '../../../styles/portal/animations';
 
 // ============================================
 // TYPES
@@ -103,8 +103,8 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
           ${radiusStyles[radius]}
           ${className}
         `.replace(/\s+/g, ' ').trim()}
-        initial={animated ? fadeInUp.initial : undefined}
-        animate={animated ? fadeInUp.animate : undefined}
+        initial={animated ? fadeInUpSimple.initial : undefined}
+        animate={animated ? fadeInUpSimple.animate : undefined}
         whileHover={isInteractive ? cardHover : undefined}
         {...props}
       >

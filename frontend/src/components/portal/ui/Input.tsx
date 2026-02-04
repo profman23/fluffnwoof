@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { fadeInUp } from '../../../styles/portal/animations';
+// Animation import removed - unused
 
 // ============================================
 // TYPES

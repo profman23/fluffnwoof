@@ -6,7 +6,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { fadeInUp } from '../../../styles/portal/animations';
+import { fadeInUpSimple } from '../../../styles/portal/animations';
 import { Button } from './Button';
 
 // ============================================
@@ -109,14 +109,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className = '',
   animated = true,
 }) => {
-  const iconElement = typeof icon === 'string' ? icons[icon] : icon;
+  const iconElement = typeof icon === 'string' ? icons[icon as keyof typeof icons] : icon;
 
   const Wrapper = animated ? motion.div : 'div';
   const wrapperProps = animated
     ? {
-        initial: fadeInUp.initial,
-        animate: fadeInUp.animate,
-        transition: fadeInUp.transition,
+        initial: fadeInUpSimple.initial,
+        animate: fadeInUpSimple.animate,
+        transition: fadeInUpSimple.transition,
       }
     : {};
 

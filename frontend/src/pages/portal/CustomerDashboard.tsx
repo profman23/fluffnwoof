@@ -10,7 +10,6 @@ import { motion } from 'framer-motion';
 import { useCustomerAuthStore } from '../../store/customerAuthStore';
 import { customerPortalApi, PortalPet, PortalAppointment } from '../../api/customerPortal';
 import { Card } from '../../components/portal/ui/Card';
-import { Button } from '../../components/portal/ui/Button';
 import { PetAvatar } from '../../components/portal/ui/Avatar';
 import { StatusBadge } from '../../components/portal/ui/Badge';
 import {
@@ -27,21 +26,7 @@ import { ar, enUS } from 'date-fns/locale';
 // LORD ICON DECLARATION (for TypeScript)
 // ============================================
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'lord-icon': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          src: string;
-          trigger?: string;
-          delay?: string;
-          colors?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
+// lord-icon type declaration moved to global.d.ts to avoid conflicts
 
 // ============================================
 // ICONS
@@ -50,12 +35,6 @@ declare global {
 const CalendarIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-  </svg>
-);
-
-const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
   </svg>
 );
 

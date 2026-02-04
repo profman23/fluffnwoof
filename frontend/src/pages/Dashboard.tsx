@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowPathIcon, CalendarDaysIcon, UserGroupIcon, ClipboardDocumentListIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, CalendarDaysIcon, UserGroupIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 import { Card } from '../components/common/Card';
 import { LogoLoader } from '../components/common/LogoLoader';
 import { AnimatedNumber } from '../components/common/AnimatedNumber';
