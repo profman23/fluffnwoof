@@ -8,5 +8,16 @@
   "logout": "Logout",
   "myProfile": "My Profile",
   "patients": "Patients",
-  "flowBoard": "Flow Board"
+  "flowBoard": "Flow Board",
+  "notifications": "Notifications",
+  "noNotifications": "No notifications",
+  "markAllRead": "Mark all as read",
+  "customerBooking": "New Customer Booking",
+  "customerCancellation": "Customer Cancellation",
+  "approve": "Approve",
+  "reject": "Reject",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  "pending": "Pending Approval",
+  "rejectReason": "Rejection reason"
 }

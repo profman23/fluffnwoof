@@ -158,7 +158,11 @@
       "crt": "CRT",
       "diagnosis": "Diagnosis",
       "treatment": "Treatment"
-    }
+    },
+    "emptyRecordTitle": "Empty Record",
+    "emptyRecordWarning": "Cannot save a record without any data. The record will be deleted automatically.",
+    "emptyRecordConfirm": "Delete Record",
+    "emptyRecordCancel": "Go Back to Add Data"
   },
   "nextAppointment": {
     "title": "Next Appointment",
@@ -184,5 +188,49 @@
   "mandatoryFields": {
     "required": "Required",
     "mustFillBeforeClose": "Please fill all mandatory fields (Weight, Temperature, Heart Rate) before closing the record"
+  },
+  "forms": {
+    "title": "Forms & Certificates",
+    "assignForm": "Assign Form",
+    "assigning": "Assigning...",
+    "noForms": "No forms assigned yet",
+    "noFormsHint": "Assign forms and certificates to collect signatures from the owner",
+    "selectTemplate": "Select Template",
+    "searchTemplates": "Search templates...",
+    "noTemplatesFound": "No templates found",
+    "noTemplatesHint": "Create templates in Clinic Setup → Forms & Certificates",
+    "assignedForms": "Assigned Forms",
+    "sendToOwner": "Send to Owner",
+    "sending": "Sending...",
+    "sent": "Sent",
+    "requestSignature": "Request Signature",
+    "viewForm": "View Form",
+    "signForm": "Sign",
+    "signed": "Signed",
+    "pending": "Pending",
+    "pendingClient": "Awaiting Client",
+    "pendingVet": "Awaiting Vet",
+    "completed": "Completed",
+    "expired": "Expired",
+    "category": "Category",
+    "createdAt": "Created",
+    "expiresAt": "Expires",
+    "signatures": "Signatures",
+    "clientSignature": "Client Signature",
+    "vetSignature": "Vet Signature",
+    "notSigned": "Not Signed",
+    "signedAt": "Signed at",
+    "formSent": "Form sent to owner successfully",
+    "formAssigned": "Form assigned successfully",
+    "signatureAdded": "Signature added successfully",
+    "clientSignatureTablet": "Client Sign (Tablet)",
+    "clientSignatureTabletHint": "Please hand tablet to client for signature",
+    "clientWillSignBelow": "Client will sign below",
+    "print": "Print",
+    "errors": {
+      "assignFailed": "Failed to assign form",
+      "sendFailed": "Failed to send form",
+      "signFailed": "Failed to sign form"
+    }
   }
 }

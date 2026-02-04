@@ -6,7 +6,6 @@ import {
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
-  ShoppingBagIcon,
 } from '@heroicons/react/24/outline';
 import { serviceProductsApi, ServiceProduct, Category } from '../api/serviceProducts';
 import { AddEditServiceProductModal } from '../components/serviceProducts/AddEditModal';
@@ -14,6 +13,8 @@ import { ImportExcelModal } from '../components/serviceProducts/ImportExcelModal
 import { CategoryModal } from '../components/serviceProducts/CategoryModal';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { DataTable, Column } from '../components/common/DataTable';
+import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
+import { Button } from '../components/common/Button';
 
 export const ServiceProductsPage = () => {
   const { t } = useTranslation('serviceProducts');
@@ -133,14 +134,14 @@ export const ServiceProductsPage = () => {
       id: 'name',
       header: t('table.name'),
       render: (item) => (
-        <span className="text-sm font-medium text-gray-900">{item.name}</span>
+        <span className="text-sm font-medium text-gray-900 dark:text-[var(--app-text-primary)]">{item.name}</span>
       ),
     },
     {
       id: 'category',
       header: t('table.category'),
       render: (item) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 whitespace-nowrap">
           {item.category?.name || '-'}
         </span>
       ),
@@ -149,7 +150,7 @@ export const ServiceProductsPage = () => {
       id: 'priceBeforeTax',
       header: t('table.priceBeforeTax'),
       render: (item) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap" dir="ltr">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap" dir="ltr">
           {formatPrice(item.priceBeforeTax)} SAR
         </span>
       ),
@@ -158,7 +159,7 @@ export const ServiceProductsPage = () => {
       id: 'taxRate',
       header: t('table.taxRate'),
       render: (item) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap">
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
           {formatPrice(item.taxRate)}%
         </span>
       ),
@@ -167,7 +168,7 @@ export const ServiceProductsPage = () => {
       id: 'priceAfterTax',
       header: t('table.priceAfterTax'),
       render: (item) => (
-        <span className="text-sm font-medium text-green-600 whitespace-nowrap" dir="ltr">
+        <span className="text-sm font-medium text-green-600 dark:text-green-400 whitespace-nowrap" dir="ltr">
           {formatPrice(item.priceAfterTax)} SAR
         </span>
       ),
@@ -179,14 +180,14 @@ export const ServiceProductsPage = () => {
     <div className="flex items-center justify-center gap-1">
       <button
         onClick={() => handleEdit(item)}
-        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+        className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
         title={t('edit')}
       >
         <PencilIcon className="w-4 h-4" />
       </button>
       <button
         onClick={() => handleDelete(item.id)}
-        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
         title={t('delete')}
       >
         <TrashIcon className="w-4 h-4" />
@@ -195,40 +196,38 @@ export const ServiceProductsPage = () => {
   );
 
   return (
-    <div className="p-6">
+    <div className="page-container">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <ShoppingBagIcon className="w-7 h-7 text-brand-dark" />
-          <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
-          {isReadOnly && (
-            <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-              {t('readOnly')}
-            </span>
-          )}
+          <span className="text-2xl">🛒</span>
+          <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
+          {isReadOnly && <ReadOnlyBadge namespace="serviceProducts" />}
         </div>
         {canModify && (
           <div className="flex flex-wrap gap-3">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setShowImport(true)}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex items-center gap-2"
             >
               <ArrowUpTrayIcon className="w-5 h-5" />
-              <span>{t('import')}</span>
-            </button>
-            <button
+              <span>{t('importBtn')}</span>
+            </Button>
+            <Button
+              variant="primary"
               onClick={() => setShowAddEdit(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+              className="flex items-center gap-2"
             >
               <PlusIcon className="w-5 h-5" />
               <span>{t('add')}</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow dark:shadow-black/30 p-4 mb-6">
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <MagnifyingGlassIcon className="w-5 h-5 absolute start-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -237,7 +236,7 @@ export const ServiceProductsPage = () => {
               placeholder={t('searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="input ps-10"
             />
           </div>
           <div className="sm:w-64">
@@ -247,7 +246,7 @@ export const ServiceProductsPage = () => {
                 setSelectedCategory(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="select"
             >
               <option value="">{t('allCategories')}</option>
               {categories.map((cat) => (
@@ -278,7 +277,7 @@ export const ServiceProductsPage = () => {
 
       {/* Total Count */}
       {!loading && items.length > 0 && (
-        <div className="mt-2 text-sm text-gray-500">
+        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           {t('total')}: {pagination.total}
         </div>
       )}

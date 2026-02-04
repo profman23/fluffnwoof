@@ -38,4 +38,14 @@ export const medicalAttachmentStorage = new CloudinaryStorage({
   } as any,
 });
 
+// Storage configuration for clinic logo
+export const clinicLogoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'fluffnwoof/clinic',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+    transformation: [{ width: 300, height: 300, crop: 'fit' }],
+  } as any,
+});
+
 export default cloudinary;

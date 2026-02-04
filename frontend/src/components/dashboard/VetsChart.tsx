@@ -11,6 +11,7 @@ import {
   Cell,
 } from 'recharts';
 import { Card } from '../common/Card';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface VetPerformance {
   vetId: string;
@@ -36,6 +37,7 @@ const getBarColor = (completionRate: number) => {
 
 export const VetsChart = ({ data, loading = false, animationKey = 0 }: VetsChartProps) => {
   const { t } = useTranslation('dashboard');
+  const { isDark } = useDarkMode();
 
   // Animation key to force re-render and trigger animation
   const [localAnimationKey, setLocalAnimationKey] = useState(0);
@@ -56,20 +58,20 @@ export const VetsChart = ({ data, loading = false, animationKey = 0 }: VetsChart
     if (active && payload && payload.length) {
       const vet = payload[0].payload;
       return (
-        <div className="bg-brand-white px-4 py-3 rounded-lg shadow-lg border border-primary-200">
-          <p className="font-semibold text-brand-dark mb-2">{vet.vetName}</p>
+        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] px-4 py-3 rounded-lg shadow-lg border border-primary-200 dark:border-[var(--app-border-default)]">
+          <p className="font-semibold text-brand-dark dark:text-[var(--app-text-primary)] mb-2">{vet.vetName}</p>
           <div className="space-y-1 text-sm">
-            <p className="text-brand-dark/70">
+            <p className="text-brand-dark/70 dark:text-gray-400">
               {t('analytics.appointments')}: <span className="font-medium">{vet.appointments}</span>
             </p>
-            <p className="text-brand-dark/70">
+            <p className="text-brand-dark/70 dark:text-gray-400">
               {t('analytics.completedRecords')}: <span className="font-medium">{vet.completedRecords}/{vet.totalRecords}</span>
             </p>
-            <p className="text-brand-dark/70">
+            <p className="text-brand-dark/70 dark:text-gray-400">
               {t('analytics.completionRate')}:
               <span className={`font-medium ms-1 ${
-                vet.completionRate >= 80 ? 'text-primary-500' :
-                vet.completionRate >= 50 ? 'text-secondary-500' : 'text-red-600'
+                vet.completionRate >= 80 ? 'text-primary-500 dark:text-primary-400' :
+                vet.completionRate >= 50 ? 'text-secondary-500 dark:text-secondary-400' : 'text-red-600 dark:text-red-400'
               }`}>
                 {vet.completionRate}%
               </span>
@@ -85,8 +87,8 @@ export const VetsChart = ({ data, loading = false, animationKey = 0 }: VetsChart
     return (
       <Card>
         <div className="animate-pulse">
-          <div className="h-6 bg-primary-100 rounded w-40 mb-4" />
-          <div className="h-64 bg-primary-50 rounded" />
+          <div className="h-6 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded w-40 mb-4" />
+          <div className="h-64 bg-primary-50 dark:bg-[var(--app-bg-card)] rounded" />
         </div>
       </Card>
     );
@@ -94,13 +96,13 @@ export const VetsChart = ({ data, loading = false, animationKey = 0 }: VetsChart
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-brand-dark mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)] mb-4 flex items-center gap-2">
         <span className="text-xl">👨‍⚕️</span>
         {t('analytics.vetPerformance')}
       </h3>
 
       {data.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-brand-dark/60">
+        <div className="h-64 flex items-center justify-center text-brand-dark/60 dark:text-gray-400">
           <div className="text-center">
             <span className="text-4xl block mb-2">👨‍⚕️</span>
             <p>{t('noData')}</p>
@@ -115,18 +117,18 @@ export const VetsChart = ({ data, loading = false, animationKey = 0 }: VetsChart
               layout="vertical"
               margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#CEE8DC" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#CEE8DC'} horizontal={false} />
               <XAxis
                 type="number"
-                tick={{ fontSize: 12, fill: '#211E1F' }}
-                tickLine={{ stroke: '#CEE8DC' }}
+                tick={{ fontSize: 12, fill: isDark ? '#a1a1aa' : '#211E1F' }}
+                tickLine={{ stroke: isDark ? '#3f3f46' : '#CEE8DC' }}
                 allowDecimals={false}
               />
               <YAxis
                 type="category"
                 dataKey="vetName"
-                tick={{ fontSize: 11, fill: '#211E1F' }}
-                tickLine={{ stroke: '#CEE8DC' }}
+                tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#211E1F' }}
+                tickLine={{ stroke: isDark ? '#3f3f46' : '#CEE8DC' }}
                 width={100}
               />
               <Tooltip content={<CustomTooltip />} />
@@ -152,15 +154,15 @@ export const VetsChart = ({ data, loading = false, animationKey = 0 }: VetsChart
         <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-primary-500" />
-            <span className="text-brand-dark/70">≥80% {t('analytics.completionRate')}</span>
+            <span className="text-brand-dark/70 dark:text-gray-400">≥80% {t('analytics.completionRate')}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-secondary-300" />
-            <span className="text-brand-dark/70">≥50%</span>
+            <span className="text-brand-dark/70 dark:text-gray-400">≥50%</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-red-500" />
-            <span className="text-brand-dark/70">&lt;50%</span>
+            <span className="text-brand-dark/70 dark:text-gray-400">&lt;50%</span>
           </div>
         </div>
       )}

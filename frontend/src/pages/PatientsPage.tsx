@@ -12,6 +12,7 @@ import { EditPetModal } from '../components/patients/EditPetModal';
 import { EditOwnerModal } from '../components/patients/EditOwnerModal';
 import { Owner, Species, Gender } from '../types';
 import { getBreedDisplayName } from '../data/breeds';
+import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 
 export const PatientsPage: React.FC = () => {
   const { t, i18n } = useTranslation('patients');
@@ -122,7 +123,7 @@ export const PatientsPage: React.FC = () => {
       id: 'customerCode',
       header: t('table.customerCode'),
       render: (pet) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
           {pet.owner.customerCode || '-'}
         </span>
       ),
@@ -131,7 +132,7 @@ export const PatientsPage: React.FC = () => {
       id: 'ownerName',
       header: t('table.ownerName'),
       render: (pet) => (
-        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+        <div className="text-sm font-medium text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {pet.owner.firstName} {pet.owner.lastName}
         </div>
       ),
@@ -140,7 +141,7 @@ export const PatientsPage: React.FC = () => {
       id: 'phone',
       header: t('table.phone'),
       render: (pet) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap" dir="ltr">
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap" dir="ltr">
           {canViewPhone ? pet.owner.phone : maskPhoneNumber(pet.owner.phone)}
         </span>
       ),
@@ -149,7 +150,7 @@ export const PatientsPage: React.FC = () => {
       id: 'petCode',
       header: t('table.petCode'),
       render: (pet) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
           {pet.petCode || '-'}
         </span>
       ),
@@ -158,21 +159,21 @@ export const PatientsPage: React.FC = () => {
       id: 'petName',
       header: t('table.petName'),
       render: (pet) => (
-        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">{pet.name}</div>
+        <div className="text-sm font-medium text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">{pet.name}</div>
       ),
     },
     {
       id: 'species',
       header: t('table.species'),
       render: (pet) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap">{getSpeciesLabel(pet.species)}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{getSpeciesLabel(pet.species)}</span>
       ),
     },
     {
       id: 'breed',
       header: t('table.breed'),
       render: (pet) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap">
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
           {pet.breed ? getBreedDisplayName(pet.species, pet.breed, isRtl) : '-'}
         </span>
       ),
@@ -181,7 +182,7 @@ export const PatientsPage: React.FC = () => {
       id: 'gender',
       header: t('table.gender'),
       render: (pet) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap">{getGenderLabel(pet.gender)}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{getGenderLabel(pet.gender)}</span>
       ),
     },
   ];
@@ -227,13 +228,13 @@ export const PatientsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <HeartIcon className="w-7 h-7 text-brand-dark" />
-            <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+            <span className="text-2xl">🐾</span>
+            <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
           </div>
           {isReadOnly && (
-            <span className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">
-              {t('readOnly')}
-            </span>
+            <div className="mt-1">
+              <ReadOnlyBadge namespace="patients" />
+            </div>
           )}
         </div>
         {canModify && (
@@ -245,7 +246,7 @@ export const PatientsPage: React.FC = () => {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg dark:bg-green-900/30 dark:border-green-700 dark:text-green-400">
           {successMessage}
         </div>
       )}

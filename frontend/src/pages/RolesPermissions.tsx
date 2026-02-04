@@ -9,6 +9,7 @@ import { Button } from '../components/common/Button';
 import { LogoLoader } from '../components/common/LogoLoader';
 import { Role } from '../types';
 import { AddRoleModal } from '../components/roles/AddRoleModal';
+import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 
 interface ScreenItem {
   name: string;
@@ -24,7 +25,7 @@ const SCREEN_GROUPS: ScreenItem[] = [
   { name: 'serviceProducts' },
   { name: 'reports' },
   { name: 'crm', children: ['sms', 'reminders'] },
-  { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes'] },
+  { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes', 'formsAndCertificates'] },
 ];
 
 // Flatten for API calls
@@ -102,6 +103,17 @@ export const RolesPermissions: React.FC = () => {
         completePermissions[screen] = data.screens[screen] || 'none';
       });
 
+      // Calculate parent states based on children
+      SCREEN_GROUPS.forEach(group => {
+        if (group.children && group.children.length > 0) {
+          const firstChildLevel = completePermissions[group.children[0]] || 'none';
+          const allSame = group.children.every(child =>
+            (completePermissions[child] || 'none') === firstChildLevel
+          );
+          completePermissions[group.name] = allSame ? firstChildLevel : ('mixed' as any);
+        }
+      });
+
       setPermissions(completePermissions);
 
       // Load special permissions
@@ -124,11 +136,61 @@ export const RolesPermissions: React.FC = () => {
     return isRtl ? (role.displayNameAr || role.name) : (role.displayNameEn || role.name);
   };
 
+  // Helper: Find parent group for a screen
+  const findParentGroup = (screenName: string): ScreenItem | undefined => {
+    return SCREEN_GROUPS.find(group =>
+      group.children?.includes(screenName)
+    );
+  };
+
+  // Helper: Check if all children have the same permission level
+  const getChildrenUniformLevel = (parentName: string, currentPermissions: ScreenPermissions): 'none' | 'read' | 'full' | null => {
+    const parent = SCREEN_GROUPS.find(g => g.name === parentName);
+    if (!parent?.children || parent.children.length === 0) return null;
+
+    const firstChildLevel = currentPermissions[parent.children[0]] || 'none';
+    const allSame = parent.children.every(child =>
+      (currentPermissions[child] || 'none') === firstChildLevel
+    );
+
+    return allSame ? firstChildLevel : null;
+  };
+
   const handlePermissionChange = (screen: string, level: 'none' | 'read' | 'full') => {
-    setPermissions((prev) => ({
-      ...prev,
-      [screen]: level,
-    }));
+    setPermissions((prev) => {
+      const newPermissions = { ...prev };
+
+      // Check if this is a parent with children
+      const group = SCREEN_GROUPS.find(g => g.name === screen);
+
+      if (group?.children && group.children.length > 0) {
+        // This is a parent - cascade to all children
+        newPermissions[screen] = level;
+        group.children.forEach(child => {
+          newPermissions[child] = level;
+        });
+      } else {
+        // This is either a standalone screen or a child
+        newPermissions[screen] = level;
+
+        // Check if this is a child - if so, update parent's visual state
+        const parentGroup = findParentGroup(screen);
+        if (parentGroup) {
+          // Check if all siblings have the same level now
+          const uniformLevel = getChildrenUniformLevel(parentGroup.name, newPermissions);
+          if (uniformLevel !== null) {
+            // All children are the same - set parent to that level
+            newPermissions[parentGroup.name] = uniformLevel;
+          } else {
+            // Children are mixed - set parent to a special 'mixed' state
+            // We'll use 'none' but the UI will show it as unselected
+            newPermissions[parentGroup.name] = 'mixed' as any;
+          }
+        }
+      }
+
+      return newPermissions;
+    });
     setSuccess(false);
   };
 
@@ -146,7 +208,14 @@ export const RolesPermissions: React.FC = () => {
     try {
       setSaving(true);
       setError(null);
-      await rolesApi.updateRolePermissions(selectedRole.id, permissions, specialPermissions);
+
+      // Convert 'mixed' to 'none' for backend (mixed is UI-only state)
+      const cleanPermissions: ScreenPermissions = {};
+      Object.entries(permissions).forEach(([screen, level]) => {
+        cleanPermissions[screen] = (level as string) === 'mixed' ? 'none' : level;
+      });
+
+      await rolesApi.updateRolePermissions(selectedRole.id, cleanPermissions, specialPermissions);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
@@ -181,17 +250,17 @@ export const RolesPermissions: React.FC = () => {
 
   return (
     <ScreenPermissionGuard screenName="rolesPermissions">
-      <div className="container mx-auto p-6">
+      <div className="page-container">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <ShieldCheckIcon className="w-7 h-7 text-brand-dark" />
-              <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+              <span className="text-2xl">🛡️</span>
+              <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
             </div>
             {isReadOnly && (
-              <span className="inline-block mt-2 px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-                {t('readOnly')}
-              </span>
+              <div className="mt-2">
+                <ReadOnlyBadge namespace="roles" />
+              </div>
             )}
           </div>
           {canModify && (
@@ -202,13 +271,13 @@ export const RolesPermissions: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded dark:bg-red-900/30 dark:border-red-700 dark:text-red-400">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded dark:bg-green-900/30 dark:border-green-700 dark:text-green-400">
             {t('messages.success')}
           </div>
         )}
@@ -216,7 +285,7 @@ export const RolesPermissions: React.FC = () => {
         <Card>
           {/* Role Selection */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2">
               {t('selectRole')}
             </label>
             <div className="flex flex-wrap gap-4">
@@ -227,7 +296,7 @@ export const RolesPermissions: React.FC = () => {
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     selectedRole?.id === role.id
                       ? 'bg-primary-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)] dark:hover:bg-[var(--app-bg-tertiary)]'
                   }`}
                 >
                   {getRoleDisplayName(role)}
@@ -239,31 +308,31 @@ export const RolesPermissions: React.FC = () => {
           {selectedRole && (
             <>
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-700">
+                <h2 className="text-lg font-semibold text-gray-700 dark:text-[var(--app-text-primary)]">
                   {t('currentlyEditing')}: {getRoleDisplayName(selectedRole)}
                 </h2>
               </div>
 
               {/* Permissions Table */}
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-[var(--app-border-default)]">
+                  <thead className="bg-gray-50 dark:bg-[var(--app-bg-tertiary)]">
                     <tr>
-                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         {t('screenName')}
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         {t('noAuth')}
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         {t('readOnly')}
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         {t('fullControl')}
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-200 dark:bg-[var(--app-bg-card)] dark:divide-[var(--app-border-default)]">
                     {SCREEN_GROUPS.map((group) => {
                       const hasChildren = group.children && group.children.length > 0;
                       const isExpanded = expandedGroups.has(group.name);
@@ -273,15 +342,15 @@ export const RolesPermissions: React.FC = () => {
                       return (
                         <React.Fragment key={group.name}>
                           {/* Parent Row */}
-                          <tr className={`hover:bg-gray-50 ${hasChildren ? 'bg-gray-50' : ''}`}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <tr className={`hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] ${hasChildren ? 'bg-gray-50 dark:bg-[var(--app-bg-tertiary)]' : ''}`}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-[var(--app-text-primary)]">
                               <div className="flex items-center gap-2">
                                 {hasChildren ? (
                                   <button
                                     onClick={() => toggleGroup(group.name)}
-                                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-[var(--app-bg-elevated)] rounded transition-colors"
                                   >
-                                    <ChevronIcon className="w-4 h-4 text-gray-500" />
+                                    <ChevronIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                   </button>
                                 ) : (
                                   <span className="w-6" />
@@ -327,8 +396,8 @@ export const RolesPermissions: React.FC = () => {
                           {hasChildren && isExpanded && group.children!.map((child) => {
                             const childLevel = permissions[child] || 'none';
                             return (
-                              <tr key={child} className="hover:bg-gray-50 bg-white">
-                                <td className={`px-6 py-3 whitespace-nowrap text-sm text-gray-700 ${isRtl ? 'pr-14' : 'pl-14'}`}>
+                              <tr key={child} className="hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] bg-white dark:bg-[var(--app-bg-card)]">
+                                <td className={`px-6 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-[var(--app-text-secondary)] ${isRtl ? 'pr-14' : 'pl-14'}`}>
                                   {t(`screens.${child}`)}
                                 </td>
                                 <td className="px-6 py-3 whitespace-nowrap text-center">
@@ -373,7 +442,7 @@ export const RolesPermissions: React.FC = () => {
 
               {/* Special Permissions Section */}
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4 pb-2 border-b">
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-[var(--app-text-primary)] mb-4 pb-2 border-b dark:border-[var(--app-border-default)]">
                   {t('specialPermissions.title')}
                 </h3>
                 <div className="space-y-4">
@@ -385,11 +454,11 @@ export const RolesPermissions: React.FC = () => {
                         checked={specialPermissions[perm.key] || false}
                         onChange={(e) => handleSpecialPermissionChange(perm.key, e.target.checked)}
                         disabled={!canModify}
-                        className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <label
                         htmlFor={`special-${perm.key}`}
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)]"
                       >
                         {t(`specialPermissions.${perm.label}`)} ({t(`screens.${perm.screen}`)})
                       </label>
@@ -404,7 +473,7 @@ export const RolesPermissions: React.FC = () => {
                   <button
                     onClick={handleCancel}
                     disabled={saving}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg text-gray-700 dark:text-[var(--app-text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('cancel')}
                   </button>

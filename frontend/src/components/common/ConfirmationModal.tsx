@@ -16,21 +16,21 @@ interface ConfirmationModalProps {
 const variantConfig = {
   warning: {
     icon: ExclamationTriangleIcon,
-    iconBg: 'bg-yellow-100',
-    iconColor: 'text-yellow-600',
-    confirmBg: 'bg-yellow-600 hover:bg-yellow-700',
+    iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
+    iconColor: 'text-yellow-600 dark:text-yellow-400',
+    confirmBg: 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-600 dark:hover:bg-yellow-500',
   },
   danger: {
     icon: XCircleIcon,
-    iconBg: 'bg-red-100',
-    iconColor: 'text-red-600',
-    confirmBg: 'bg-red-600 hover:bg-red-700',
+    iconBg: 'bg-red-100 dark:bg-red-900/30',
+    iconColor: 'text-red-600 dark:text-red-400',
+    confirmBg: 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500',
   },
   info: {
     icon: InformationCircleIcon,
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-    confirmBg: 'bg-blue-600 hover:bg-blue-700',
+    iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+    iconColor: 'text-blue-600 dark:text-blue-400',
+    confirmBg: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500',
   },
 };
 
@@ -82,7 +82,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full animate-modal-appear">
+      <div className="relative bg-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-2xl dark:shadow-black/50 max-w-md w-full animate-modal-appear">
         <div className="p-6">
           {/* Icon */}
           <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${config.iconBg} mb-4`}>
@@ -90,12 +90,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </div>
 
           {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--app-text-primary)] text-center mb-2">
             {title}
           </h3>
 
           {/* Message */}
-          <div className="text-sm text-gray-600 text-center mb-6">
+          <div className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
             {message}
           </div>
 
@@ -104,7 +104,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <button
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[var(--app-bg-elevated)] hover:bg-gray-200 dark:hover:bg-[var(--app-bg-tertiary)] rounded-lg transition-colors disabled:opacity-50"
             >
               {cancelText}
             </button>

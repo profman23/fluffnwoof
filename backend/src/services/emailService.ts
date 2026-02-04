@@ -149,14 +149,15 @@ If you have questions, please contact us directly.
  * Generate bilingual appointment email HTML template
  */
 const generateAppointmentEmailHTML = (params: {
-  type: 'BOOKED' | 'CONFIRMED' | 'CANCELLED' | 'REMINDER' | 'FOLLOWUP';
+  type: 'BOOKED' | 'CONFIRMED' | 'CANCELLED' | 'REMINDER' | 'FOLLOWUP' | 'PENDING' | 'REJECTED';
   recipientName: string;
   petName: string;
   appointmentDate: string;
   appointmentTime: string;
   clinicName: string;
+  rejectReason?: string;
 }): string => {
-  const { type, recipientName, petName, appointmentDate, appointmentTime, clinicName } = params;
+  const { type, recipientName, petName, appointmentDate, appointmentTime, clinicName, rejectReason } = params;
 
   const typeConfig = {
     BOOKED: {
@@ -170,6 +171,17 @@ const generateAppointmentEmailHTML = (params: {
       englishFooter: 'We look forward to seeing you!',
       icon: '📅',
     },
+    PENDING: {
+      headerColor: BRAND_COLORS.gold,
+      accentColor: '#d4b82e',
+      arabicTitle: 'تم استلام طلب الحجز',
+      englishTitle: 'Booking Request Received',
+      arabicMessage: 'تم استلام طلب حجز موعد',
+      englishMessage: 'We have received your booking request for',
+      arabicFooter: 'سيتم إشعاركم عند الموافقة على الحجز.',
+      englishFooter: 'You will be notified once your booking is approved.',
+      icon: '⏳',
+    },
     CONFIRMED: {
       headerColor: BRAND_COLORS.mint,
       accentColor: '#5a9f7d',
@@ -180,6 +192,17 @@ const generateAppointmentEmailHTML = (params: {
       arabicFooter: 'نتطلع لرؤيتكم!',
       englishFooter: 'We look forward to seeing you!',
       icon: '✅',
+    },
+    REJECTED: {
+      headerColor: '#ef4444',
+      accentColor: '#dc2626',
+      arabicTitle: 'تم رفض طلب الحجز',
+      englishTitle: 'Booking Request Declined',
+      arabicMessage: 'نأسف لإبلاغكم بأنه تم رفض طلب حجز موعد',
+      englishMessage: 'We regret to inform you that the booking request for',
+      arabicFooter: 'يمكنكم المحاولة بحجز موعد آخر.',
+      englishFooter: 'You can try booking a different appointment.',
+      icon: '❌',
     },
     CANCELLED: {
       headerColor: BRAND_COLORS.pink,
@@ -288,6 +311,18 @@ const generateAppointmentEmailHTML = (params: {
               </table>
               ` : ''}
 
+              ${type === 'REJECTED' && rejectReason ? `
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #fef2f2; border-radius: 12px; border-right: 4px solid #ef4444; margin-top: 20px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0; color: #991b1b; font-size: 14px;">
+                      <strong>السبب:</strong> ${rejectReason}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
               <p style="font-size: 14px; color: #666; margin: 25px 0 0 0; line-height: 1.6;">
                 ${config.arabicFooter}<br>
                 <strong style="color: ${BRAND_COLORS.dark};">فريق ${clinicName}</strong>
@@ -307,7 +342,7 @@ const generateAppointmentEmailHTML = (params: {
                 Hello <strong>${recipientName}</strong>,
               </p>
               <p style="font-size: 16px; color: ${BRAND_COLORS.dark}; margin: 0 0 20px 0; line-height: 1.6;">
-                ${config.englishMessage} <strong style="color: ${config.accentColor};">${petName}</strong>${type === 'CANCELLED' ? ' has been cancelled.' : '.'}
+                ${config.englishMessage} <strong style="color: ${config.accentColor};">${petName}</strong>${type === 'CANCELLED' || type === 'REJECTED' ? ' has been declined.' : '.'}
               </p>
 
               ${showDateTime ? `
@@ -328,6 +363,18 @@ const generateAppointmentEmailHTML = (params: {
                         </td>
                       </tr>
                     </table>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
+              ${type === 'REJECTED' && rejectReason ? `
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #fef2f2; border-radius: 12px; border-left: 4px solid #ef4444; margin-top: 20px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0; color: #991b1b; font-size: 14px;">
+                      <strong>Reason:</strong> ${rejectReason}
+                    </p>
                   </td>
                 </tr>
               </table>
@@ -376,17 +423,22 @@ export const sendAppointmentEmail = async (params: {
   appointmentDate?: string;
   appointmentTime?: string;
   clinicName?: string;
-  type: 'BOOKED' | 'CONFIRMED' | 'CANCELLED' | 'REMINDER' | 'FOLLOWUP' | 'WELCOME';
+  type: 'BOOKED' | 'CONFIRMED' | 'CANCELLED' | 'REMINDER' | 'FOLLOWUP' | 'WELCOME' | 'PENDING' | 'REJECTED';
+  rejectReason?: string;
 }): Promise<SendEmailResult> => {
-  const { to, recipientName, petName = '', appointmentDate = '', appointmentTime = '', clinicName = "Fluff N' Woof", type } = params;
+  const { to, recipientName, petName = '', appointmentDate = '', appointmentTime = '', clinicName = "Fluff N' Woof", type, rejectReason } = params;
 
   // Generate bilingual subject line
   const getSubject = () => {
     switch (type) {
       case 'BOOKED':
         return `تم حجز موعدك | Appointment Booked - ${clinicName}`;
+      case 'PENDING':
+        return `تم استلام طلب الحجز | Booking Request Received - ${clinicName}`;
       case 'CONFIRMED':
         return `تم تأكيد موعدك | Appointment Confirmed - ${clinicName}`;
+      case 'REJECTED':
+        return `تم رفض طلب الحجز | Booking Request Declined - ${clinicName}`;
       case 'CANCELLED':
         return `تم إلغاء الموعد | Appointment Cancelled - ${clinicName}`;
       case 'REMINDER':
@@ -409,6 +461,7 @@ export const sendAppointmentEmail = async (params: {
       appointmentDate,
       appointmentTime,
       clinicName,
+      rejectReason,
     });
 
     return sendEmail({
@@ -566,6 +619,482 @@ export const sendAppointmentEmail = async (params: {
 };
 
 /**
+ * Generate OTP email HTML template (bilingual)
+ */
+const generateOtpEmailHTML = (params: {
+  type: 'REGISTRATION' | 'PASSWORD_RESET';
+  recipientName: string;
+  otpCode: string;
+  expiryMinutes: number;
+}): string => {
+  const { type, recipientName, otpCode, expiryMinutes } = params;
+
+  const config = {
+    REGISTRATION: {
+      headerColor: BRAND_COLORS.mint,
+      accentColor: '#5a9f7d',
+      arabicTitle: 'تفعيل حسابك',
+      englishTitle: 'Activate Your Account',
+      arabicMessage: 'شكراً لتسجيلك في بوابة العملاء. استخدم الرمز التالي لتفعيل حسابك:',
+      englishMessage: 'Thank you for registering on our customer portal. Use the following code to activate your account:',
+      icon: '🔐',
+    },
+    PASSWORD_RESET: {
+      headerColor: BRAND_COLORS.gold,
+      accentColor: '#d4b82e',
+      arabicTitle: 'إعادة تعيين كلمة المرور',
+      englishTitle: 'Reset Your Password',
+      arabicMessage: 'تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك. استخدم الرمز التالي:',
+      englishMessage: 'We received a request to reset your password. Use the following code:',
+      icon: '🔑',
+    },
+  };
+
+  const c = config[type];
+  // Split OTP into digits for display
+  const otpDigits = otpCode.split('');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${c.englishTitle}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 20px 10px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; margin: 0 auto;">
+
+          <!-- Header Gradient Line -->
+          <tr>
+            <td style="background: linear-gradient(135deg, ${BRAND_COLORS.mint} 0%, ${BRAND_COLORS.pink} 50%, ${BRAND_COLORS.gold} 100%); height: 6px; border-radius: 10px 10px 0 0;"></td>
+          </tr>
+
+          <!-- Logo Header -->
+          <tr>
+            <td style="background: ${BRAND_COLORS.dark}; padding: 25px; text-align: center;">
+              <img src="https://res.cloudinary.com/fluffnwoof/image/upload/v1769442571/fluffnwoof/logo-email.png" alt="Fluff N' Woof" style="max-width: 180px; height: auto;">
+              <p style="color: ${BRAND_COLORS.mint}; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 2px; font-family: Arial, sans-serif;">CUSTOMER PORTAL</p>
+            </td>
+          </tr>
+
+          <!-- Status Header -->
+          <tr>
+            <td style="background: ${c.headerColor}; padding: 30px; text-align: center;">
+              <span style="font-size: 40px;">${c.icon}</span>
+              <h1 style="color: ${BRAND_COLORS.dark}; margin: 15px 0 5px 0; font-size: 24px; font-family: Arial, sans-serif;">${c.arabicTitle}</h1>
+              <h2 style="color: ${BRAND_COLORS.dark}; margin: 0; font-size: 20px; font-family: Arial, sans-serif; font-weight: normal;">${c.englishTitle}</h2>
+            </td>
+          </tr>
+
+          <!-- Arabic Content -->
+          <tr>
+            <td dir="rtl" style="background: ${BRAND_COLORS.white}; padding: 30px; font-family: 'Segoe UI', Tahoma, Arial, sans-serif;">
+              <p style="font-size: 18px; color: ${BRAND_COLORS.dark}; margin: 0 0 15px 0; line-height: 1.6;">
+                مرحباً <strong>${recipientName}</strong>،
+              </p>
+              <p style="font-size: 16px; color: ${BRAND_COLORS.dark}; margin: 0 0 25px 0; line-height: 1.6;">
+                ${c.arabicMessage}
+              </p>
+
+              <!-- OTP Code Display -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        ${otpDigits.map(digit => `
+                          <td style="padding: 0 5px;">
+                            <div style="width: 50px; height: 60px; background: #f9fafb; border: 2px solid ${c.accentColor}; border-radius: 10px; display: inline-block; line-height: 60px; text-align: center; font-size: 28px; font-weight: bold; color: ${BRAND_COLORS.dark}; font-family: 'Courier New', monospace;">${digit}</div>
+                          </td>
+                        `).join('')}
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size: 14px; color: #666; margin: 20px 0 0 0; text-align: center;">
+                ⏱️ صالح لمدة <strong>${expiryMinutes} دقائق</strong>
+              </p>
+
+              <p style="font-size: 13px; color: #999; margin: 25px 0 0 0; line-height: 1.6; border-top: 1px solid #eee; padding-top: 20px;">
+                إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="height: 4px; background: linear-gradient(90deg, ${BRAND_COLORS.mint} 0%, ${BRAND_COLORS.pink} 50%, ${BRAND_COLORS.gold} 100%);"></td>
+          </tr>
+
+          <!-- English Content -->
+          <tr>
+            <td dir="ltr" style="background: ${BRAND_COLORS.white}; padding: 30px; font-family: 'Segoe UI', Arial, sans-serif;">
+              <p style="font-size: 18px; color: ${BRAND_COLORS.dark}; margin: 0 0 15px 0; line-height: 1.6;">
+                Hello <strong>${recipientName}</strong>,
+              </p>
+              <p style="font-size: 16px; color: ${BRAND_COLORS.dark}; margin: 0 0 25px 0; line-height: 1.6;">
+                ${c.englishMessage}
+              </p>
+
+              <!-- OTP Code Display -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        ${otpDigits.map(digit => `
+                          <td style="padding: 0 5px;">
+                            <div style="width: 50px; height: 60px; background: #f9fafb; border: 2px solid ${c.accentColor}; border-radius: 10px; display: inline-block; line-height: 60px; text-align: center; font-size: 28px; font-weight: bold; color: ${BRAND_COLORS.dark}; font-family: 'Courier New', monospace;">${digit}</div>
+                          </td>
+                        `).join('')}
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size: 14px; color: #666; margin: 20px 0 0 0; text-align: center;">
+                ⏱️ Valid for <strong>${expiryMinutes} minutes</strong>
+              </p>
+
+              <p style="font-size: 13px; color: #999; margin: 25px 0 0 0; line-height: 1.6; border-top: 1px solid #eee; padding-top: 20px;">
+                If you didn't request this code, please ignore this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: ${BRAND_COLORS.dark}; padding: 25px; text-align: center;">
+              <p style="color: ${BRAND_COLORS.white}; margin: 0 0 10px 0; font-size: 14px; font-weight: 600; font-family: Arial, sans-serif;">
+                Fluff N' Woof Veterinary Clinic
+              </p>
+              <div style="width: 60px; height: 3px; background: linear-gradient(90deg, ${BRAND_COLORS.mint}, ${BRAND_COLORS.pink}, ${BRAND_COLORS.gold}); margin: 0 auto; border-radius: 2px;"></div>
+              <p style="color: #888; margin: 15px 0 0 0; font-size: 11px; font-family: Arial, sans-serif;">
+                &copy; ${new Date().getFullYear()} Fluff N' Woof. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer Gradient Line -->
+          <tr>
+            <td style="background: linear-gradient(135deg, ${BRAND_COLORS.gold} 0%, ${BRAND_COLORS.pink} 50%, ${BRAND_COLORS.mint} 100%); height: 6px; border-radius: 0 0 10px 10px;"></td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+/**
+ * Send OTP email for customer portal
+ */
+export const sendOtpEmail = async (params: {
+  to: string;
+  recipientName: string;
+  otpCode: string;
+  type: 'REGISTRATION' | 'PASSWORD_RESET';
+  expiryMinutes?: number;
+}): Promise<SendEmailResult> => {
+  const { to, recipientName, otpCode, type, expiryMinutes = 10 } = params;
+
+  const subject = type === 'REGISTRATION'
+    ? `رمز التفعيل | Activation Code - Fluff N' Woof`
+    : `رمز إعادة التعيين | Reset Code - Fluff N' Woof`;
+
+  const html = generateOtpEmailHTML({
+    type,
+    recipientName,
+    otpCode,
+    expiryMinutes,
+  });
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    recipientName,
+  });
+};
+
+/**
+ * Send customer portal booking confirmation email
+ */
+export const sendPortalBookingConfirmation = async (params: {
+  to: string;
+  recipientName: string;
+  petName: string;
+  vetName: string;
+  visitType: string;
+  appointmentDate: string;
+  appointmentTime: string;
+}): Promise<SendEmailResult> => {
+  const { to, recipientName, petName, vetName, visitType, appointmentDate, appointmentTime } = params;
+
+  // Use existing appointment email template with BOOKED type
+  return sendAppointmentEmail({
+    to,
+    recipientName,
+    petName,
+    appointmentDate,
+    appointmentTime,
+    type: 'BOOKED',
+  });
+};
+
+/**
+ * Send pending booking notification email (awaiting staff approval)
+ */
+export const sendPendingBookingEmail = async (params: {
+  to: string;
+  recipientName: string;
+  petName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+}): Promise<SendEmailResult> => {
+  const { to, recipientName, petName, appointmentDate, appointmentTime } = params;
+
+  return sendAppointmentEmail({
+    to,
+    recipientName,
+    petName,
+    appointmentDate,
+    appointmentTime,
+    type: 'PENDING',
+  });
+};
+
+/**
+ * Send booking approved email
+ */
+export const sendBookingApprovedEmail = async (params: {
+  to: string;
+  recipientName: string;
+  petName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+}): Promise<SendEmailResult> => {
+  const { to, recipientName, petName, appointmentDate, appointmentTime } = params;
+
+  return sendAppointmentEmail({
+    to,
+    recipientName,
+    petName,
+    appointmentDate,
+    appointmentTime,
+    type: 'CONFIRMED',
+  });
+};
+
+/**
+ * Send booking rejected email
+ */
+export const sendBookingRejectedEmail = async (params: {
+  to: string;
+  recipientName: string;
+  petName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  rejectReason?: string;
+}): Promise<SendEmailResult> => {
+  const { to, recipientName, petName, appointmentDate, appointmentTime, rejectReason } = params;
+
+  return sendAppointmentEmail({
+    to,
+    recipientName,
+    petName,
+    appointmentDate,
+    appointmentTime,
+    type: 'REJECTED',
+    rejectReason,
+  });
+};
+
+/**
+ * Send cancellation notice email (when customer or staff cancels)
+ */
+export const sendCancellationNotice = async (params: {
+  to: string;
+  recipientName: string;
+  petName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  cancelledBy: 'CUSTOMER' | 'STAFF';
+}): Promise<SendEmailResult> => {
+  const { to, recipientName, petName, appointmentDate, appointmentTime } = params;
+
+  // Use existing appointment email template with CANCELLED type
+  return sendAppointmentEmail({
+    to,
+    recipientName,
+    petName,
+    appointmentDate,
+    appointmentTime,
+    type: 'CANCELLED',
+  });
+};
+
+/**
+ * Send form notification email (when a form needs client signature)
+ */
+export const sendFormNotificationEmail = async (params: {
+  ownerEmail: string;
+  ownerName: string;
+  petName: string;
+  formName: string;
+  formNameAr: string;
+  signUrl: string;
+}): Promise<SendEmailResult> => {
+  const { ownerEmail, ownerName, petName, formName, formNameAr, signUrl } = params;
+  const clinicName = "Fluff N' Woof";
+
+  const subject = `📝 ${formNameAr} - ${formName} | ${clinicName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background: linear-gradient(135deg, ${BRAND_COLORS.mint}20 0%, ${BRAND_COLORS.pink}15 50%, ${BRAND_COLORS.gold}10 100%);">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="min-height: 100vh;">
+    <tr>
+      <td align="center" style="padding: 30px 10px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; width: 100%; background: ${BRAND_COLORS.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, ${BRAND_COLORS.mint} 0%, ${BRAND_COLORS.pink} 50%, ${BRAND_COLORS.gold} 100%); height: 8px;"></td>
+          </tr>
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding: 30px; text-align: center; background: ${BRAND_COLORS.white};">
+              <h1 style="margin: 0; color: ${BRAND_COLORS.dark}; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 24px;">📝 ${clinicName}</h1>
+            </td>
+          </tr>
+
+          <!-- Arabic Section -->
+          <tr>
+            <td dir="rtl" style="background: ${BRAND_COLORS.white}; padding: 30px; font-family: 'Segoe UI', Tahoma, sans-serif;">
+              <div style="background: ${BRAND_COLORS.mint}; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px;">
+                <h2 style="color: ${BRAND_COLORS.dark}; margin: 0; font-size: 22px;">نموذج جديد يحتاج توقيعك</h2>
+              </div>
+
+              <p style="font-size: 16px; color: ${BRAND_COLORS.dark}; line-height: 1.8; margin-bottom: 15px;">
+                مرحباً <strong>${ownerName}</strong> 👋
+              </p>
+
+              <p style="font-size: 15px; color: ${BRAND_COLORS.dark}; line-height: 1.8;">
+                يوجد نموذج جديد يحتاج توقيعك لـ <strong style="color: #d07ba9;">${petName}</strong>
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #f8fafc; border-radius: 12px; margin: 20px 0; border-right: 4px solid ${BRAND_COLORS.pink};">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0; font-weight: 700; color: ${BRAND_COLORS.dark}; font-size: 18px;">
+                      📄 ${formNameAr}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <a href="${signUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                      ✍️ وقّع الآن
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Gradient Divider -->
+          <tr>
+            <td style="height: 4px; background: linear-gradient(90deg, ${BRAND_COLORS.mint} 0%, ${BRAND_COLORS.pink} 50%, ${BRAND_COLORS.gold} 100%);"></td>
+          </tr>
+
+          <!-- English Section -->
+          <tr>
+            <td dir="ltr" style="background: ${BRAND_COLORS.white}; padding: 30px; font-family: 'Segoe UI', Arial, sans-serif;">
+              <div style="background: ${BRAND_COLORS.gold}; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px;">
+                <h2 style="color: ${BRAND_COLORS.dark}; margin: 0; font-size: 20px;">New Form Requires Your Signature</h2>
+              </div>
+
+              <p style="font-size: 16px; color: ${BRAND_COLORS.dark}; line-height: 1.8; margin-bottom: 15px;">
+                Hello <strong>${ownerName}</strong> 👋
+              </p>
+
+              <p style="font-size: 15px; color: ${BRAND_COLORS.dark}; line-height: 1.8;">
+                A new form requires your signature for <strong style="color: #d07ba9;">${petName}</strong>
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #f8fafc; border-radius: 12px; margin: 20px 0; border-left: 4px solid ${BRAND_COLORS.mint};">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0; font-weight: 700; color: ${BRAND_COLORS.dark}; font-size: 18px;">
+                      📄 ${formName}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <a href="${signUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                      ✍️ Sign Now
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: ${BRAND_COLORS.dark}; padding: 25px; text-align: center;">
+              <p style="color: ${BRAND_COLORS.white}; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">
+                ${clinicName} Veterinary Clinic
+              </p>
+              <div style="width: 60px; height: 3px; background: linear-gradient(90deg, ${BRAND_COLORS.mint}, ${BRAND_COLORS.pink}, ${BRAND_COLORS.gold}); margin: 0 auto; border-radius: 2px;"></div>
+              <p style="color: #888; margin: 15px 0 0 0; font-size: 11px;">
+                &copy; ${new Date().getFullYear()} ${clinicName}. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background: linear-gradient(135deg, ${BRAND_COLORS.gold} 0%, ${BRAND_COLORS.pink} 50%, ${BRAND_COLORS.mint} 100%); height: 6px; border-radius: 0 0 10px 10px;"></td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return sendEmail({
+    to: ownerEmail,
+    subject,
+    html,
+    recipientName: ownerName,
+  });
+};
+
+/**
  * Test email connection
  */
 export const testConnection = async (): Promise<{ success: boolean; error?: string }> => {
@@ -577,8 +1106,17 @@ export const testConnection = async (): Promise<{ success: boolean; error?: stri
   }
 };
 
-export default {
+export const emailService = {
   sendEmail,
   sendAppointmentEmail,
+  sendOtpEmail,
+  sendPortalBookingConfirmation,
+  sendPendingBookingEmail,
+  sendBookingApprovedEmail,
+  sendBookingRejectedEmail,
+  sendCancellationNotice,
+  sendFormNotificationEmail,
   testConnection,
 };
+
+export default emailService;

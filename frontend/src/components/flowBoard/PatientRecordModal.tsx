@@ -10,6 +10,7 @@ import { invoicesApi, Invoice } from '../../api/invoices';
 import { visitTypesApi } from '../../api/visitTypes';
 import { AuditLogSection } from '../medical/AuditLogSection';
 import { FileAttachment } from '../common/FileAttachment';
+import { PetFormsSection } from '../forms/PetFormsSection';
 import { uploadApi } from '../../api/upload';
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked, getTomorrowDate } from '../../utils/appointmentUtils';
@@ -23,6 +24,8 @@ interface PatientRecordModalProps {
   onSuccess?: () => void;
   appointment: FlowBoardAppointment | null;
   existingRecordId?: string;
+  /** If true, this is a standalone record (created from Medical Records, not FlowBoard) */
+  isStandaloneRecord?: boolean;
 }
 
 const MUSCLE_CONDITIONS = ['Normal', 'Mild loss', 'Moderate loss', 'Severe loss'];
@@ -72,6 +75,7 @@ export const PatientRecordModal = ({
   onSuccess,
   appointment,
   existingRecordId,
+  isStandaloneRecord = false,
 }: PatientRecordModalProps) => {
   const { t, i18n } = useTranslation('patientRecord');
   const { t: tFlow } = useTranslation('flowBoard');
@@ -144,6 +148,8 @@ export const PatientRecordModal = ({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingWarning, setBookingWarning] = useState<string | null>(null);
   const [staff, setStaff] = useState<User[]>([]);
+  // Refresh key to force re-fetch of booked slots after booking
+  const [slotsRefreshKey, setSlotsRefreshKey] = useState(0);
   // Booked appointments for each date (to show available time slots)
   const [checkupBookedSlots, setCheckupBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
   const [vaccinationBookedSlots, setVaccinationBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
@@ -166,6 +172,10 @@ export const PatientRecordModal = ({
   const [closingRecord, setClosingRecord] = useState(false);
   const [reopeningRecord, setReopeningRecord] = useState(false);
 
+  // Empty record warning (for standalone records from Medical Records page)
+  const [showEmptyRecordWarning, setShowEmptyRecordWarning] = useState(false);
+  const [deletingEmptyRecord, setDeletingEmptyRecord] = useState(false);
+
   // Track unsaved changes and save-before-close state
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSavingBeforeClose, setIsSavingBeforeClose] = useState(false);
@@ -187,6 +197,27 @@ export const PatientRecordModal = ({
       formData.heartRate !== undefined && formData.heartRate !== null && formData.heartRate > 0
     );
   }, [formData.weight, formData.temperature, formData.heartRate]);
+
+  // Check if record is empty (no data added) - for standalone records
+  const isRecordEmpty = useMemo(() => {
+    // Check string fields
+    const stringFields = ['chiefComplaint', 'history', 'diagnosis', 'treatment', 'notes',
+      'muscleCondition', 'hydration', 'attitude', 'behaviour', 'mucousMembranes'] as const;
+    const hasStringData = stringFields.some(field => {
+      const value = formData[field];
+      return typeof value === 'string' && value.trim() !== '';
+    });
+
+    // Check number fields
+    const numberFields = ['weight', 'temperature', 'heartRate', 'respirationRate',
+      'bodyConditionScore', 'painScore', 'crt'] as const;
+    const hasNumberData = numberFields.some(field => {
+      const value = formData[field];
+      return typeof value === 'number' && !isNaN(value) && value > 0;
+    });
+
+    return !hasStringData && !hasNumberData;
+  }, [formData]);
 
   // Track mounted state
   useEffect(() => {
@@ -238,8 +269,13 @@ export const PatientRecordModal = ({
 
         if (!isMountedRef.current) return;
         setRecord(data);
+
+        // Pre-fill chiefComplaint from appointment.reason if not already set
+        // This connects the visit reason from portal booking to the medical record
+        const chiefComplaintValue = data.chiefComplaint || (appointment?.reason ?? '');
+
         setFormData({
-          chiefComplaint: data.chiefComplaint ?? '',
+          chiefComplaint: chiefComplaintValue,
           history: data.history ?? '',
           weight: data.weight ?? undefined,
           temperature: data.temperature ?? undefined,
@@ -308,28 +344,32 @@ export const PatientRecordModal = ({
     }
   }, [isOpen, effectiveAppointment?.id]);
 
-  // Load staff (vets) for next appointment
+  // Load staff (vets) for next appointment - load when modal opens
   useEffect(() => {
     const loadStaff = async () => {
       try {
         const data = await flowBoardApi.getStaff();
         if (isMountedRef.current) {
           setStaff(data);
-          if (effectiveAppointment?.vet?.id && !appointmentVetId) {
-            setAppointmentVetId(effectiveAppointment.vet.id);
-          }
         }
       } catch (err) {
         console.error('Failed to load staff:', err);
       }
     };
 
-    if (isOpen && showNextAppointment) {
+    if (isOpen) {
       loadStaff();
     }
-  }, [isOpen, showNextAppointment, effectiveAppointment?.vet?.id, appointmentVetId]);
+  }, [isOpen]);
 
-  // Fetch booked slots when checkup date or vet changes
+  // Set default vet from appointment when showing next appointment section
+  useEffect(() => {
+    if (showNextAppointment && effectiveAppointment?.vet?.id && !appointmentVetId) {
+      setAppointmentVetId(effectiveAppointment.vet.id);
+    }
+  }, [showNextAppointment, effectiveAppointment?.vet?.id, appointmentVetId]);
+
+  // Fetch booked slots when checkup date or vet changes (or after booking)
   useEffect(() => {
     const fetchBookedSlots = async () => {
       if (!appointmentVetId || !checkupDate) {
@@ -341,16 +381,19 @@ export const PatientRecordModal = ({
         const booked = await flowBoardApi.getVetAppointments(appointmentVetId, checkupDate);
         if (isMountedRef.current) {
           setCheckupBookedSlots(booked);
-          setCheckupTime(''); // Reset time when date changes
+          // Only reset time if slotsRefreshKey is 0 (initial load, not after booking refresh)
+          if (slotsRefreshKey === 0) {
+            setCheckupTime('');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch checkup booked slots:', err);
       }
     };
     fetchBookedSlots();
-  }, [appointmentVetId, checkupDate]);
+  }, [appointmentVetId, checkupDate, slotsRefreshKey]);
 
-  // Fetch booked slots when vaccination date or vet changes
+  // Fetch booked slots when vaccination date or vet changes (or after booking)
   useEffect(() => {
     const fetchBookedSlots = async () => {
       if (!appointmentVetId || !vaccinationDate) {
@@ -362,16 +405,18 @@ export const PatientRecordModal = ({
         const booked = await flowBoardApi.getVetAppointments(appointmentVetId, vaccinationDate);
         if (isMountedRef.current) {
           setVaccinationBookedSlots(booked);
-          setVaccinationTime(''); // Reset time when date changes
+          if (slotsRefreshKey === 0) {
+            setVaccinationTime('');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch vaccination booked slots:', err);
       }
     };
     fetchBookedSlots();
-  }, [appointmentVetId, vaccinationDate]);
+  }, [appointmentVetId, vaccinationDate, slotsRefreshKey]);
 
-  // Fetch booked slots when deworming date or vet changes
+  // Fetch booked slots when deworming date or vet changes (or after booking)
   useEffect(() => {
     const fetchBookedSlots = async () => {
       if (!appointmentVetId || !dewormingDate) {
@@ -383,14 +428,16 @@ export const PatientRecordModal = ({
         const booked = await flowBoardApi.getVetAppointments(appointmentVetId, dewormingDate);
         if (isMountedRef.current) {
           setDewormingBookedSlots(booked);
-          setDewormingTime(''); // Reset time when date changes
+          if (slotsRefreshKey === 0) {
+            setDewormingTime('');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch deworming booked slots:', err);
       }
     };
     fetchBookedSlots();
-  }, [appointmentVetId, dewormingDate]);
+  }, [appointmentVetId, dewormingDate, slotsRefreshKey]);
 
   // Fetch appointments scheduled from this medical record
   useEffect(() => {
@@ -567,6 +614,8 @@ export const PatientRecordModal = ({
           if (result.created.length > 0) {
             // Some created, some skipped
             setBookingWarning(`تم حجز ${result.created.length} موعد بنجاح. تم تخطي ${result.skipped.length} موعد بسبب تعارض.`);
+            // Refresh booked slots to reflect newly created appointments
+            setSlotsRefreshKey(prev => prev + 1);
           } else {
             // All skipped
             setBookingError(`لم يتم إنشاء أي موعد. تم تخطي ${result.skipped.length} موعد بسبب تعارض في المواعيد.`);
@@ -574,6 +623,8 @@ export const PatientRecordModal = ({
         } else if (result.created.length > 0) {
           // All created successfully
           setBookingSuccess(true);
+          // Refresh booked slots to reflect newly created appointments
+          setSlotsRefreshKey(prev => prev + 1);
         }
 
         setTimeout(() => {
@@ -1095,6 +1146,12 @@ export const PatientRecordModal = ({
       autoSaveTimeoutRef.current = null;
     }
 
+    // For standalone records (from Medical Records page), check if record is empty
+    if (isStandaloneRecord && isRecordEmpty && record?.id) {
+      setShowEmptyRecordWarning(true);
+      return;
+    }
+
     // If there are unsaved changes or a save is in progress, save first
     if (hasUnsavedChanges || saving) {
       setIsSavingBeforeClose(true);
@@ -1108,7 +1165,24 @@ export const PatientRecordModal = ({
     }
 
     onClose();
-  }, [onClose, saveRecord, hasUnsavedChanges, saving]);
+  }, [onClose, saveRecord, hasUnsavedChanges, saving, isStandaloneRecord, isRecordEmpty, record?.id]);
+
+  // Handle deleting empty standalone record
+  const handleDeleteEmptyRecord = useCallback(async () => {
+    if (!record?.id) return;
+
+    setDeletingEmptyRecord(true);
+    try {
+      await medicalRecordsApi.delete(record.id);
+      setShowEmptyRecordWarning(false);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting empty record:', error);
+      setShowEmptyRecordWarning(false);
+    } finally {
+      setDeletingEmptyRecord(false);
+    }
+  }, [record?.id, onClose]);
 
   // Disabled backdrop click - modal closes only with X button
   // const handleBackdropClick = useCallback((e: React.MouseEvent) => {
@@ -1128,22 +1202,22 @@ export const PatientRecordModal = ({
       style={{ zIndex: 9999 }}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[98vh] overflow-hidden flex flex-col relative"
+        className="bg-white dark:bg-[var(--app-bg-primary)] rounded-xl shadow-2xl dark:shadow-black/50 w-full max-w-7xl max-h-[98vh] overflow-hidden flex flex-col relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Saving before close overlay */}
         {isSavingBeforeClose && (
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50 rounded-xl">
-            <div className="bg-white rounded-lg p-6 shadow-xl flex items-center gap-4">
+            <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg p-6 shadow-xl dark:shadow-black/50 flex items-center gap-4">
               <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-500" />
-              <span className="text-lg font-medium text-gray-700">{tFlow('record.savingBeforeClose')}</span>
+              <span className="text-lg font-medium text-gray-700 dark:text-[var(--app-text-primary)]">{tFlow('record.savingBeforeClose')}</span>
             </div>
           </div>
         )}
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-primary-200 to-primary-300 text-brand-dark">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold">{t('title')}</h2>
+            <h2 className="text-xl font-bold flex items-center gap-2">📋 {t('title')}</h2>
             {record?.isClosed && (
               <span className="flex items-center gap-1 text-sm bg-accent-300 text-brand-dark px-3 py-1 rounded-full">
                 {tFlow('record.closed')}
@@ -1216,86 +1290,86 @@ export const PatientRecordModal = ({
               <ArrowPathIcon className="w-8 h-8 animate-spin text-primary-500" />
             </div>
           ) : error ? (
-            <div className="m-6 p-4 bg-red-50 text-red-600 rounded-lg">
+            <div className="m-6 p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
               {error}
             </div>
           ) : (appointment || record) ? (
             <div className="p-6 space-y-8">
               {/* Patient Info Card */}
-              <div className="bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl p-5 border border-primary-200">
+              <div className="bg-gradient-to-r from-primary-50 to-accent-50 dark:from-[var(--app-bg-card)] dark:to-[var(--app-bg-tertiary)] rounded-xl p-5 border border-primary-200 dark:border-[var(--app-border-default)]">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.owner')}</label>
-                    <p className="font-semibold text-gray-900 mt-1">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.owner')}</label>
+                    <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">
                       {(effectiveAppointment?.pet?.owner || record?.pet?.owner)
                         ? `${(effectiveAppointment?.pet?.owner || record?.pet?.owner)?.firstName} ${(effectiveAppointment?.pet?.owner || record?.pet?.owner)?.lastName}`
                         : '-'}
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.phone')}</label>
-                    <p className="font-semibold text-gray-900 mt-1" dir="ltr">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.phone')}</label>
+                    <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1" dir="ltr">
                       {canViewPhone
                         ? (effectiveAppointment?.pet?.owner?.phone || record?.pet?.owner?.phone || '-')
                         : maskPhoneNumber(effectiveAppointment?.pet?.owner?.phone || record?.pet?.owner?.phone || '')}
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.pet')}</label>
-                    <p className="font-semibold text-gray-900 mt-1">{effectiveAppointment?.pet?.name || record?.pet?.name || '-'}</p>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.pet')}</label>
+                    <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{effectiveAppointment?.pet?.name || record?.pet?.name || '-'}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-wide">{t('patientInfo.species')}</label>
-                    <p className="font-semibold text-gray-900 mt-1">{effectiveAppointment?.pet?.species || record?.pet?.species || '-'}</p>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.species')}</label>
+                    <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{effectiveAppointment?.pet?.species || record?.pet?.species || '-'}</p>
                   </div>
                   {effectiveAppointment?.visitType && (
                     <div>
-                      <label className="text-xs text-gray-500 uppercase tracking-wide">{tFlow('form.visitType')}</label>
-                      <p className="font-semibold text-gray-900 mt-1">{getVisitTypeName(effectiveAppointment.visitType)}</p>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{tFlow('form.visitType')}</label>
+                      <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{getVisitTypeName(effectiveAppointment.visitType)}</p>
                     </div>
                   )}
                   {(effectiveAppointment?.vet || record?.vet) && (
                     <div>
-                      <label className="text-xs text-gray-500 uppercase tracking-wide">{tFlow('card.vet')}</label>
-                      <p className="font-semibold text-gray-900 mt-1">{(effectiveAppointment?.vet || record?.vet)?.firstName} {(effectiveAppointment?.vet || record?.vet)?.lastName}</p>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{tFlow('card.vet')}</label>
+                      <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{(effectiveAppointment?.vet || record?.vet)?.firstName} {(effectiveAppointment?.vet || record?.vet)?.lastName}</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* SOAP Section */}
-              <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">
-                <div className="bg-primary-100 px-5 py-3 border-b border-primary-200 flex items-center gap-2">
-                  <DocumentTextIcon className="w-5 h-5 text-primary-600" />
-                  <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.soap')}</h3>
+              <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-xl border border-primary-200 dark:border-[var(--app-border-default)] overflow-hidden">
+                <div className="bg-primary-100 dark:bg-primary-900/30 px-5 py-3 border-b border-primary-200 dark:border-[var(--app-border-default)] flex items-center gap-2">
+                  <span className="text-xl">🩺</span>
+                  <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">{tFlow('tabs.soap')}</h3>
                 </div>
                 <div className="p-5 space-y-6">
                   {/* Subjective */}
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-primary-200 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">S</span>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-[var(--app-text-secondary)] mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-primary-200 dark:bg-primary-900/50 text-primary-700 dark:text-primary-400 rounded-full flex items-center justify-center text-xs font-bold">S</span>
                       {t('sections.subjective')}
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">{t('fields.chiefComplaint')}</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">💬 {t('fields.chiefComplaint')}</label>
                         <textarea
                           value={formData.chiefComplaint || ''}
                           onChange={(e) => handleFieldChange('chiefComplaint', e.target.value)}
                           rows={2}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.chiefComplaint')}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">{t('fields.history')}</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">📜 {t('fields.history')}</label>
                         <textarea
                           value={formData.history || ''}
                           onChange={(e) => handleFieldChange('history', e.target.value)}
                           rows={2}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.history')}
                         />
                       </div>
@@ -1304,14 +1378,14 @@ export const PatientRecordModal = ({
 
                   {/* Objective */}
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-secondary-200 text-secondary-700 rounded-full flex items-center justify-center text-xs font-bold">O</span>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-[var(--app-text-secondary)] mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-secondary-200 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-400 rounded-full flex items-center justify-center text-xs font-bold">O</span>
                       {t('sections.objective')}
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t('fields.weight')} (kg) <span className="text-red-500">*</span>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">
+                          ⚖️ {t('fields.weight')} (kg) <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
@@ -1323,14 +1397,14 @@ export const PatientRecordModal = ({
                             handleFieldChange('weight', e.target.value && val >= 0 ? val : undefined);
                           }}
                           disabled={isReadOnly || record?.isClosed}
-                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm ${
-                            !formData.weight && !record?.isClosed ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] text-sm ${
+                            !formData.weight && !record?.isClosed ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-300 dark:border-[var(--app-border-default)]'
                           }`}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t('fields.temperature')} (C) <span className="text-red-500">*</span>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">
+                          🌡️ {t('fields.temperature')} (C) <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
@@ -1342,14 +1416,14 @@ export const PatientRecordModal = ({
                             handleFieldChange('temperature', e.target.value && val >= 0 ? val : undefined);
                           }}
                           disabled={isReadOnly || record?.isClosed}
-                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm ${
-                            !formData.temperature && !record?.isClosed ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] text-sm ${
+                            !formData.temperature && !record?.isClosed ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-300 dark:border-[var(--app-border-default)]'
                           }`}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t('fields.heartRate')} (bpm) <span className="text-red-500">*</span>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">
+                          ❤️ {t('fields.heartRate')} (bpm) <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
@@ -1360,13 +1434,13 @@ export const PatientRecordModal = ({
                             handleFieldChange('heartRate', e.target.value && val >= 0 ? val : undefined);
                           }}
                           disabled={isReadOnly || record?.isClosed}
-                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm ${
-                            !formData.heartRate && !record?.isClosed ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
+                          className={`w-full px-2 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] text-sm ${
+                            !formData.heartRate && !record?.isClosed ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-300 dark:border-[var(--app-border-default)]'
                           }`}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.respirationRate')} (/min)</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">🫁 {t('fields.respirationRate')} (/min)</label>
                         <input
                           type="number"
                           min="0"
@@ -1376,11 +1450,11 @@ export const PatientRecordModal = ({
                             handleFieldChange('respirationRate', e.target.value && val >= 0 ? val : undefined);
                           }}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.bodyConditionScore')} (1-9)</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">📊 {t('fields.bodyConditionScore')} (1-9)</label>
                         <input
                           type="number"
                           min="1"
@@ -1388,11 +1462,11 @@ export const PatientRecordModal = ({
                           value={formData.bodyConditionScore || ''}
                           onChange={(e) => handleFieldChange('bodyConditionScore', e.target.value ? parseInt(e.target.value) : undefined)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.painScore')} (0-10)</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">😣 {t('fields.painScore')} (0-10)</label>
                         <input
                           type="number"
                           min="0"
@@ -1400,16 +1474,16 @@ export const PatientRecordModal = ({
                           value={formData.painScore || ''}
                           onChange={(e) => handleFieldChange('painScore', e.target.value ? parseInt(e.target.value) : undefined)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.muscleCondition')}</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">💪 {t('fields.muscleCondition')}</label>
                         <select
                           value={formData.muscleCondition || ''}
                           onChange={(e) => handleFieldChange('muscleCondition', e.target.value)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         >
                           <option value="">{t('select')}</option>
                           {MUSCLE_CONDITIONS.map((condition) => (
@@ -1418,12 +1492,12 @@ export const PatientRecordModal = ({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.hydration')}</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">💧 {t('fields.hydration')}</label>
                         <select
                           value={formData.hydration || ''}
                           onChange={(e) => handleFieldChange('hydration', e.target.value)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         >
                           <option value="">{t('select')}</option>
                           {HYDRATION_LEVELS.map((level) => (
@@ -1432,12 +1506,12 @@ export const PatientRecordModal = ({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.attitude')}</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">🧠 {t('fields.attitude')}</label>
                         <select
                           value={formData.attitude || ''}
                           onChange={(e) => handleFieldChange('attitude', e.target.value)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         >
                           <option value="">{t('select')}</option>
                           {ATTITUDES.map((att) => (
@@ -1446,12 +1520,12 @@ export const PatientRecordModal = ({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.mucousMembranes')}</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">👅 {t('fields.mucousMembranes')}</label>
                         <select
                           value={formData.mucousMembranes || ''}
                           onChange={(e) => handleFieldChange('mucousMembranes', e.target.value)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         >
                           <option value="">{t('select')}</option>
                           {MUCOUS_MEMBRANES.map((mm) => (
@@ -1460,7 +1534,7 @@ export const PatientRecordModal = ({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.crt')} (sec)</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">{t('fields.crt')} (sec)</label>
                         <input
                           type="number"
                           min="0"
@@ -1471,17 +1545,17 @@ export const PatientRecordModal = ({
                             handleFieldChange('crt', e.target.value && val >= 0 ? val : undefined);
                           }}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fields.behaviour')}</label>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">{t('fields.behaviour')}</label>
                         <input
                           type="text"
                           value={formData.behaviour || ''}
                           onChange={(e) => handleFieldChange('behaviour', e.target.value)}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         />
                       </div>
                     </div>
@@ -1489,8 +1563,8 @@ export const PatientRecordModal = ({
 
                   {/* Assessment */}
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-accent-200 text-accent-700 rounded-full flex items-center justify-center text-xs font-bold">A</span>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-[var(--app-text-secondary)] mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-accent-200 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400 rounded-full flex items-center justify-center text-xs font-bold">A</span>
                       {t('sections.assessment')}
                     </h4>
                     <textarea
@@ -1498,37 +1572,37 @@ export const PatientRecordModal = ({
                       onChange={(e) => handleFieldChange('diagnosis', e.target.value)}
                       rows={2}
                       disabled={isReadOnly || record?.isClosed}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed text-sm"
                       placeholder={t('placeholders.diagnosis')}
                     />
                   </div>
 
                   {/* Plan */}
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-primary-300 text-primary-800 rounded-full flex items-center justify-center text-xs font-bold">P</span>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-[var(--app-text-secondary)] mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-primary-300 dark:bg-primary-900/50 text-primary-800 dark:text-primary-400 rounded-full flex items-center justify-center text-xs font-bold">P</span>
                       {t('sections.plan')}
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">{t('fields.treatment')}</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">💊 {t('fields.treatment')}</label>
                         <textarea
                           value={formData.treatment || ''}
                           onChange={(e) => handleFieldChange('treatment', e.target.value)}
                           rows={2}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.treatment')}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">{t('fields.notes')}</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-[var(--app-text-secondary)] mb-1">📝 {t('fields.notes')}</label>
                         <textarea
                           value={formData.notes || ''}
                           onChange={(e) => handleFieldChange('notes', e.target.value)}
                           rows={2}
                           disabled={isReadOnly || record?.isClosed}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed text-sm"
                           placeholder={t('placeholders.notes')}
                         />
                       </div>
@@ -1538,11 +1612,11 @@ export const PatientRecordModal = ({
               </div>
 
               {/* Services & Products Section */}
-              <div className="bg-white rounded-xl border border-secondary-200 overflow-hidden">
-                <div className="bg-secondary-100 px-5 py-3 border-b border-secondary-200 flex items-center justify-between">
+              <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-xl border border-secondary-200 dark:border-[var(--app-border-default)] overflow-hidden">
+                <div className="bg-secondary-100 dark:bg-secondary-900/30 px-5 py-3 border-b border-secondary-200 dark:border-[var(--app-border-default)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ShoppingBagIcon className="w-5 h-5 text-secondary-600" />
-                    <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.services')}</h3>
+                    <span className="text-xl">🛒</span>
+                    <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">{tFlow('tabs.services')}</h3>
                     {selectedItems.length > 0 && (
                       <span className="bg-secondary-300 text-brand-dark px-2 py-0.5 rounded-full text-xs font-medium">
                         {selectedItems.length}
@@ -1563,7 +1637,7 @@ export const PatientRecordModal = ({
                   />
 
                   {invoiceError && (
-                    <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+                    <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
                       {invoiceError}
                     </div>
                   )}
@@ -1571,19 +1645,19 @@ export const PatientRecordModal = ({
               </div>
 
               {/* Payment Section */}
-              <div className="bg-white rounded-xl border border-accent-200 overflow-hidden">
-                <div className="bg-accent-100 px-5 py-3 border-b border-accent-200 flex items-center justify-between">
+              <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-xl border border-accent-200 dark:border-[var(--app-border-default)] overflow-hidden">
+                <div className="bg-accent-100 dark:bg-accent-900/30 px-5 py-3 border-b border-accent-200 dark:border-[var(--app-border-default)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CreditCardIcon className="w-5 h-5 text-accent-600" />
-                    <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.payment')}</h3>
+                    <span className="text-xl">💳</span>
+                    <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">{tFlow('tabs.payment')}</h3>
                   </div>
                   {invoice && (
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       invoice.status === 'PAID'
-                        ? 'bg-green-100 text-green-700'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                         : invoice.status === 'PARTIALLY_PAID'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                     }`}>
                       {tFlow(`invoiceStatus.${invoice.status}`)}
                     </span>
@@ -1591,8 +1665,8 @@ export const PatientRecordModal = ({
                 </div>
                 <div className="p-5">
                   {selectedItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <CreditCardIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <CreditCardIcon className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                       <p className="font-medium">{tFlow('payment.noInvoice')}</p>
                       <p className="text-sm mt-1">{tFlow('payment.addServicesFirst')}</p>
                     </div>
@@ -1614,17 +1688,17 @@ export const PatientRecordModal = ({
 
               {/* Next Appointment Section */}
               {canCreateAppointments && (effectiveAppointment || record?.pet) && (
-                <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">
-                  <div className="bg-primary-50 px-5 py-3 border-b border-primary-100 flex items-center justify-between">
+                <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-xl border border-primary-200 dark:border-[var(--app-border-default)] overflow-hidden">
+                  <div className="bg-primary-50 dark:bg-primary-900/30 px-5 py-3 border-b border-primary-100 dark:border-[var(--app-border-default)] flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CalendarDaysIcon className="w-5 h-5 text-primary-600" />
-                      <h3 className="text-lg font-semibold text-brand-dark">{t('nextAppointment.title')}</h3>
+                      <span className="text-xl">📅</span>
+                      <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">{t('nextAppointment.title')}</h3>
                     </div>
                     {!showNextAppointment && (
                       <button
                         type="button"
                         onClick={() => setShowNextAppointment(true)}
-                        className="flex items-center gap-1 px-4 py-2 text-sm bg-secondary-300 text-brand-dark rounded-lg hover:bg-secondary-400 font-medium transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 text-sm bg-secondary-300 dark:bg-secondary-700 text-brand-dark dark:text-[var(--app-text-primary)] rounded-lg hover:bg-secondary-400 dark:hover:bg-secondary-600 font-medium transition-colors"
                       >
                         <PlusIcon className="w-4 h-4" />
                         {t('nextAppointment.schedule')}
@@ -1635,12 +1709,12 @@ export const PatientRecordModal = ({
                   {showNextAppointment && (
                     <div className="p-5">
                       {bookingSuccess ? (
-                        <div className="flex items-center justify-center gap-2 py-6 text-green-600">
+                        <div className="flex items-center justify-center gap-2 py-6 text-green-600 dark:text-green-400">
                           <CheckCircleIcon className="w-8 h-8" />
                           <span className="font-semibold text-lg">{t('nextAppointment.success')}</span>
                         </div>
                       ) : bookingWarning ? (
-                        <div className="flex flex-col items-center justify-center gap-2 py-6 text-amber-600">
+                        <div className="flex flex-col items-center justify-center gap-2 py-6 text-amber-600 dark:text-amber-400">
                           <ExclamationTriangleIcon className="w-8 h-8" />
                           <span className="font-semibold text-lg text-center">{bookingWarning}</span>
                         </div>
@@ -1649,9 +1723,9 @@ export const PatientRecordModal = ({
                           {/* 3 Independent Appointment Date + Time Rows */}
                           <div className="space-y-3">
                             {/* Routine Check-up */}
-                            <div className="p-3 rounded-lg border bg-sky-50 border-sky-100">
+                            <div className="p-3 rounded-lg border bg-sky-50 dark:bg-sky-900/20 border-sky-100 dark:border-sky-800/50">
                               <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-medium text-sky-700">
+                                <label className="block text-sm font-medium text-sky-700 dark:text-sky-400">
                                   {tFlow('nextAppointment.routineCheckup')}
                                 </label>
                               </div>
@@ -1659,14 +1733,14 @@ export const PatientRecordModal = ({
                               {bookedAppointmentsByType.checkup.length > 0 && (
                                 <div className="mb-3 space-y-2">
                                   {bookedAppointmentsByType.checkup.map((appt) => (
-                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 border border-orange-300 rounded-lg">
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg">
                                       <div className="flex items-center gap-2">
                                         <span className="text-orange-500">🟠</span>
-                                        <span className="text-sm font-medium text-orange-800">
+                                        <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
                                           {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
                                         </span>
                                         {appt.vet && (
-                                          <span className="text-xs text-orange-600">
+                                          <span className="text-xs text-orange-600 dark:text-orange-400">
                                             ({appt.vet.firstName} {appt.vet.lastName})
                                           </span>
                                         )}
@@ -1683,7 +1757,7 @@ export const PatientRecordModal = ({
                                     value={checkupDate}
                                     min={getTomorrowDate()}
                                     onChange={(e) => setCheckupDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-sky-200 bg-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                    className="w-full px-3 py-2 border border-sky-200 dark:border-sky-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                                   />
                                 </div>
                                 <div className="flex-1">
@@ -1691,7 +1765,7 @@ export const PatientRecordModal = ({
                                     value={checkupTime}
                                     onChange={(e) => setCheckupTime(e.target.value)}
                                     disabled={!checkupDate || !appointmentVetId}
-                                    className="w-full px-3 py-2 border border-sky-200 bg-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-sky-200 dark:border-sky-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('nextAppointment.time')}</option>
                                     {checkupDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], checkupDate)
@@ -1712,16 +1786,16 @@ export const PatientRecordModal = ({
                                 )}
                               </div>
                               {bookedAppointmentsByType.checkup.length > 0 && (
-                                <p className="mt-2 text-xs text-sky-600">
+                                <p className="mt-2 text-xs text-sky-600 dark:text-sky-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.routineCheckup')}
                                 </p>
                               )}
                             </div>
 
                             {/* Vaccination */}
-                            <div className="p-3 rounded-lg border bg-green-50 border-green-100">
+                            <div className="p-3 rounded-lg border bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/50">
                               <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-medium text-green-700">
+                                <label className="block text-sm font-medium text-green-700 dark:text-green-400">
                                   {tFlow('nextAppointment.nextVaccination')}
                                 </label>
                               </div>
@@ -1729,14 +1803,14 @@ export const PatientRecordModal = ({
                               {bookedAppointmentsByType.vaccination.length > 0 && (
                                 <div className="mb-3 space-y-2">
                                   {bookedAppointmentsByType.vaccination.map((appt) => (
-                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 border border-orange-300 rounded-lg">
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg">
                                       <div className="flex items-center gap-2">
                                         <span className="text-orange-500">🟠</span>
-                                        <span className="text-sm font-medium text-orange-800">
+                                        <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
                                           {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
                                         </span>
                                         {appt.vet && (
-                                          <span className="text-xs text-orange-600">
+                                          <span className="text-xs text-orange-600 dark:text-orange-400">
                                             ({appt.vet.firstName} {appt.vet.lastName})
                                           </span>
                                         )}
@@ -1753,7 +1827,7 @@ export const PatientRecordModal = ({
                                     value={vaccinationDate}
                                     min={getTomorrowDate()}
                                     onChange={(e) => setVaccinationDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-green-200 bg-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    className="w-full px-3 py-2 border border-green-200 dark:border-green-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                                   />
                                 </div>
                                 <div className="flex-1">
@@ -1761,7 +1835,7 @@ export const PatientRecordModal = ({
                                     value={vaccinationTime}
                                     onChange={(e) => setVaccinationTime(e.target.value)}
                                     disabled={!vaccinationDate || !appointmentVetId}
-                                    className="w-full px-3 py-2 border border-green-200 bg-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-green-200 dark:border-green-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('nextAppointment.time')}</option>
                                     {vaccinationDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.VACCINATION], vaccinationDate)
@@ -1782,16 +1856,16 @@ export const PatientRecordModal = ({
                                 )}
                               </div>
                               {bookedAppointmentsByType.vaccination.length > 0 && (
-                                <p className="mt-2 text-xs text-green-600">
+                                <p className="mt-2 text-xs text-green-600 dark:text-green-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.nextVaccination')}
                                 </p>
                               )}
                             </div>
 
                             {/* Deworming - Flea */}
-                            <div className="p-3 rounded-lg border bg-purple-50 border-purple-100">
+                            <div className="p-3 rounded-lg border bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/50">
                               <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-medium text-purple-700">
+                                <label className="block text-sm font-medium text-purple-700 dark:text-purple-400">
                                   {tFlow('nextAppointment.dewormingFlea')}
                                 </label>
                               </div>
@@ -1799,14 +1873,14 @@ export const PatientRecordModal = ({
                               {bookedAppointmentsByType.deworming.length > 0 && (
                                 <div className="mb-3 space-y-2">
                                   {bookedAppointmentsByType.deworming.map((appt) => (
-                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 border border-orange-300 rounded-lg">
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg">
                                       <div className="flex items-center gap-2">
                                         <span className="text-orange-500">🟠</span>
-                                        <span className="text-sm font-medium text-orange-800">
+                                        <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
                                           {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
                                         </span>
                                         {appt.vet && (
-                                          <span className="text-xs text-orange-600">
+                                          <span className="text-xs text-orange-600 dark:text-orange-400">
                                             ({appt.vet.firstName} {appt.vet.lastName})
                                           </span>
                                         )}
@@ -1823,7 +1897,7 @@ export const PatientRecordModal = ({
                                     value={dewormingDate}
                                     min={getTomorrowDate()}
                                     onChange={(e) => setDewormingDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-purple-200 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                    className="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                   />
                                 </div>
                                 <div className="flex-1">
@@ -1831,7 +1905,7 @@ export const PatientRecordModal = ({
                                     value={dewormingTime}
                                     onChange={(e) => setDewormingTime(e.target.value)}
                                     disabled={!dewormingDate || !appointmentVetId}
-                                    className="w-full px-3 py-2 border border-purple-200 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('nextAppointment.time')}</option>
                                     {dewormingDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], dewormingDate)
@@ -1852,7 +1926,7 @@ export const PatientRecordModal = ({
                                 )}
                               </div>
                               {bookedAppointmentsByType.deworming.length > 0 && (
-                                <p className="mt-2 text-xs text-purple-600">
+                                <p className="mt-2 text-xs text-purple-600 dark:text-purple-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.dewormingFlea')}
                                 </p>
                               )}
@@ -1862,11 +1936,11 @@ export const PatientRecordModal = ({
                           {/* Vet Selection */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.vet')}</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">{t('nextAppointment.vet')}</label>
                               <select
                                 value={appointmentVetId}
                                 onChange={(e) => setAppointmentVetId(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                               >
                                 <option value="">{t('select')}</option>
                                 {staff.map(vet => (
@@ -1877,12 +1951,12 @@ export const PatientRecordModal = ({
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nextAppointment.notes')}</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">{t('nextAppointment.notes')}</label>
                               <input
                                 type="text"
                                 value={appointmentNotes}
                                 onChange={(e) => setAppointmentNotes(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                                 placeholder={t('nextAppointment.notesPlaceholder')}
                               />
                             </div>
@@ -1890,13 +1964,13 @@ export const PatientRecordModal = ({
 
                           {/* Summary */}
                           {appointmentsToBookCount > 0 && (
-                            <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm">
                               {t('nextAppointment.willBook', { count: appointmentsToBookCount })}
                             </div>
                           )}
 
                           {bookingError && (
-                            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+                            <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
                               {bookingError}
                             </div>
                           )}
@@ -1915,7 +1989,7 @@ export const PatientRecordModal = ({
                                 setDewormingTime('');
                                 setAppointmentNotes('');
                               }}
-                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium transition-colors"
+                              className="px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg text-gray-700 dark:text-[var(--app-text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] font-medium transition-colors"
                             >
                               {t('nextAppointment.cancel')}
                             </button>
@@ -1949,7 +2023,7 @@ export const PatientRecordModal = ({
               {upcomingAppointments.length > 0 && (
                 <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">
                   <div className="bg-primary-100 px-5 py-3 border-b border-primary-200 flex items-center gap-2">
-                    <CalendarDaysIcon className="w-5 h-5 text-primary-600" />
+                    <span className="text-xl">📆</span>
                     <h3 className="text-lg font-semibold text-brand-dark">{t('upcomingAppointments.title')}</h3>
                     <span className="bg-primary-200 text-primary-700 px-2 py-0.5 rounded-full text-xs font-medium">
                       {upcomingAppointments.length}
@@ -1991,7 +2065,7 @@ export const PatientRecordModal = ({
               {record && (
                 <div className="bg-white rounded-xl border border-secondary-200 overflow-hidden">
                   <div className="bg-secondary-100 px-5 py-3 border-b border-secondary-200 flex items-center gap-2">
-                    <PaperClipIcon className="w-5 h-5 text-secondary-600" />
+                    <span className="text-xl">📎</span>
                     <h3 className="text-lg font-semibold text-brand-dark">{tFlow('tabs.attachments')}</h3>
                     {attachments.length > 0 && (
                       <span className="bg-secondary-300 text-brand-dark px-2 py-0.5 rounded-full text-xs font-medium">
@@ -2009,6 +2083,16 @@ export const PatientRecordModal = ({
                     />
                   </div>
                 </div>
+              )}
+
+              {/* Forms & Certificates Section */}
+              {effectiveAppointment?.pet?.id && (
+                <PetFormsSection
+                  petId={effectiveAppointment.pet.id}
+                  appointmentId={effectiveAppointment?.id}
+                  vetId={effectiveAppointment?.vet?.id}
+                  isReadOnly={isReadOnly || record?.isClosed}
+                />
               )}
 
               {/* Audit Log Section */}
@@ -2052,6 +2136,19 @@ export const PatientRecordModal = ({
         cancelText={tFlow('invoice.cancel')}
         variant="warning"
         loading={finalizingInvoice}
+      />
+
+      {/* Empty Record Warning Modal (for standalone records from Medical Records) */}
+      <ConfirmationModal
+        isOpen={showEmptyRecordWarning}
+        onClose={() => setShowEmptyRecordWarning(false)}
+        onConfirm={handleDeleteEmptyRecord}
+        title={tFlow('record.emptyRecordTitle')}
+        message={tFlow('record.emptyRecordWarning')}
+        confirmText={tFlow('record.emptyRecordConfirm')}
+        cancelText={tFlow('record.emptyRecordCancel')}
+        variant="danger"
+        loading={deletingEmptyRecord}
       />
 
       {/* Close Record Warning Modal */}

@@ -1,0 +1,723 @@
+/**
+ * Portal CSS Styles
+ * Custom animations and utilities for Customer Portal
+ */
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+
+:root {
+  /* Light theme variables */
+  --portal-bg-primary: #ffffff;
+  --portal-bg-secondary: #f5f7f6;
+  --portal-bg-tertiary: #f0f9f4;
+  --portal-text-primary: #374151;
+  --portal-text-secondary: #6b7280;
+  --portal-text-tertiary: #9ca3af;
+  --portal-border: #e5e5e5;
+  --portal-mint: #56af8e;
+  --portal-mint-light: #cee8dc;
+  --portal-pink: #eab8d5;
+  --portal-gold: #f5df59;
+
+  /* Navigation */
+  --nav-height: 64px;
+  --nav-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --header-height: 56px;
+  --header-safe-top: env(safe-area-inset-top, 0px);
+}
+
+.dark {
+  /* Dark theme variables */
+  --portal-bg-primary: #0a0a0a;
+  --portal-bg-secondary: #141414;
+  --portal-bg-tertiary: #1a1a1a;
+  --portal-text-primary: #f5f5f5;
+  --portal-text-secondary: #a3a3a3;
+  --portal-text-tertiary: #737373;
+  --portal-border: #333333;
+  --portal-mint: #7fc2a8;
+  --portal-mint-light: rgba(206, 232, 220, 0.1);
+  --portal-pink: #e091c0;
+  --portal-gold: #e8c840;
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Bounce animation */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide up animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Slide down animation */
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Spin animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ping animation (for notifications) */
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Success checkmark draw */
+@keyframes drawCheck {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Ripple effect */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITY CLASSES
+   ============================================ */
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(200, 200, 200, 0.2) 25%,
+    rgba(200, 200, 200, 0.4) 50%,
+    rgba(200, 200, 200, 0.2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(60, 60, 60, 0.3) 25%,
+    rgba(80, 80, 80, 0.5) 50%,
+    rgba(60, 60, 60, 0.3) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.animate-pulse-portal {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.animate-bounce-portal {
+  animation: bounce 1s infinite ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+.animate-spin-portal {
+  animation: spin 1s linear infinite;
+}
+
+.animate-ping-portal {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ============================================
+   SKELETON LOADING
+   ============================================ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #e5e5e5;
+  border-radius: 0.5rem;
+}
+
+.dark .skeleton {
+  background-color: #333333;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+}
+
+/* ============================================
+   PORTAL LAYOUT
+   ============================================ */
+
+.portal-layout {
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  display: flex;
+  flex-direction: column;
+  background-color: var(--portal-bg-secondary);
+}
+
+.portal-content {
+  flex: 1;
+  padding-bottom: calc(var(--nav-height) + var(--nav-safe-bottom) + 16px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.portal-content-no-nav {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   BOTTOM NAVIGATION
+   ============================================ */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--nav-height) + var(--nav-safe-bottom));
+  padding-bottom: var(--nav-safe-bottom);
+  background-color: var(--portal-bg-primary);
+  border-top: 1px solid var(--portal-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 50;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.bottom-nav-item.active {
+  color: var(--portal-mint);
+}
+
+.bottom-nav-item:not(.active) {
+  color: var(--portal-text-tertiary);
+}
+
+.bottom-nav-indicator {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--portal-mint);
+}
+
+/* ============================================
+   TOP HEADER
+   ============================================ */
+
+.top-header {
+  position: sticky;
+  top: 0;
+  height: calc(var(--header-height) + var(--header-safe-top));
+  padding-top: var(--header-safe-top);
+  background-color: var(--portal-bg-primary);
+  border-bottom: 1px solid var(--portal-border);
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  padding-right: 16px;
+  z-index: 40;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+
+.portal-card {
+  background-color: var(--portal-bg-primary);
+  border-radius: 16px;
+  border: 1px solid var(--portal-border);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.portal-card-interactive {
+  cursor: pointer;
+}
+
+.portal-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.dark .portal-card-interactive:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.portal-card-interactive:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn-portal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 500;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn-portal:active {
+  transform: scale(0.97);
+}
+
+.btn-portal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-portal-primary {
+  background-color: var(--portal-mint);
+  color: white;
+}
+
+.btn-portal-primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.btn-portal-secondary {
+  background-color: var(--portal-pink);
+  color: #82295e;
+}
+
+.dark .btn-portal-secondary {
+  color: white;
+}
+
+.btn-portal-ghost {
+  background-color: transparent;
+  color: var(--portal-mint);
+}
+
+.btn-portal-ghost:hover:not(:disabled) {
+  background-color: var(--portal-mint-light);
+}
+
+/* ============================================
+   INPUTS
+   ============================================ */
+
+.input-portal {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px; /* Prevents zoom on iOS */
+  border-radius: 12px;
+  border: 1px solid var(--portal-border);
+  background-color: var(--portal-bg-primary);
+  color: var(--portal-text-primary);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.input-portal:focus {
+  border-color: var(--portal-mint);
+  box-shadow: 0 0 0 3px rgba(86, 175, 142, 0.15);
+}
+
+.dark .input-portal:focus {
+  box-shadow: 0 0 0 3px rgba(127, 194, 168, 0.2);
+}
+
+.input-portal::placeholder {
+  color: var(--portal-text-tertiary);
+}
+
+.input-portal.error {
+  border-color: #ef4444;
+}
+
+.input-portal.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+
+.badge-portal {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.badge-scheduled {
+  background-color: rgba(86, 175, 142, 0.15);
+  color: #3d9b78;
+}
+
+.dark .badge-scheduled {
+  background-color: rgba(127, 194, 168, 0.2);
+  color: #7fc2a8;
+}
+
+.badge-confirmed {
+  background-color: rgba(45, 122, 94, 0.15);
+  color: #2d7a5e;
+}
+
+.dark .badge-confirmed {
+  background-color: rgba(86, 175, 142, 0.2);
+  color: #56af8e;
+}
+
+.badge-completed {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.dark .badge-completed {
+  background-color: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+}
+
+.badge-cancelled {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.dark .badge-cancelled {
+  background-color: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.badge-in-progress {
+  background-color: rgba(245, 223, 89, 0.2);
+  color: #b8951f;
+}
+
+.dark .badge-in-progress {
+  background-color: rgba(232, 200, 64, 0.2);
+  color: #e8c840;
+}
+
+/* ============================================
+   TIME SLOTS
+   ============================================ */
+
+.time-slot {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--portal-border);
+  background-color: var(--portal-bg-primary);
+  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-slot:hover:not(.disabled):not(.selected) {
+  border-color: var(--portal-mint);
+  background-color: var(--portal-mint-light);
+}
+
+.time-slot.selected {
+  background-color: var(--portal-mint);
+  border-color: var(--portal-mint);
+  color: white;
+}
+
+.time-slot.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: var(--portal-bg-secondary);
+}
+
+/* ============================================
+   STEP INDICATOR
+   ============================================ */
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--portal-border);
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  background-color: var(--portal-mint);
+  transform: scale(1.25);
+}
+
+.step-dot.completed {
+  background-color: var(--portal-mint);
+}
+
+.step-line {
+  width: 24px;
+  height: 2px;
+  background-color: var(--portal-border);
+  transition: background-color 0.3s ease;
+}
+
+.step-line.completed {
+  background-color: var(--portal-mint);
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+
+.portal-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.portal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.portal-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--portal-border);
+  border-radius: 3px;
+}
+
+.portal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--portal-text-tertiary);
+}
+
+/* ============================================
+   TOUCH OPTIMIZATIONS
+   ============================================ */
+
+@media (hover: none) {
+  /* Disable hover effects on touch devices */
+  .portal-card-interactive:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .time-slot:hover:not(.disabled):not(.selected) {
+    border-color: var(--portal-border);
+    background-color: var(--portal-bg-primary);
+  }
+}
+
+/* Prevent text selection during interactions */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Improve tap targets */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ============================================
+   SAFE AREA UTILITIES
+   ============================================ */
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* ============================================
+   RTL SUPPORT
+   ============================================ */
+
+[dir="rtl"] .portal-card-interactive:hover {
+  transform: translateY(-2px);
+}
+
+[dir="rtl"] .bottom-nav {
+  flex-direction: row;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (min-width: 768px) {
+  .portal-content {
+    padding-bottom: calc(var(--nav-height) + 24px);
+  }
+
+  .bottom-nav {
+    max-width: 480px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 20px 20px 0 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* On desktop, potentially hide bottom nav and show sidebar */
+  .bottom-nav {
+    display: none;
+  }
+
+  .portal-content {
+    padding-bottom: 24px;
+  }
+}

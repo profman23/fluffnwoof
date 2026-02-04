@@ -1,12 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../common/Modal';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { SearchableSelect, SearchableSelectOption } from '../common/SearchableSelect';
+import { PhoneInput } from '../common/PhoneInput';
 import { ownersApi, CreateOwnerInput } from '../../api/owners';
 import { petsApi, CreatePetInput } from '../../api/pets';
 import { Owner, Species, Gender } from '../../types';
-import { breedsBySpecies, getBreedLabel, Breed } from '../../data/breeds';
+import {
+  speciesList,
+  getBreedsBySpecies,
+  getBreedLabel,
+  getSpeciesIcon,
+  Breed,
+} from '../../data/petData';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 
 interface AddPetModalProps {
@@ -44,6 +52,7 @@ interface FormErrors {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  email?: string;
   petName?: string;
   species?: string;
   gender?: string;
@@ -146,13 +155,30 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
   // Update breeds when species changes
   useEffect(() => {
     if (formData.pet.species) {
-      setAvailableBreeds(breedsBySpecies[formData.pet.species] || []);
-      // Reset breed when species changes
-      setFormData((prev) => ({ ...prev, pet: { ...prev.pet, breed: '' } }));
+      setAvailableBreeds(getBreedsBySpecies(formData.pet.species));
     } else {
       setAvailableBreeds([]);
     }
   }, [formData.pet.species]);
+
+  // Species options with icons
+  const speciesOptions: SearchableSelectOption[] = useMemo(() => {
+    return speciesList.map(s => ({
+      value: s.value,
+      label: isRtl ? s.labelAr : s.labelEn,
+      icon: s.icon,
+    }));
+  }, [isRtl]);
+
+  // Breed options
+  const breedOptions: SearchableSelectOption[] = useMemo(() => {
+    const icon = getSpeciesIcon(formData.pet.species);
+    return availableBreeds.map(b => ({
+      value: b.value,
+      label: getBreedLabel(b, isRtl),
+      icon: icon,
+    }));
+  }, [availableBreeds, isRtl, formData.pet.species]);
 
   const resetForm = () => {
     setFormData(initialFormData);
@@ -187,6 +213,15 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
       }
       if (!formData.newOwner.phone.trim()) {
         newErrors.phone = t('errors.phoneRequired');
+      }
+      // Email validation
+      if (!formData.newOwner.email.trim()) {
+        newErrors.email = t('errors.emailRequired');
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.newOwner.email.trim())) {
+          newErrors.email = t('errors.invalidEmail');
+        }
       }
     }
 
@@ -294,62 +329,63 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
       }));
     } else if (field.startsWith('pet.')) {
       const petField = field.replace('pet.', '');
-      setFormData((prev) => ({
-        ...prev,
-        pet: { ...prev.pet, [petField]: value },
-      }));
+      // Reset breed when species changes
+      if (petField === 'species') {
+        setFormData((prev) => ({
+          ...prev,
+          pet: { ...prev.pet, species: value as Species, breed: '' },
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          pet: { ...prev.pet, [petField]: value },
+        }));
+      }
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }));
     }
     setApiError('');
   };
 
-  const speciesOptions: { value: Species; label: string }[] = [
-    { value: Species.DOG, label: t('species.DOG') },
-    { value: Species.CAT, label: t('species.CAT') },
-    { value: Species.BIRD, label: t('species.BIRD') },
-    { value: Species.OTHER, label: t('species.OTHER') },
-  ];
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={t('addPet')} size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} title={`🐾 ${t('addPet')}`} size="lg" closeOnOverlayClick={false}>
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit(false); }}>
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 rounded-lg">
             {successMessage}
           </div>
         )}
 
         {/* API Error */}
         {apiError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded-lg">
             {apiError}
           </div>
         )}
 
         {/* Owner Section */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
-            {t('ownerSection')}
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4 pb-2 border-b border-gray-200 dark:border-[var(--app-border-default)] flex items-center gap-2">
+            <span>👤</span> {t('ownerSection')}
           </h3>
 
           {/* Owner Mode Toggle */}
           <div className="flex gap-4 mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer dark:text-[var(--app-text-secondary)]">
               <input
                 type="radio"
                 name="ownerMode"
                 checked={formData.ownerMode === 'existing'}
                 onChange={() => {
                   setFormData((prev) => ({ ...prev, ownerMode: 'existing' }));
-                  setErrors((prev) => ({ ...prev, firstName: undefined, lastName: undefined, phone: undefined }));
+                  setErrors((prev) => ({ ...prev, firstName: undefined, lastName: undefined, phone: undefined, email: undefined }));
                 }}
                 className="w-4 h-4 text-primary-600"
               />
               <span>{t('selectExistingOwner')}</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer dark:text-[var(--app-text-secondary)]">
               <input
                 type="radio"
                 name="ownerMode"
@@ -368,10 +404,10 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
           {formData.ownerMode === 'existing' ? (
             <div>
               {selectedOwner ? (
-                <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg flex justify-between items-center">
+                <div className="p-3 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 rounded-lg flex justify-between items-center">
                   <div>
-                    <p className="font-medium">{selectedOwner.firstName} {selectedOwner.lastName}</p>
-                    <p className="text-sm text-gray-500" dir="ltr">
+                    <p className="font-medium dark:text-[var(--app-text-primary)]">{selectedOwner.firstName} {selectedOwner.lastName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400" dir="ltr">
                       {canViewPhone ? selectedOwner.phone : maskPhoneNumber(selectedOwner.phone)}
                     </p>
                   </div>
@@ -381,7 +417,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                       setSelectedOwner(null);
                       setFormData((prev) => ({ ...prev, existingOwnerId: '' }));
                     }}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
                     ✕
                   </button>
@@ -396,21 +432,21 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                     error={errors.owner}
                   />
                   {searchLoading && (
-                    <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white border rounded-lg shadow text-center text-gray-500">
+                    <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white dark:bg-[var(--app-bg-card)] border dark:border-[var(--app-border-default)] rounded-lg shadow dark:shadow-2xl dark:shadow-black/50 text-center text-gray-500 dark:text-gray-400">
                       {t('loading')}
                     </div>
                   )}
                   {ownerResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[var(--app-bg-card)] border dark:border-[var(--app-border-default)] rounded-lg shadow-lg dark:shadow-2xl dark:shadow-black/50 max-h-48 overflow-y-auto z-10">
                       {ownerResults.map((owner) => (
                         <button
                           key={owner.id}
                           type="button"
                           onClick={() => handleOwnerSelect(owner)}
-                          className="w-full px-4 py-2 text-start hover:bg-gray-100 border-b last:border-b-0"
+                          className="w-full px-4 py-2 text-start hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] border-b dark:border-[var(--app-border-default)] last:border-b-0"
                         >
-                          <p className="font-medium">{owner.firstName} {owner.lastName}</p>
-                          <p className="text-sm text-gray-500" dir="ltr">
+                          <p className="font-medium dark:text-[var(--app-text-primary)]">{owner.firstName} {owner.lastName}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400" dir="ltr">
                             {canViewPhone ? owner.phone : maskPhoneNumber(owner.phone)}
                           </p>
                         </button>
@@ -418,7 +454,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                     </div>
                   )}
                   {ownerSearch.length >= 2 && ownerResults.length === 0 && !searchLoading && (
-                    <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white border rounded-lg shadow text-center text-gray-500">
+                    <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white dark:bg-[var(--app-bg-card)] border dark:border-[var(--app-border-default)] rounded-lg shadow dark:shadow-2xl dark:shadow-black/50 text-center text-gray-500 dark:text-gray-400">
                       {t('noOwnerFound')}
                     </div>
                   )}
@@ -429,50 +465,49 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label={t('owner.firstName')}
+                  label={`✏️ ${t('owner.firstName')}`}
                   value={formData.newOwner.firstName}
                   onChange={(e) => handleInputChange('newOwner.firstName', e.target.value)}
                   error={errors.firstName}
                   required
                 />
                 <Input
-                  label={t('owner.lastName')}
+                  label={`✏️ ${t('owner.lastName')}`}
                   value={formData.newOwner.lastName}
                   onChange={(e) => handleInputChange('newOwner.lastName', e.target.value)}
                   error={errors.lastName}
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label={t('owner.phone')}
-                  value={formData.newOwner.phone}
-                  onChange={(e) => handleInputChange('newOwner.phone', e.target.value)}
-                  error={errors.phone}
-                  required
-                  dir="ltr"
-                />
-                <Input
-                  label={t('owner.email')}
-                  type="email"
-                  value={formData.newOwner.email}
-                  onChange={(e) => handleInputChange('newOwner.email', e.target.value)}
-                  dir="ltr"
-                />
-              </div>
+              <PhoneInput
+                label={t('owner.phone')}
+                value={formData.newOwner.phone}
+                onChange={(fullPhone) => handleInputChange('newOwner.phone', fullPhone)}
+                error={errors.phone}
+                required
+              />
+              <Input
+                label={`📧 ${t('owner.email')}`}
+                type="email"
+                value={formData.newOwner.email}
+                onChange={(e) => handleInputChange('newOwner.email', e.target.value)}
+                error={errors.email}
+                required
+                dir="ltr"
+              />
             </div>
           )}
         </div>
 
         {/* Pet Section */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
-            {t('petSection')}
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4 pb-2 border-b border-gray-200 dark:border-[var(--app-border-default)] flex items-center gap-2">
+            <span>🐾</span> {t('petSection')}
           </h3>
 
           <div className="space-y-4">
             <Input
-              label={t('pet.name')}
+              label={`🏷️ ${t('pet.name')}`}
               value={formData.pet.name}
               onChange={(e) => handleInputChange('pet.name', e.target.value)}
               error={errors.petName}
@@ -480,66 +515,40 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Species */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pet.species')} <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.pet.species}
-                  onChange={(e) => handleInputChange('pet.species', e.target.value)}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.species ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">{t('selectSpecies')}</option>
-                  {speciesOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.species && (
-                  <p className="mt-1 text-sm text-red-500">{errors.species}</p>
-                )}
-              </div>
+              {/* Species - Searchable Select */}
+              <SearchableSelect
+                label={`🦁 ${t('pet.species')}`}
+                options={speciesOptions}
+                value={formData.pet.species}
+                onChange={(value) => handleInputChange('pet.species', value)}
+                placeholder={t('selectSpecies')}
+                searchPlaceholder={t('searchPlaceholder')}
+                required
+                error={errors.species}
+                showIcons={true}
+              />
 
-              {/* Breed */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pet.breed')}
-                </label>
-                {formData.pet.species === Species.OTHER ? (
-                  <Input
-                    placeholder={t('enterBreed')}
-                    value={formData.pet.breed}
-                    onChange={(e) => handleInputChange('pet.breed', e.target.value)}
-                  />
-                ) : (
-                  <select
-                    value={formData.pet.breed}
-                    onChange={(e) => handleInputChange('pet.breed', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    disabled={!formData.pet.species}
-                  >
-                    <option value="">{t('selectBreed')}</option>
-                    {availableBreeds.map((breed) => (
-                      <option key={breed.value} value={breed.value}>
-                        {getBreedLabel(breed, isRtl)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+              {/* Breed - Searchable Select */}
+              <SearchableSelect
+                label={`🧬 ${t('pet.breed')}`}
+                options={breedOptions}
+                value={formData.pet.breed}
+                onChange={(value) => handleInputChange('pet.breed', value)}
+                placeholder={t('selectBreed')}
+                searchPlaceholder={t('searchPlaceholder')}
+                disabled={!formData.pet.species || availableBreeds.length === 0}
+                allowClear
+                showIcons={false}
+              />
             </div>
 
             {/* Gender */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('pet.gender')} <span className="text-red-500">*</span>
+              <label className="label">
+                ⚧️ {t('pet.gender')} <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex gap-6 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer dark:text-[var(--app-text-secondary)]">
                   <input
                     type="radio"
                     name="gender"
@@ -548,9 +557,11 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                     onChange={(e) => handleInputChange('pet.gender', e.target.value)}
                     className="w-4 h-4 text-primary-600"
                   />
-                  <span>{t('gender.MALE')}</span>
+                  <span className="flex items-center gap-1">
+                    <span>♂️</span> {t('gender.MALE')}
+                  </span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer dark:text-[var(--app-text-secondary)]">
                   <input
                     type="radio"
                     name="gender"
@@ -559,7 +570,9 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                     onChange={(e) => handleInputChange('pet.gender', e.target.value)}
                     className="w-4 h-4 text-primary-600"
                   />
-                  <span>{t('gender.FEMALE')}</span>
+                  <span className="flex items-center gap-1">
+                    <span>♀️</span> {t('gender.FEMALE')}
+                  </span>
                 </label>
               </div>
               {errors.gender && (
@@ -571,18 +584,18 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 type="date"
-                label={t('pet.birthDate')}
+                label={`🎂 ${t('pet.birthDate')}`}
                 value={formData.pet.birthDate}
                 onChange={(e) => handleInputChange('pet.birthDate', e.target.value)}
               />
               <Input
-                label={t('pet.color')}
+                label={`🎨 ${t('pet.color')}`}
                 value={formData.pet.color}
                 onChange={(e) => handleInputChange('pet.color', e.target.value)}
               />
               <Input
                 type="number"
-                label={t('pet.weight')}
+                label={`⚖️ ${t('pet.weight')}`}
                 value={formData.pet.weight}
                 onChange={(e) => handleInputChange('pet.weight', e.target.value)}
                 min="0"
@@ -591,13 +604,13 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('pet.notes')}
+              <label className="label">
+                📝 {t('pet.notes')}
               </label>
               <textarea
                 value={formData.pet.notes}
                 onChange={(e) => handleInputChange('pet.notes', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                 rows={3}
               />
             </div>
@@ -605,7 +618,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[var(--app-border-default)]">
           <Button
             type="button"
             variant="secondary"

@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { XMarkIcon, ArrowUpTrayIcon, DocumentIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, DocumentIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { serviceProductsApi } from '../../api/serviceProducts';
+import { Modal } from '../common/Modal';
+import { Button } from '../common/Button';
 import * as XLSX from 'xlsx';
 
 interface Props {
@@ -140,142 +142,127 @@ export const ImportExcelModal = ({ onClose }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-
-        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold">{t('import.title')}</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={`📥 ${t('import.title')}`}
+      size="md"
+    >
+      <div className="space-y-4">
+        {/* Format Info */}
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+          <div className="flex items-start justify-between gap-4">
+            <div className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="font-medium mb-2">📋 {t('import.formatTitle')}</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li><span className="font-medium">A:</span> {t('import.colName')}</li>
+                <li><span className="font-medium">C:</span> {t('import.colCategory')}</li>
+                <li><span className="font-medium">F:</span> {t('import.colPriceBeforeTax')}</li>
+                <li><span className="font-medium">G:</span> {t('import.colTaxRate')}</li>
+                <li><span className="font-medium">H:</span> {t('import.colPriceAfterTax')}</li>
+              </ul>
+            </div>
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2 whitespace-nowrap"
             >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-4 space-y-4">
-            {/* Format Info */}
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="text-sm text-blue-700">
-                  <p className="font-medium mb-2">{t('import.formatTitle')}</p>
-                  <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li><span className="font-medium">A:</span> {t('import.colName')}</li>
-                    <li><span className="font-medium">C:</span> {t('import.colCategory')}</li>
-                    <li><span className="font-medium">F:</span> {t('import.colPriceBeforeTax')}</li>
-                    <li><span className="font-medium">G:</span> {t('import.colTaxRate')}</li>
-                    <li><span className="font-medium">H:</span> {t('import.colPriceAfterTax')}</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDownloadTemplate}
-                  className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap"
-                >
-                  <ArrowDownTrayIcon className="w-4 h-4" />
-                  {t('import.downloadTemplate')}
-                </button>
-              </div>
-            </div>
-
-            {/* Drop Zone */}
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              {file ? (
-                <div className="flex items-center justify-center gap-3">
-                  <DocumentIcon className="w-10 h-10 text-blue-600" />
-                  <div className="text-start">
-                    <p className="font-medium text-gray-900">{file.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <ArrowUpTrayIcon className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">{t('import.dropZone')}</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    {t('import.supportedFormats')}
-                  </p>
-                </>
-              )}
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            {/* Result */}
-            {result && (
-              <div
-                className={`p-3 rounded-lg text-sm ${
-                  result.failed > 0 ? 'bg-yellow-50' : 'bg-green-50'
-                }`}
-              >
-                <p
-                  className={`font-medium ${
-                    result.failed > 0 ? 'text-yellow-700' : 'text-green-700'
-                  }`}
-                >
-                  {t('import.result', {
-                    success: result.success,
-                    failed: result.failed,
-                  })}
-                </p>
-                {result.errors.length > 0 && (
-                  <ul className="mt-2 text-xs text-yellow-600 list-disc list-inside">
-                    {result.errors.slice(0, 5).map((err, i) => (
-                      <li key={i}>{err}</li>
-                    ))}
-                    {result.errors.length > 5 && (
-                      <li>...{result.errors.length - 5} more</li>
-                    )}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                {result ? t('import.close') : t('import.cancel')}
-              </button>
-              {!result && (
-                <button
-                  onClick={handleImport}
-                  disabled={!file || loading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? t('import.importing') : t('import.importBtn')}
-                </button>
-              )}
-            </div>
+              <ArrowDownTrayIcon className="w-4 h-4" />
+              {t('import.downloadTemplate')}
+            </Button>
           </div>
         </div>
+
+        {/* Drop Zone */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          onClick={() => fileInputRef.current?.click()}
+          className="border-2 border-dashed border-gray-300 dark:border-[var(--app-border-default)] rounded-lg p-8 text-center cursor-pointer hover:border-secondary-400 dark:hover:border-secondary-500 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 transition-colors"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          {file ? (
+            <div className="flex items-center justify-center gap-3">
+              <DocumentIcon className="w-10 h-10 text-secondary-600 dark:text-secondary-400" />
+              <div className="text-start">
+                <p className="font-medium text-gray-900 dark:text-[var(--app-text-primary)]">{file.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {(file.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <ArrowUpTrayIcon className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600 dark:text-gray-300">{t('import.dropZone')}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {t('import.supportedFormats')}
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Result */}
+        {result && (
+          <div
+            className={`p-3 rounded-lg text-sm ${
+              result.failed > 0 ? 'bg-yellow-50 dark:bg-yellow-900/30' : 'bg-green-50 dark:bg-green-900/30'
+            }`}
+          >
+            <p
+              className={`font-medium ${
+                result.failed > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-green-700 dark:text-green-400'
+              }`}
+            >
+              {result.failed > 0 ? '⚠️' : '✅'} {t('import.result', {
+                success: result.success,
+                failed: result.failed,
+              })}
+            </p>
+            {result.errors.length > 0 && (
+              <ul className="mt-2 text-xs text-yellow-600 dark:text-yellow-400 list-disc list-inside">
+                {result.errors.slice(0, 5).map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+                {result.errors.length > 5 && (
+                  <li>...{result.errors.length - 5} more</li>
+                )}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-4">
+          <Button variant="secondary" onClick={onClose} className="flex-1">
+            {result ? t('import.close') : t('import.cancel')}
+          </Button>
+          {!result && (
+            <Button
+              variant="primary"
+              onClick={handleImport}
+              disabled={!file || loading}
+              className="flex-1"
+            >
+              {loading ? t('import.importing') : t('import.importBtn')}
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 };

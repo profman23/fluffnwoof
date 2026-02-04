@@ -99,14 +99,14 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} title={t('changePassword')} size="md">
       <form onSubmit={handleSubmit}>
         {/* User Info */}
-        <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-          <span className="text-sm text-gray-600">{t('changingPasswordFor')}: </span>
-          <span className="font-medium">{userName}</span>
+        <div className="mb-4 p-3 bg-gray-100 dark:bg-[var(--app-bg-tertiary)] rounded-lg">
+          <span className="text-sm text-gray-600 dark:text-gray-400">{t('changingPasswordFor')}: </span>
+          <span className="font-medium dark:text-[var(--app-text-primary)]">{userName}</span>
         </div>
 
         {/* API Error */}
         {apiError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded-lg">
             {apiError}
           </div>
         )}
@@ -134,7 +134,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-[var(--app-border-default)]">
           <Button
             type="button"
             variant="secondary"

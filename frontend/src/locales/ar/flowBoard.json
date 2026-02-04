@@ -158,7 +158,11 @@
       "crt": "وقت امتلاء الشعيرات",
       "diagnosis": "التشخيص",
       "treatment": "العلاج"
-    }
+    },
+    "emptyRecordTitle": "السجل فارغ",
+    "emptyRecordWarning": "لا يمكن حفظ السجل بدون إضافة أي بيانات. سيتم حذف السجل تلقائياً.",
+    "emptyRecordConfirm": "حذف السجل",
+    "emptyRecordCancel": "العودة لإضافة بيانات"
   },
   "nextAppointment": {
     "title": "الموعد القادم",
@@ -184,5 +188,49 @@
   "mandatoryFields": {
     "required": "مطلوب",
     "mustFillBeforeClose": "يرجى ملء الحقول الإلزامية (الوزن، الحرارة، معدل ضربات القلب) قبل إغلاق السجل"
+  },
+  "forms": {
+    "title": "النماذج والشهادات",
+    "assignForm": "إرفاق نموذج",
+    "assigning": "جاري الإرفاق...",
+    "noForms": "لم يتم إرفاق أي نماذج بعد",
+    "noFormsHint": "أرفق نماذج وشهادات لجمع توقيعات من المالك",
+    "selectTemplate": "اختر القالب",
+    "searchTemplates": "ابحث في القوالب...",
+    "noTemplatesFound": "لم يتم العثور على قوالب",
+    "noTemplatesHint": "أنشئ قوالب في إعداد العيادة ← النماذج والشهادات",
+    "assignedForms": "النماذج المرفقة",
+    "sendToOwner": "إرسال للمالك",
+    "sending": "جاري الإرسال...",
+    "sent": "تم الإرسال",
+    "requestSignature": "طلب التوقيع",
+    "viewForm": "عرض النموذج",
+    "signForm": "توقيع",
+    "signed": "موقّع",
+    "pending": "قيد الانتظار",
+    "pendingClient": "بانتظار العميل",
+    "pendingVet": "بانتظار الطبيب",
+    "completed": "مكتمل",
+    "expired": "منتهي الصلاحية",
+    "category": "الفئة",
+    "createdAt": "تاريخ الإنشاء",
+    "expiresAt": "تاريخ الانتهاء",
+    "signatures": "التوقيعات",
+    "clientSignature": "توقيع العميل",
+    "vetSignature": "توقيع الطبيب",
+    "notSigned": "لم يتم التوقيع",
+    "signedAt": "تم التوقيع في",
+    "formSent": "تم إرسال النموذج للمالك بنجاح",
+    "formAssigned": "تم إرفاق النموذج بنجاح",
+    "signatureAdded": "تم إضافة التوقيع بنجاح",
+    "clientSignatureTablet": "توقيع العميل (من التابلت)",
+    "clientSignatureTabletHint": "يرجى تسليم التابلت للعميل للتوقيع",
+    "clientWillSignBelow": "سيقوم العميل بالتوقيع أدناه",
+    "print": "طباعة",
+    "errors": {
+      "assignFailed": "فشل في إرفاق النموذج",
+      "sendFailed": "فشل في إرسال النموذج",
+      "signFailed": "فشل في التوقيع"
+    }
   }
 }

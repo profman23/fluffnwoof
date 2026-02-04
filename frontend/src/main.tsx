@@ -2,9 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { initializeCapacitor } from './utils/capacitor';
 import './index.css';
 import './styles/brandPattern.css';
 import './i18n/config';
+
+// Initialize Capacitor plugins for native platforms
+initializeCapacitor();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

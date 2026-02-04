@@ -23,7 +23,8 @@ interface MonitoringContext {
 }
 
 // Check if Sentry is available
-let Sentry: typeof import('@sentry/node') | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Sentry: any = null;
 
 /**
  * Initialize monitoring (Sentry) for the application

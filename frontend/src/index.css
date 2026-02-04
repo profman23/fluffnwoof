@@ -15,6 +15,70 @@
   --flowboard-inprogress: #EAB8D5;
   --flowboard-hospitalized: #EAB8D5;
   --flowboard-completed: #CEE8DC;
+
+  /* App theme colors - Light Mode */
+  --app-bg-primary: #FDFEFF;
+  --app-bg-secondary: #f8fafc;
+  --app-bg-tertiary: #f5fbf8;
+  --app-bg-card: #ffffff;
+  --app-bg-elevated: #ffffff;
+
+  --app-text-primary: #211E1F;
+  --app-text-secondary: #374151;
+  --app-text-tertiary: #6b7280;
+  --app-text-muted: #9ca3af;
+
+  --app-border-default: #e5e7eb;
+  --app-border-light: #f3f4f6;
+  --app-border-focus: #CEE8DC;
+
+  --app-mint: #CEE8DC;
+  --app-mint-dark: #56af8e;
+  --app-pink: #EAB8D5;
+  --app-pink-dark: #d66aab;
+  --app-gold: #F5DF59;
+  --app-gold-dark: #d4b02e;
+
+  --app-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --app-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Theme */
+.dark {
+  color-scheme: dark;
+
+  /* Header & Sidebar in dark mode */
+  --header-bg-color-dark: #1f1f23;
+  --sidebar-bg-color-dark: #1c1c1f;
+  --sidebar-hover-color-dark: #27272b;
+
+  /* App theme colors - Dark Mode */
+  --app-bg-primary: #0f0f10;
+  --app-bg-secondary: #161618;
+  --app-bg-tertiary: #1c1c1f;
+  --app-bg-card: #1f1f23;
+  --app-bg-elevated: #27272b;
+
+  --app-text-primary: #f4f4f5;
+  --app-text-secondary: #d4d4d8;
+  --app-text-tertiary: #a1a1aa;
+  --app-text-muted: #71717a;
+
+  --app-border-default: #3f3f46;
+  --app-border-light: #27272a;
+  --app-border-focus: #7fc2a8;
+
+  --app-mint: #7fc2a8;
+  --app-mint-dark: #56af8e;
+  --app-pink: #e091c0;
+  --app-pink-dark: #c44896;
+  --app-gold: #e8c840;
+  --app-gold-dark: #b8951f;
+
+  --app-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --app-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 /* Brand Fonts */
@@ -64,8 +128,9 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #FDFEFF;
-  color: #211E1F;
+  background-color: var(--app-bg-primary);
+  color: var(--app-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Apply GE Dinar One font for Arabic */
@@ -90,29 +155,47 @@ html[lang="ar"] body {
   }
 
   .btn-primary {
-    @apply bg-secondary-300 hover:bg-secondary-400 active:bg-secondary-500;
+    @apply bg-secondary-300 hover:bg-secondary-400 active:bg-secondary-500 dark:bg-secondary-600 dark:hover:bg-secondary-500 dark:active:bg-secondary-400;
     color: #211E1F;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400;
+    @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 active:bg-red-800;
+    @apply bg-red-600 text-white hover:bg-red-700 active:bg-red-800 dark:bg-red-700 dark:hover:bg-red-600;
   }
 
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-transparent transition-all;
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-transparent transition-all dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400;
   }
 
   .label {
-    @apply block text-sm font-medium mb-1;
-    color: #211E1F;
+    @apply block text-sm font-medium mb-1 text-start;
+    color: var(--app-text-primary);
+  }
+
+  /* Always use LTR for OTP and number inputs */
+  .otp-input,
+  input[type="tel"],
+  input[type="number"],
+  input[inputmode="numeric"] {
+    direction: ltr !important;
+    text-align: center;
+  }
+
+  /* Force Western/ASCII numerals - prevents Arabic font from converting to Arabic-Indic numerals */
+  .western-numerals,
+  .otp-input input {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" on, "lnum" on;
+    font-family: 'Inter', 'Arial', 'Helvetica Neue', sans-serif;
+    unicode-bidi: isolate;
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-md p-4 md:p-6;
+    @apply bg-white rounded-lg shadow-md p-4 md:p-6 dark:bg-gray-800 dark:shadow-lg dark:shadow-black/20 transition-colors;
   }
 
   .page-container {
@@ -124,14 +207,115 @@ html[lang="ar"] body {
   }
 
   .table th {
-    @apply bg-primary-100 px-4 py-3 text-sm font-semibold;
-    color: #211E1F;
+    @apply bg-primary-100 px-4 py-3 text-sm font-semibold dark:bg-gray-700;
+    color: var(--app-text-primary);
   }
 
   .table td {
-    @apply px-4 py-3 text-sm border-b border-primary-200;
-    color: #211E1F;
+    @apply px-4 py-3 text-sm border-b border-primary-200 dark:border-gray-700;
+    color: var(--app-text-primary);
   }
+
+  /* =========================================
+   * DARK MODE UTILITY CLASSES
+   * ========================================= */
+
+  /* Select Dropdown */
+  .select {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg
+           focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           dark:bg-[var(--app-bg-elevated)] dark:border-[var(--app-border-default)]
+           dark:text-[var(--app-text-primary)];
+  }
+
+  /* Textarea */
+  .textarea {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg
+           focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none
+           dark:bg-[var(--app-bg-elevated)] dark:border-[var(--app-border-default)]
+           dark:text-[var(--app-text-primary)] dark:placeholder-gray-500;
+  }
+
+  /* Dropdown Menu Container */
+  .dropdown-menu {
+    @apply bg-white border border-gray-200 rounded-lg shadow-lg
+           dark:bg-[var(--app-bg-card)] dark:border-[var(--app-border-default)]
+           dark:shadow-2xl dark:shadow-black/50;
+  }
+
+  /* Dropdown Item */
+  .dropdown-item {
+    @apply px-4 py-2.5 hover:bg-gray-50 transition-colors
+           dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)];
+  }
+
+  /* Alert Boxes */
+  .alert-success {
+    @apply bg-green-100 border border-green-400 text-green-700 rounded-lg p-3
+           dark:bg-green-900/30 dark:border-green-700 dark:text-green-400;
+  }
+
+  .alert-error {
+    @apply bg-red-100 border border-red-400 text-red-700 rounded-lg p-3
+           dark:bg-red-900/30 dark:border-red-700 dark:text-red-400;
+  }
+
+  .alert-warning {
+    @apply bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg p-3
+           dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-400;
+  }
+
+  .alert-info {
+    @apply bg-blue-100 border border-blue-400 text-blue-700 rounded-lg p-3
+           dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-400;
+  }
+
+  /* Empty State Container */
+  .empty-state {
+    @apply text-center py-6 text-gray-400 bg-gray-50 rounded-lg
+           dark:bg-[var(--app-bg-tertiary)] dark:text-gray-500;
+  }
+
+  /* List Item Container */
+  .list-item {
+    @apply p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors
+           dark:bg-[var(--app-bg-tertiary)] dark:hover:bg-[var(--app-bg-elevated)];
+  }
+
+  /* Section Header */
+  .section-header {
+    @apply font-medium dark:text-[var(--app-text-primary)];
+    color: var(--app-text-primary);
+  }
+
+  /* Info Box - For displaying read-only information */
+  .info-box {
+    @apply p-3 bg-gray-50 rounded-lg border border-gray-200
+           dark:bg-[var(--app-bg-tertiary)] dark:border-[var(--app-border-default)];
+  }
+
+  /* Form Label with dark mode */
+  .form-label {
+    @apply block text-sm font-medium mb-1 text-gray-700
+           dark:text-[var(--app-text-secondary)];
+  }
+}
+
+/* Dark Mode Status Badges */
+.dark .badge-success {
+  @apply bg-green-900/30 text-green-400;
+}
+
+.dark .badge-warning {
+  @apply bg-yellow-900/30 text-yellow-400;
+}
+
+.dark .badge-danger {
+  @apply bg-red-900/30 text-red-400;
+}
+
+.dark .badge-info {
+  @apply bg-blue-900/30 text-blue-400;
 }
 
 @layer utilities {
@@ -154,6 +338,31 @@ html[lang="ar"] body {
   .sidebar-menu-item:hover {
     background-color: var(--sidebar-hover-color);
     filter: brightness(0.95);
+  }
+
+  /* ========== Sidebar Custom Scrollbar ========== */
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(58, 102, 83, 0.2);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(58, 102, 83, 0.4);
+  }
+
+  /* Firefox support */
+  .sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(58, 102, 83, 0.2) transparent;
   }
 
   /* Logo Loader Animations */
@@ -196,6 +405,46 @@ html[lang="ar"] body {
 
   .animate-logo-fade {
     animation: logo-fade 1.2s ease-in-out infinite;
+  }
+
+  /* Waving Hand Animation */
+  @keyframes wave {
+    0% { transform: rotate(0deg); }
+    10% { transform: rotate(14deg); }
+    20% { transform: rotate(-8deg); }
+    30% { transform: rotate(14deg); }
+    40% { transform: rotate(-4deg); }
+    50% { transform: rotate(10deg); }
+    60% { transform: rotate(0deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .animate-wave {
+    animation: wave 1s ease-in-out infinite;
+    transform-origin: 70% 70%;
+    display: inline-block;
+  }
+
+  /* Smooth Waving Hand Animation - Simple and Elegant */
+  @keyframes wave-smooth {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(20deg);
+    }
+    50% {
+      transform: rotate(-10deg);
+    }
+    75% {
+      transform: rotate(15deg);
+    }
+  }
+
+  .animate-wave-smooth {
+    animation: wave-smooth 1.5s ease-in-out infinite;
+    transform-origin: 70% 70%;
+    display: inline-block;
   }
 
   /* Logo Drawing Animation */
@@ -306,4 +555,131 @@ html[lang="ar"] body {
   .animate-delay-800 { animation-delay: 800ms; }
   .animate-delay-900 { animation-delay: 900ms; }
   .animate-delay-1000 { animation-delay: 1000ms; }
+
+  /* ===== Paw Toggle Sidebar Animations ===== */
+
+  /* Paw walking animation during sidebar transition */
+  @keyframes paw-walk {
+    0% {
+      opacity: 0;
+      transform: translateY(-50%) translateX(-20px) rotate(-15deg);
+    }
+    20% {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0) rotate(0deg);
+    }
+    80% {
+      opacity: 1;
+      transform: translateY(-50%) translateX(100px) rotate(0deg);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-50%) translateX(120px) rotate(15deg);
+    }
+  }
+
+  .animate-paw-walk {
+    animation: paw-walk 0.6s ease-out forwards;
+  }
+
+  /* Paw button glow pulse */
+  @keyframes paw-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(var(--color-primary-400), 0.3),
+                  0 4px 15px rgba(var(--color-primary-400), 0.2);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(var(--color-primary-400), 0.5),
+                  0 4px 25px rgba(var(--color-primary-400), 0.4);
+    }
+  }
+
+  .animate-paw-glow {
+    animation: paw-glow 2s ease-in-out infinite;
+  }
+
+  /* Sidebar smooth slide */
+  @keyframes sidebar-expand {
+    from {
+      width: 5rem; /* 80px collapsed */
+    }
+    to {
+      width: 14rem; /* 224px expanded */
+    }
+  }
+
+  @keyframes sidebar-collapse {
+    from {
+      width: 14rem;
+    }
+    to {
+      width: 5rem;
+    }
+  }
+
+  /* Bounce effect for toggle */
+  @keyframes toggle-bounce {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.15);
+    }
+  }
+
+  .animate-toggle-bounce {
+    animation: toggle-bounce 0.3s ease-out;
+  }
+
+  /* Fade in for tooltips */
+  @keyframes tooltip-appear {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) translateX(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
+  }
+
+  .animate-tooltip-appear {
+    animation: tooltip-appear 0.2s ease-out forwards;
+  }
+
+  /* Paw print trail effect */
+  @keyframes paw-trail {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.2);
+    }
+  }
+
+  .animate-paw-trail {
+    animation: paw-trail 0.8s ease-out forwards;
+  }
+
+  /* Notification Bell Shake Animation */
+  @keyframes bell-shake {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: rotate(-10deg);
+    }
+    20%, 40%, 60%, 80% {
+      transform: rotate(10deg);
+    }
+  }
+
+  .animate-shake {
+    animation: bell-shake 0.5s ease-in-out;
+  }
 }

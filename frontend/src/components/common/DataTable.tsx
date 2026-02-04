@@ -91,7 +91,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ id, children, className
       {...listeners}
     >
       <div className="flex items-center gap-1">
-        <span className="text-gray-400 text-xs">⋮⋮</span>
+        <span className="text-gray-400 dark:text-gray-500 text-xs">⋮⋮</span>
         {children}
       </div>
     </th>
@@ -100,7 +100,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ id, children, className
 
 // Dragging header overlay
 const DragOverlayHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-primary-100 px-4 py-3 text-xs font-medium text-gray-700 uppercase tracking-wider rounded shadow-lg border border-primary-300">
+  <div className="bg-primary-100 dark:bg-[var(--app-bg-elevated)] px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider rounded shadow-lg border border-primary-300 dark:border-[var(--app-border-default)]">
     {children}
   </div>
 );
@@ -231,7 +231,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={`bg-white rounded-lg shadow overflow-hidden ${className}`}>
+    <div className={`bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow dark:shadow-2xl dark:shadow-black/30 overflow-hidden ${className}`}>
       <div className="overflow-x-auto">
         <DndContext
           sensors={sensors}
@@ -239,8 +239,8 @@ export function DataTable<T>({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-[var(--app-border-default)]">
+            <thead className="bg-gray-50 dark:bg-[var(--app-bg-tertiary)]">
               <tr>
                 {/* Expand column */}
                 {showExpandColumn && (
@@ -256,7 +256,7 @@ export function DataTable<T>({
                     <SortableHeader
                       key={column.id}
                       id={column.id}
-                      className={`px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider ${column.headerClassName || ''}`}
+                      className={`px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${column.headerClassName || ''}`}
                       isDragging={activeId === column.id}
                     >
                       {column.header}
@@ -266,17 +266,17 @@ export function DataTable<T>({
 
                 {/* Actions column */}
                 {renderActions && (
-                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {actionsHeader || t('actions')}
                   </th>
                 )}
               </tr>
             </thead>
 
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-[var(--app-bg-card)] divide-y divide-gray-200 dark:divide-[var(--app-border-default)]">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={totalColumns} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={totalColumns} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center">
                       <span className="text-4xl mb-2">{emptyIcon}</span>
                       <p>{emptyMessage || t('noData')}</p>
@@ -291,9 +291,9 @@ export function DataTable<T>({
                   return (
                     <React.Fragment key={rowId}>
                       <tr
-                        className={`hover:bg-gray-50 transition-colors ${
+                        className={`hover:bg-gray-50 dark:hover:bg-[var(--app-bg-tertiary)] transition-colors ${
                           onRowClick ? 'cursor-pointer' : ''
-                        } ${isExpanded ? 'bg-primary-50' : ''} ${getRowClassName(row)}`}
+                        } ${isExpanded ? 'bg-primary-50 dark:bg-primary-900/20' : ''} ${getRowClassName(row)}`}
                         onClick={() => {
                           if (showExpandColumn && onExpandToggle) {
                             onExpandToggle(isExpanded ? null : rowId);
@@ -305,7 +305,7 @@ export function DataTable<T>({
                         {/* Expand indicator */}
                         {showExpandColumn && (
                           <td className="px-2 py-3 text-center">
-                            <span className="text-gray-400">
+                            <span className="text-gray-400 dark:text-gray-500">
                               {isExpanded ? '▼' : '▶'}
                             </span>
                           </td>
@@ -336,7 +336,7 @@ export function DataTable<T>({
                       {/* Expanded row */}
                       {showExpandColumn && isExpanded && renderExpandedRow && (
                         <tr>
-                          <td colSpan={totalColumns} className="px-4 py-4 bg-gray-50">
+                          <td colSpan={totalColumns} className="px-4 py-4 bg-gray-50 dark:bg-[var(--app-bg-tertiary)]">
                             {renderExpandedRow(row)}
                           </td>
                         </tr>
@@ -359,7 +359,7 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className="px-4 py-3 border-t border-gray-200 flex justify-center gap-2">
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-[var(--app-border-default)] flex justify-center gap-2">
           <Button
             variant="secondary"
             onClick={() => onPageChange(Math.max(1, page - 1))}
@@ -367,7 +367,7 @@ export function DataTable<T>({
           >
             {isRtl ? '→' : '←'}
           </Button>
-          <span className="flex items-center px-4 text-sm text-gray-600">
+          <span className="flex items-center px-4 text-sm text-gray-600 dark:text-gray-400">
             {page} / {totalPages}
           </span>
           <Button

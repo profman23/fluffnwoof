@@ -132,14 +132,14 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit(false); }}>
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 rounded-lg">
             {successMessage}
           </div>
         )}
 
         {/* API Error */}
         {apiError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded-lg">
             {apiError}
           </div>
         )}
@@ -157,7 +157,7 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
               dir="ltr"
               placeholder="CUSTOM_ROLE"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {t('roleNameHint')}
             </p>
           </div>
@@ -184,21 +184,21 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
 
           {/* Description (Optional) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
               {t('description')}
             </label>
             <textarea
               value={formData.description}
               onChange={handleInputChange('description')}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] resize-none"
               placeholder={t('descriptionPlaceholder')}
             />
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-[var(--app-border-default)]">
           <Button
             type="button"
             variant="secondary"

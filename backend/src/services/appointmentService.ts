@@ -71,6 +71,7 @@ export const appointmentService = {
     reason?: string;
     notes?: string;
     scheduledFromRecordId?: string;
+    source?: 'STAFF' | 'CUSTOMER_PORTAL';
   }) {
     // استخدام Transaction لمنع Race Conditions عند الحجز المتزامن
     const result = await prisma.$transaction(async (tx) => {
@@ -485,14 +486,10 @@ export const appointmentService = {
           },
         },
         medicalRecords: {
-          where: {
-            isClosed: true,
-          },
           select: {
             recordCode: true,
             isClosed: true,
           },
-          take: 1,
         },
       },
       orderBy: [{ appointmentTime: 'asc' }],
@@ -514,8 +511,8 @@ export const appointmentService = {
             },
           },
         });
-        // Get the first closed medical record's code if exists
-        const medicalRecord = appointment.medicalRecords?.[0] || null;
+        // Get medical record (one-to-one relation, not array)
+        const medicalRecord = appointment.medicalRecords || null;
         return {
           ...appointment,
           pet: {
@@ -533,9 +530,18 @@ export const appointmentService = {
     // Group by status for Flow Board columns
     // CANCELLED appointments are included in scheduled column for display with different styling
     // COMPLETED appointments are shown in completed column (including those with finalized invoices)
+    // Exclude unconfirmed portal bookings (pending approval) from FlowBoard
+    // CONFIRMED appointments (approved portal bookings) are shown in scheduled column
     const columns = {
       scheduled: appointmentsWithOwner.filter(
-        (a) => a.status === 'SCHEDULED' || a.status === 'CANCELLED'
+        (a) => {
+          // Exclude pending portal bookings (awaiting staff approval)
+          if (a.source === 'CUSTOMER_PORTAL' && !a.isConfirmed && a.status === 'SCHEDULED') {
+            return false;
+          }
+          // Include SCHEDULED, CONFIRMED (approved portal bookings), and CANCELLED
+          return a.status === 'SCHEDULED' || a.status === 'CONFIRMED' || a.status === 'CANCELLED';
+        }
       ),
       checkIn: appointmentsWithOwner.filter((a) => a.status === 'CHECK_IN'),
       inProgress: appointmentsWithOwner.filter((a) => a.status === 'IN_PROGRESS'),

@@ -10,7 +10,7 @@ export const userController = {
    */
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { email, password, roleId, firstName, lastName, phone } = req.body;
+      const { email, password, roleId, firstName, lastName, phone, isBookable } = req.body;
 
       const user = await userService.create({
         email,
@@ -19,6 +19,7 @@ export const userController = {
         firstName,
         lastName,
         phone,
+        isBookable,
       });
 
       res.status(201).json({
@@ -78,7 +79,7 @@ export const userController = {
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { email, roleId, firstName, lastName, phone } = req.body;
+      const { email, roleId, firstName, lastName, phone, isBookable } = req.body;
 
       const user = await userService.update(id, {
         email,
@@ -86,6 +87,7 @@ export const userController = {
         firstName,
         lastName,
         phone,
+        isBookable,
       });
 
       res.json({

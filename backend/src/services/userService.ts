@@ -10,6 +10,7 @@ interface CreateUserInput {
   firstName: string;
   lastName: string;
   phone?: string;
+  isBookable?: boolean;
 }
 
 interface UpdateUserInput {
@@ -18,6 +19,7 @@ interface UpdateUserInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  isBookable?: boolean;
 }
 
 export const userService = {
@@ -25,9 +27,12 @@ export const userService = {
    * Create a new user
    */
   async create(data: CreateUserInput): Promise<Omit<User, 'password'>> {
+    // Normalize email to lowercase for consistent storage
+    const normalizedEmail = data.email.toLowerCase().trim();
+
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -41,11 +46,12 @@ export const userService = {
     try {
       const user = await prisma.user.create({
         data: {
-          email: data.email,
+          email: normalizedEmail,
           password: hashedPassword,
           firstName: data.firstName,
           lastName: data.lastName,
           phone: data.phone || null,
+          isBookable: data.isBookable ?? false,
           role: {
             connect: { id: data.roleId },
           },
@@ -98,6 +104,7 @@ export const userService = {
           lastName: true,
           phone: true,
           isActive: true,
+          isBookable: true,
           createdAt: true,
           updatedAt: true,
           role: {
@@ -135,6 +142,7 @@ export const userService = {
         phone: true,
         avatarUrl: true,
         isActive: true,
+        isBookable: true,
         createdAt: true,
         updatedAt: true,
         role: {
@@ -163,10 +171,16 @@ export const userService = {
       throw new AppError('المستخدم غير موجود', 404);
     }
 
+    // Normalize email if being updated
+    const updateData = { ...data };
+    if (updateData.email) {
+      updateData.email = updateData.email.toLowerCase().trim();
+    }
+
     // If email is being updated, check if it's already in use
-    if (data.email && data.email !== existingUser.email) {
+    if (updateData.email && updateData.email !== existingUser.email) {
       const emailInUse = await prisma.user.findUnique({
-        where: { email: data.email },
+        where: { email: updateData.email },
       });
 
       if (emailInUse) {
@@ -177,7 +191,7 @@ export const userService = {
     // Update user
     const user = await prisma.user.update({
       where: { id },
-      data,
+      data: updateData,
       select: {
         id: true,
         email: true,
@@ -187,6 +201,7 @@ export const userService = {
         phone: true,
         avatarUrl: true,
         isActive: true,
+        isBookable: true,
         createdAt: true,
         updatedAt: true,
         role: {
@@ -273,6 +288,7 @@ export const userService = {
         phone: true,
         avatarUrl: true,
         isActive: true,
+        isBookable: true,
         createdAt: true,
         updatedAt: true,
         role: {

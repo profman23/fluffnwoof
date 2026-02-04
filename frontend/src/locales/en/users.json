@@ -18,6 +18,8 @@
   "selectRole": "Select a role",
   "phone": "Phone",
   "phoneOptional": "Phone (Optional)",
+  "isBookable": "Available for Booking",
+  "isBookableHint": "When enabled, this user will appear in booking lists for customers",
   "status": "Status",
   "active": "Active",
   "inactive": "Inactive",

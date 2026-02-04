@@ -8,6 +8,7 @@ export interface CreateUserInput {
   firstName: string;
   lastName: string;
   phone?: string;
+  isBookable?: boolean;
 }
 
 export interface UpdateUserInput {
@@ -16,6 +17,7 @@ export interface UpdateUserInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  isBookable?: boolean;
 }
 
 export interface PaginatedUsers {

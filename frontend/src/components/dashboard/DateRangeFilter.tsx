@@ -75,8 +75,8 @@ export const DateRangeFilter = ({
             onClick={() => handlePresetClick(key)}
             className={`px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
               preset === key
-                ? 'bg-secondary-300 text-brand-dark shadow-md'
-                : 'bg-primary-50 text-brand-dark hover:bg-primary-100'
+                ? 'bg-secondary-300 dark:bg-secondary-600 text-brand-dark dark:text-white shadow-md'
+                : 'bg-primary-50 dark:bg-[var(--app-bg-elevated)] text-brand-dark dark:text-[var(--app-text-secondary)] hover:bg-primary-100 dark:hover:bg-[var(--app-bg-tertiary)]'
             }`}
           >
             {label}
@@ -85,27 +85,27 @@ export const DateRangeFilter = ({
       </div>
 
       {/* Separator */}
-      <div className="hidden sm:block h-6 w-px bg-primary-200" />
+      <div className="hidden sm:block h-6 w-px bg-primary-200 dark:bg-[var(--app-border-default)]" />
 
       {/* Custom Date Inputs */}
       <div className="flex items-center gap-2">
-        <CalendarDaysIcon className="w-4 h-4 text-brand-dark/60" />
+        <CalendarDaysIcon className="w-4 h-4 text-brand-dark/60 dark:text-gray-400" />
         <div className="flex items-center gap-1.5">
           <input
             type="date"
             value={formatDateForInput(startDate)}
             onChange={(e) => handleCustomDateChange('start', e.target.value)}
-            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 ${
-              preset === 'custom' ? 'border-secondary-300' : 'border-primary-200'
+            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] ${
+              preset === 'custom' ? 'border-secondary-300 dark:border-secondary-600' : 'border-primary-200 dark:border-[var(--app-border-default)]'
             }`}
           />
-          <span className="text-brand-dark/60 text-sm">-</span>
+          <span className="text-brand-dark/60 dark:text-gray-400 text-sm">-</span>
           <input
             type="date"
             value={formatDateForInput(endDate)}
             onChange={(e) => handleCustomDateChange('end', e.target.value)}
-            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 ${
-              preset === 'custom' ? 'border-secondary-300' : 'border-primary-200'
+            className={`px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] ${
+              preset === 'custom' ? 'border-secondary-300 dark:border-secondary-600' : 'border-primary-200 dark:border-[var(--app-border-default)]'
             }`}
           />
         </div>

@@ -73,8 +73,11 @@ export const authService = {
   },
 
   async login(email: string, password: string, lang: string = 'ar') {
+    // Normalize email to lowercase for case-insensitive matching
+    const normalizedEmail = email.toLowerCase().trim();
+
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       include: {
         role: {
           select: {

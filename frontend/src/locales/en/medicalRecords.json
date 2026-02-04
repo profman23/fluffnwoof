@@ -1,7 +1,9 @@
 {
   "title": "Medical Records",
-  "search": "Search by name or diagnosis...",
+  "search": "Search by pet name, code, owner name, code, or diagnosis...",
   "readOnly": "Read Only Mode",
+  "addRecord": "Add Record",
+  "addRecordTooltip": "Create new daily record for this pet",
   "table": {
     "visitDate": "Visit Date",
     "petName": "Pet",
@@ -10,7 +12,8 @@
     "chiefComplaint": "Complaint",
     "diagnosis": "Diagnosis",
     "vet": "Vet",
-    "lastUpdated": "Last Updated"
+    "lastUpdated": "Last Updated",
+    "actions": "Actions"
   },
   "noRecords": "No medical records found",
   "loading": "Loading...",

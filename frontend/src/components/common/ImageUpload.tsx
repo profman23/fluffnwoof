@@ -142,7 +142,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           relative overflow-hidden border-2 border-dashed transition-all cursor-pointer
           ${sizeClasses[size]}
           ${shape === 'circle' ? 'rounded-full' : 'rounded-lg'}
-          ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'}
+          ${isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-300 dark:border-[var(--app-border-default)] hover:border-primary-400'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
         onDragOver={!disabled ? handleDragOver : undefined}
@@ -151,7 +151,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         onClick={() => !disabled && !isLoading && fileInputRef.current?.click()}
       >
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/50">
             <ArrowPathIcon className="w-8 h-8 text-primary-500 animate-spin" />
           </div>
         ) : displayImage ? (
@@ -161,7 +161,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-2">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 p-2">
             {placeholder || (
               <>
                 <PhotoIcon className="w-8 h-8 mb-1" />
@@ -191,11 +191,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
       {/* Error Message */}
       {error && (
-        <p className="text-xs text-red-500 text-center">{error}</p>
+        <p className="text-xs text-red-500 dark:text-red-400 text-center">{error}</p>
       )}
 
       {/* Max Size Hint */}
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-400 dark:text-gray-500">
         {t('upload.maxSize', { size: maxSizeMB })}
       </p>
 
@@ -208,7 +208,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             handleRemove();
           }}
           disabled={isLoading}
-          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors"
+          className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
         >
           <TrashIcon className="w-4 h-4" />
           {t('upload.removeImage')}

@@ -3,10 +3,24 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Parse CORS origins - supports comma-separated values
-const getCorsOrigins = (): string | string[] => {
+const getCorsOrigins = (): string | string[] | boolean => {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+
+  // In development, allow all origins for mobile testing
+  if (nodeEnv === 'development') {
+    return true; // Allow all origins
+  }
+
   const frontendUrl = process.env.FRONTEND_URL;
   if (!frontendUrl) {
-    return 'http://localhost:5173';
+    // Default origins including Capacitor mobile app origins
+    return [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'capacitor://localhost',
+      'http://localhost',
+    ];
   }
   // Support multiple origins separated by comma
   if (frontendUrl.includes(',')) {
@@ -25,5 +39,6 @@ export const config = {
   },
   cors: {
     origin: getCorsOrigins(),
+    credentials: true,
   },
 };

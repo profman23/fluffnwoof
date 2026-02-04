@@ -260,6 +260,7 @@ export const shiftService = {
   },
 
   // Get available time slots with reason for unavailability
+  // PRIORITY: VetSchedulePeriod > VetSchedule (period overrides daily schedule)
   async getAvailableSlotsWithReason(
     vetId: string,
     date: string,
@@ -268,35 +269,97 @@ export const shiftService = {
     const normalizedDate = normalizeDateForDb(date);
     const dayOfWeek = getDayOfWeekFromDate(normalizedDate);
 
-    // Check if it's a day off
+    // Check if it's a day off first (applies to both systems)
     const isDayOff = await this.isDateDayOff(vetId, date);
     if (isDayOff) return { slots: [], unavailableReason: 'dayOff' };
 
-    // Get schedule for this day
-    const schedule = await this.getScheduleForDay(vetId, dayOfWeek);
-    if (!schedule) return { slots: [], unavailableReason: 'noSchedule' };
-    if (!schedule.isWorkingDay) return { slots: [], unavailableReason: 'weekendOff' };
+    // PRIORITY 1: Check VetSchedulePeriod first (specific date-range schedule)
+    const period = await this.getSchedulePeriodForDate(vetId, date);
 
-    // Get breaks for this day
-    const breaks = await this.getBreaksForDate(vetId, date);
+    let startTime: string;
+    let endTime: string;
+    let isWorkingDay: boolean;
+    let breakStart: number | null = null;
+    let breakEnd: number | null = null;
+
+    if (period) {
+      // Use VetSchedulePeriod settings
+      isWorkingDay = period.workingDays.includes(dayOfWeek);
+      if (!isWorkingDay) return { slots: [], unavailableReason: 'weekendOff' };
+
+      startTime = period.workStartTime;
+      endTime = period.workEndTime;
+      breakStart = period.breakStartTime ? timeToMinutes(period.breakStartTime) : null;
+      breakEnd = period.breakEndTime ? timeToMinutes(period.breakEndTime) : null;
+    } else {
+      // PRIORITY 2: Fall back to VetSchedule (weekly recurring schedule)
+      const schedule = await this.getScheduleForDay(vetId, dayOfWeek);
+      if (!schedule) return { slots: [], unavailableReason: 'noSchedule' };
+      if (!schedule.isWorkingDay) return { slots: [], unavailableReason: 'weekendOff' };
+
+      startTime = schedule.startTime;
+      endTime = schedule.endTime;
+
+      // Get breaks for this day (only for VetSchedule, period has its own breaks)
+      const breaks = await this.getBreaksForDate(vetId, date);
+      // We'll handle multiple breaks in the slot generation loop
+      if (breaks.length > 0) {
+        // For simplicity, use the first break (most common case)
+        breakStart = timeToMinutes(breaks[0].startTime);
+        breakEnd = timeToMinutes(breaks[0].endTime);
+      }
+    }
 
     // Get existing appointments for this vet on this date
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         vetId,
-        appointmentDate: {
-          gte: new Date(`${date}T00:00:00`),
-          lt: new Date(`${date}T23:59:59`),
-        },
+        appointmentDate: normalizedDate,
         status: { notIn: ['CANCELLED'] },
+        // Exclude pending portal bookings (they haven't been approved yet)
+        NOT: {
+          AND: [
+            { source: 'CUSTOMER_PORTAL' },
+            { isConfirmed: false },
+            { status: 'SCHEDULED' },
+          ],
+        },
       },
       select: { appointmentTime: true, duration: true },
     });
 
+    // Get active slot reservations (temporary holds from other users)
+    const activeReservations = await prisma.slotReservation.findMany({
+      where: {
+        vetId,
+        reservationDate: normalizedDate,
+        status: 'PENDING',
+        expiresAt: { gt: new Date() },
+      },
+      select: { reservationTime: true, duration: true },
+    });
+
     // Build available slots
     const slots: string[] = [];
-    const startMinutes = timeToMinutes(schedule.startTime);
-    const endMinutes = timeToMinutes(schedule.endTime);
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+
+    // Check if booking for today - filter out past slots
+    // Clinic timezone: UTC+3 (Arabia Standard Time)
+    const CLINIC_TIMEZONE_OFFSET = 3;
+    const now = new Date();
+    const todayStr = new Date(now.getTime() + CLINIC_TIMEZONE_OFFSET * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+    const isToday = date === todayStr;
+
+    // Calculate current time in clinic timezone (minutes from midnight)
+    let currentTimeMinutes = 0;
+    if (isToday) {
+      const clinicHour = now.getUTCHours() + CLINIC_TIMEZONE_OFFSET;
+      const clinicMinutes = now.getUTCMinutes();
+      currentTimeMinutes = clinicHour * 60 + clinicMinutes + 30; // 30 min buffer
+    }
 
     // Generate slots every 15 minutes
     for (let time = startMinutes; time + durationMinutes <= endMinutes; time += 15) {
@@ -304,14 +367,17 @@ export const shiftService = {
       const slotEnd = time + durationMinutes;
       const slotTime = minutesToTime(slotStart);
 
-      // Check if slot overlaps with any break
-      const overlapsBreak = breaks.some((brk) => {
-        const breakStart = timeToMinutes(brk.startTime);
-        const breakEnd = timeToMinutes(brk.endTime);
-        return slotStart < breakEnd && slotEnd > breakStart;
-      });
+      // Skip past slots if booking for today
+      if (isToday && slotStart <= currentTimeMinutes) {
+        continue;
+      }
 
-      if (overlapsBreak) continue;
+      // Check if slot overlaps with break
+      if (breakStart !== null && breakEnd !== null) {
+        if (slotStart < breakEnd && slotEnd > breakStart) {
+          continue;
+        }
+      }
 
       // Check if slot overlaps with any existing appointment
       const overlapsAppointment = existingAppointments.some((apt) => {
@@ -321,6 +387,15 @@ export const shiftService = {
       });
 
       if (overlapsAppointment) continue;
+
+      // Check if slot overlaps with any active reservation (temporary hold)
+      const overlapsReservation = activeReservations.some((res) => {
+        const resStart = timeToMinutes(res.reservationTime);
+        const resEnd = resStart + res.duration;
+        return slotStart < resEnd && slotEnd > resStart;
+      });
+
+      if (overlapsReservation) continue;
 
       slots.push(slotTime);
     }
@@ -547,16 +622,33 @@ export const shiftService = {
     }
 
     // Get existing appointments for this vet on this date
+    // Use UTC-normalized date for consistent timezone handling
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         vetId,
-        appointmentDate: {
-          gte: new Date(`${date}T00:00:00`),
-          lt: new Date(`${date}T23:59:59`),
-        },
+        appointmentDate: normalizedDate, // Direct date comparison (UTC midnight)
         status: { notIn: ['CANCELLED'] },
+        // Exclude pending portal bookings (they haven't been approved yet)
+        NOT: {
+          AND: [
+            { source: 'CUSTOMER_PORTAL' },
+            { isConfirmed: false },
+            { status: 'SCHEDULED' },
+          ],
+        },
       },
       select: { appointmentTime: true, duration: true },
+    });
+
+    // Get active slot reservations (temporary holds from other users)
+    const activeReservationsPeriod = await prisma.slotReservation.findMany({
+      where: {
+        vetId,
+        reservationDate: normalizedDate,
+        status: 'PENDING',
+        expiresAt: { gt: new Date() },
+      },
+      select: { reservationTime: true, duration: true },
     });
 
     // Build available slots
@@ -568,11 +660,33 @@ export const shiftService = {
     const breakStart = period.breakStartTime ? timeToMinutes(period.breakStartTime) : null;
     const breakEnd = period.breakEndTime ? timeToMinutes(period.breakEndTime) : null;
 
+    // Check if booking for today - filter out past slots
+    // Clinic timezone: UTC+3 (Arabia Standard Time)
+    const CLINIC_TIMEZONE_OFFSET = 3;
+    const now = new Date();
+    const todayStr = new Date(now.getTime() + CLINIC_TIMEZONE_OFFSET * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+    const isToday = date === todayStr;
+
+    // Calculate current time in clinic timezone (minutes from midnight)
+    let currentTimeMinutes = 0;
+    if (isToday) {
+      const clinicHour = now.getUTCHours() + CLINIC_TIMEZONE_OFFSET;
+      const clinicMinutes = now.getUTCMinutes();
+      currentTimeMinutes = clinicHour * 60 + clinicMinutes + 30; // 30 min buffer
+    }
+
     // Generate slots every 15 minutes
     for (let time = startMinutes; time + durationMinutes <= endMinutes; time += 15) {
       const slotStart = time;
       const slotEnd = time + durationMinutes;
       const slotTime = minutesToTime(slotStart);
+
+      // Skip past slots if booking for today
+      if (isToday && slotStart <= currentTimeMinutes) {
+        continue;
+      }
 
       // Check if slot overlaps with break
       if (breakStart !== null && breakEnd !== null) {
@@ -589,6 +703,15 @@ export const shiftService = {
       });
 
       if (overlapsAppointment) continue;
+
+      // Check if slot overlaps with any active reservation (temporary hold)
+      const overlapsReservationPeriod = activeReservationsPeriod.some((res) => {
+        const resStart = timeToMinutes(res.reservationTime);
+        const resEnd = resStart + res.duration;
+        return slotStart < resEnd && slotEnd > resStart;
+      });
+
+      if (overlapsReservationPeriod) continue;
 
       slots.push(slotTime);
     }

@@ -100,7 +100,7 @@ export const RescheduleModal = ({
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="relative bg-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-2xl dark:shadow-black/50 w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="bg-emerald-600 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -120,23 +120,23 @@ export const RescheduleModal = ({
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6">
           {/* Client & Pet Info (Readonly) */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-gray-50 dark:bg-[var(--app-bg-tertiary)] rounded-lg p-4 mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
                   {t('form.owner')}
                 </label>
-                <p className="font-medium text-gray-900">
+                <p className="font-medium text-gray-900 dark:text-[var(--app-text-primary)]">
                   {appointment.pet?.owner
                     ? `${appointment.pet.owner.firstName} ${appointment.pet.owner.lastName}`
                     : '-'}
                 </p>
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
                   {t('form.pet')}
                 </label>
-                <p className="font-medium text-gray-900">
+                <p className="font-medium text-gray-900 dark:text-[var(--app-text-primary)]">
                   {appointment.pet?.name || '-'}
                 </p>
               </div>
@@ -147,7 +147,7 @@ export const RescheduleModal = ({
           <div className="space-y-4">
             {/* Date */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1 flex items-center gap-1">
                 <CalendarIcon className="w-4 h-4" />
                 {t('form.date')}
               </label>
@@ -155,14 +155,14 @@ export const RescheduleModal = ({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                 required
               />
             </div>
 
             {/* Time */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1 flex items-center gap-1">
                 <ClockIcon className="w-4 h-4" />
                 {t('form.time')}
               </label>
@@ -170,21 +170,21 @@ export const RescheduleModal = ({
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                 required
               />
             </div>
 
             {/* Doctor/Vet */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1 flex items-center gap-1">
                 <UserIcon className="w-4 h-4" />
                 {t('form.staff')}
               </label>
               <select
                 value={vetId}
                 onChange={(e) => setVetId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                 required
               >
                 <option value="">{t('form.loading')}</option>
@@ -199,7 +199,7 @@ export const RescheduleModal = ({
 
           {/* Error */}
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -209,7 +209,7 @@ export const RescheduleModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] text-gray-700 dark:text-[var(--app-text-secondary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] transition-colors"
             >
               {t('form.cancel')}
             </button>

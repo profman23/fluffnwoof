@@ -42,15 +42,15 @@ export const StatsCard = ({
 
     if (change > 0) {
       changeIcon = <ArrowTrendingUpIcon className="w-3 h-3" />;
-      changeColor = 'text-green-600 bg-green-50';
+      changeColor = 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30';
       changeText = `+${change}%`;
     } else if (change < 0) {
       changeIcon = <ArrowTrendingDownIcon className="w-3 h-3" />;
-      changeColor = 'text-red-600 bg-red-50';
+      changeColor = 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30';
       changeText = `${change}%`;
     } else {
       changeIcon = <MinusIcon className="w-3 h-3" />;
-      changeColor = 'text-brand-dark/60 bg-primary-50';
+      changeColor = 'text-brand-dark/60 dark:text-gray-400 bg-primary-50 dark:bg-[var(--app-bg-elevated)]';
       changeText = '0%';
     }
 
@@ -64,25 +64,25 @@ export const StatsCard = ({
 
   if (loading) {
     return (
-      <div className="bg-brand-white rounded-xl shadow-md p-5 animate-pulse">
+      <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-md dark:shadow-black/30 p-5 animate-pulse">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="h-4 bg-primary-100 rounded w-24 mb-3" />
-            <div className="h-8 bg-primary-100 rounded w-16 mb-2" />
-            <div className="h-4 bg-primary-100 rounded w-20" />
+            <div className="h-4 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded w-24 mb-3" />
+            <div className="h-8 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded w-16 mb-2" />
+            <div className="h-4 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded w-20" />
           </div>
-          <div className="w-14 h-14 bg-primary-100 rounded-xl" />
+          <div className="w-14 h-14 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-brand-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-5 border border-primary-200">
+    <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-md dark:shadow-black/30 hover:shadow-lg dark:hover:shadow-black/50 transition-all duration-300 p-5 border border-primary-200 dark:border-[var(--app-border-default)]">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-brand-dark/60 text-sm font-medium mb-1">{title}</p>
-          <p className="text-3xl font-bold text-brand-dark mb-2">
+          <p className="text-brand-dark/60 dark:text-gray-400 text-sm font-medium mb-1">{title}</p>
+          <p className="text-3xl font-bold text-brand-dark dark:text-[var(--app-text-primary)] mb-2">
             {typeof value === 'number' ? (
               <AnimatedNumber
                 value={value}
@@ -97,7 +97,7 @@ export const StatsCard = ({
           <div className="flex items-center gap-2">
             {renderChange()}
             {changeLabel && (
-              <span className="text-xs text-brand-dark/60">{changeLabel}</span>
+              <span className="text-xs text-brand-dark/60 dark:text-gray-400">{changeLabel}</span>
             )}
           </div>
         </div>

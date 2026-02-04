@@ -29,7 +29,7 @@ export const LogoLoader: React.FC<LogoLoaderProps> = ({
         className={`${LOGO_SIZE} ${animationMap[animation]} object-contain`}
       />
       {text && (
-        <p className="text-brand-dark font-normal text-base animate-pulse">
+        <p className="text-brand-dark dark:text-[var(--app-text-primary)] font-normal text-base animate-pulse">
           {text}
         </p>
       )}
@@ -40,7 +40,7 @@ export const LogoLoader: React.FC<LogoLoaderProps> = ({
   // الفرق بين fullScreen والعادي هو الخلفية فقط
   // z-20 لتكون تحت الـ Sidebar (z-30) وفوق المحتوى العادي
   return (
-    <div className={`fixed inset-0 flex items-center justify-center z-20 ${fullScreen ? 'bg-brand-white' : 'bg-transparent pointer-events-none'}`}>
+    <div className={`fixed inset-0 flex items-center justify-center z-20 ${fullScreen ? 'bg-brand-white dark:bg-[var(--app-bg-primary)]' : 'bg-transparent pointer-events-none'}`}>
       {content}
     </div>
   );

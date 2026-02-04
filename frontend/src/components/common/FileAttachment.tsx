@@ -150,7 +150,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h4 className="font-medium text-brand-dark flex items-center gap-2">
+        <h4 className="font-medium text-brand-dark dark:text-[var(--app-text-primary)] flex items-center gap-2">
           <PaperClipIcon className="w-5 h-5" />
           {t('attachments.title')} ({attachments.length})
         </h4>
@@ -178,14 +178,14 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
 
       {/* Error Message */}
       {uploadError && (
-        <div className="bg-red-50 text-red-600 p-2 rounded-lg text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded-lg text-sm">
           {uploadError}
         </div>
       )}
 
       {/* Attachments List */}
       {attachments.length === 0 ? (
-        <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-lg">
+        <div className="text-center py-6 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[var(--app-bg-tertiary)] rounded-lg">
           <PaperClipIcon className="w-8 h-8 mx-auto mb-2" />
           <p>{t('attachments.noAttachments')}</p>
         </div>
@@ -194,7 +194,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[var(--app-bg-tertiary)] rounded-lg hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] transition-colors"
             >
               {/* File Icon / Thumbnail */}
               {attachment.fileType === 'image' ? (
@@ -205,22 +205,22 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
                   onClick={() => handleImageClick(attachment.fileUrl)}
                 />
               ) : (
-                <div className="w-12 h-12 flex items-center justify-center bg-white rounded border">
+                <div className="w-12 h-12 flex items-center justify-center bg-white dark:bg-[var(--app-bg-card)] rounded border dark:border-[var(--app-border-default)]">
                   {getFileIcon(attachment.fileType)}
                 </div>
               )}
 
               {/* File Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-brand-dark truncate">
+                <p className="font-medium text-sm text-brand-dark dark:text-[var(--app-text-primary)] truncate">
                   {attachment.fileName}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {formatFileSize(attachment.fileSize)}
                   {attachment.description && ` - ${attachment.description}`}
                 </p>
                 {attachment.uploader && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {attachment.uploader.firstName} {attachment.uploader.lastName}
                   </p>
                 )}
@@ -231,7 +231,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDownload(attachment)}
-                  className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
                   title={t('attachments.download')}
                 >
                   <ArrowDownTrayIcon className="w-5 h-5" />
@@ -241,7 +241,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
                     type="button"
                     onClick={() => handleDelete(attachment.id)}
                     disabled={deletingId === attachment.id}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                     title={t('attachments.delete')}
                   >
                     {deletingId === attachment.id ? (
@@ -260,9 +260,9 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-xl dark:shadow-2xl dark:shadow-black/50 max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-brand-dark">
+              <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">
                 {t('attachments.addAttachment')}
               </h3>
               <button
@@ -273,7 +273,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
                   setDescription('');
                   setPreviewUrl(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -284,18 +284,18 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="w-full h-48 object-contain bg-gray-100 rounded-lg mb-4"
+                className="w-full h-48 object-contain bg-gray-100 dark:bg-[var(--app-bg-tertiary)] rounded-lg mb-4"
               />
             ) : selectedFile && (
-              <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg mb-4">
+              <div className="w-full h-48 flex items-center justify-center bg-gray-100 dark:bg-[var(--app-bg-tertiary)] rounded-lg mb-4">
                 {getFileIcon(selectedFile.type === 'application/pdf' ? 'pdf' : 'document')}
-                <span className="ml-2 text-gray-600">{selectedFile.name}</span>
+                <span className="ml-2 text-gray-600 dark:text-gray-400">{selectedFile.name}</span>
               </div>
             )}
 
             {/* File Info */}
             {selectedFile && (
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 {selectedFile.name} ({formatFileSize(selectedFile.size)})
               </p>
             )}
@@ -314,7 +314,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
 
             {/* Error */}
             {uploadError && (
-              <div className="bg-red-50 text-red-600 p-2 rounded-lg text-sm mb-4">
+              <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded-lg text-sm mb-4">
                 {uploadError}
               </div>
             )}

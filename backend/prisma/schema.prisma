@@ -1,5 +1,3 @@
-// This is your Prisma schema file
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,7 +7,745 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  displayNameEn   String
+  displayNameAr   String
+  description     String?
+  isSystem        Boolean          @default(false)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  users           User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                   String              @id @default(uuid())
+  email                String              @unique
+  password             String
+  firstName            String
+  lastName             String
+  phone                String?
+  isActive             Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  roleId               String
+  avatarUrl            String?
+  isBookable           Boolean             @default(false)
+  appointments         Appointment[]
+  auditLogs            AuditLog[]
+  uploadedAttachments  MedicalAttachment[] @relation("UploadedAttachments")
+  closedMedicalRecords MedicalRecord[]     @relation("ClosedRecords")
+  medicalRecords       MedicalRecord[]     @relation("VetRecords")
+  slotReservations     SlotReservation[]   @relation("VetReservations")
+  sentSmsLogs          SmsLog[]
+  permissions          UserPermission[]
+  preferences          UserPreferences?
+  role                 Role                @relation(fields: [roleId], references: [id])
+  vaccinations         Vaccination[]
+  vetBreaks            VetBreak[]          @relation("VetBreaks")
+  vetDaysOff           VetDayOff[]         @relation("VetDaysOff")
+  vetSchedulePeriods   VetSchedulePeriod[] @relation("VetSchedulePeriods")
+  vetSchedules         VetSchedule[]       @relation("VetSchedules")
+  createdFormTemplates FormTemplate[]      @relation("FormTemplateCreator")
+  createdPetForms      PetForm[]           @relation("PetFormCreator")
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model UserPreferences {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  headerBgColor     String?
+  sidebarBgColor    String?
+  sidebarHoverColor String?
+  flowBoardColors   Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  description String?
+  category    String
+  action      String
+  createdAt   DateTime         @default(now())
+  roles       RolePermission[]
+  users       UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  permissionId String
+  createdAt    DateTime   @default(now())
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  grantedBy    String?
+  grantedAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Owner {
+  id               String            @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String            @unique
+  address          String?
+  nationalId       String?
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  customerCode     String            @unique
+  isVerified       Boolean           @default(false)
+  lastLoginAt      DateTime?
+  passwordHash     String?
+  portalEnabled    Boolean           @default(true)
+  preferredLang    String            @default("ar")
+  verifiedAt       DateTime?
+  invoices         Invoice[]
+  otps             OwnerOtp[]
+  pets             Pet[]
+  reminderLogs     ReminderLog[]
+  slotReservations SlotReservation[] @relation("CustomerReservations")
+  notifications    CustomerNotification[]
+
+  @@index([customerCode])
+  @@index([email])
+  @@map("owners")
+}
+
+model Pet {
+  id             String          @id @default(uuid())
+  name           String
+  species        Species
+  breed          String?
+  gender         Gender
+  birthDate      DateTime?
+  color          String?
+  weight         Float?
+  microchipId    String?         @unique
+  photoUrl       String?
+  notes          String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  ownerId        String
+  petCode        String          @unique
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  owner          Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  vaccinations   Vaccination[]
+  petForms       PetForm[]
+
+  @@index([ownerId])
+  @@index([petCode])
+  @@map("pets")
+}
+
+model Appointment {
+  id                    String              @id @default(uuid())
+  appointmentDate       DateTime
+  appointmentTime       String
+  duration              Int                 @default(30)
+  status                AppointmentStatus   @default(SCHEDULED)
+  reason                String?
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  petId                 String
+  vetId                 String
+  visitType             String              @default("GENERAL_CHECKUP")
+  isConfirmed           Boolean             @default(false)
+  scheduledFromRecordId String?
+  cancelledAt           DateTime?
+  cancelledBy           CancelledBy?
+  source                AppointmentSource   @default(STAFF)
+  pet                   Pet                 @relation(fields: [petId], references: [id], onDelete: Cascade)
+  scheduledFromRecord   MedicalRecord?      @relation("ScheduledAppointments", fields: [scheduledFromRecordId], references: [id])
+  vet                   User                @relation(fields: [vetId], references: [id])
+  invoice               Invoice?
+  medicalRecords        MedicalRecord?
+  reminderLogs          ReminderLog[]
+  staffNotifications    StaffNotification[]
+  petForms              PetForm[]
+
+  @@index([petId])
+  @@index([vetId])
+  @@index([appointmentDate])
+  @@index([status])
+  @@index([scheduledFromRecordId])
+  @@index([source])
+  @@index([vetId, appointmentDate, appointmentTime, status], map: "idx_appointment_booking_lookup")
+  @@map("appointments")
+}
+
+model MedicalRecord {
+  id                    String              @id @default(uuid())
+  visitDate             DateTime            @default(now())
+  diagnosis             String?
+  symptoms              String?
+  treatment             String?
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  petId                 String
+  vetId                 String
+  appointmentId         String?             @unique
+  attitude              String?
+  behaviour             String?
+  bodyConditionScore    Int?
+  chiefComplaint        String?
+  createdById           String?
+  crt                   Float?
+  heartRate             Int?
+  history               String?
+  hydration             String?
+  mucousMembranes       String?
+  muscleCondition       String?
+  painScore             Int?
+  respirationRate       Int?
+  temperature           Float?
+  updatedById           String?
+  weight                Float?
+  isClosed              Boolean             @default(false)
+  closedAt              DateTime?
+  closedById            String?
+  recordCode            String?             @unique
+  version               Int                 @default(1)
+  scheduledAppointments Appointment[]       @relation("ScheduledAppointments")
+  attachments           MedicalAttachment[]
+  appointment           Appointment?        @relation(fields: [appointmentId], references: [id])
+  closedBy              User?               @relation("ClosedRecords", fields: [closedById], references: [id])
+  pet                   Pet                 @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vet                   User                @relation("VetRecords", fields: [vetId], references: [id])
+  prescriptions         Prescription[]
+
+  @@index([petId])
+  @@index([vetId])
+  @@index([visitDate])
+  @@index([appointmentId])
+  @@index([isClosed])
+  @@map("medical_records")
+}
+
+model Prescription {
+  id              String        @id @default(uuid())
+  medication      String
+  dosage          String
+  frequency       String
+  duration        String
+  instructions    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  medicalRecordId String
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@index([medicalRecordId])
+  @@map("prescriptions")
+}
+
+model Vaccination {
+  id          String    @id @default(uuid())
+  vaccineName String
+  vaccineDate DateTime
+  nextDueDate DateTime?
+  batchNumber String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  petId       String
+  vetId       String
+  pet         Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vet         User      @relation(fields: [vetId], references: [id])
+
+  @@index([petId])
+  @@index([vetId])
+  @@index([nextDueDate])
+  @@map("vaccinations")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime
+  totalAmount   Float         @default(0)
+  paidAmount    Float         @default(0)
+  status        InvoiceStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  ownerId       String
+  appointmentId String?       @unique
+  finalizedAt   DateTime?
+  isFinalized   Boolean       @default(false)
+  items         InvoiceItem[]
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
+  owner         Owner         @relation(fields: [ownerId], references: [id])
+  payments      Payment[]
+
+  @@index([ownerId])
+  @@index([invoiceNumber])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  invoiceId   String
+  discount    Float    @default(0)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  paymentDate   DateTime      @default(now())
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  invoiceId     String
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+model Category {
+  id        String           @id @default(uuid())
+  name      String           @unique
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  items     ServiceProduct[]
+
+  @@map("categories")
+}
+
+model ServiceProduct {
+  id             String   @id @default(uuid())
+  name           String
+  categoryId     String
+  priceBeforeTax Decimal  @db.Decimal(10, 2)
+  taxRate        Decimal  @db.Decimal(5, 2)
+  priceAfterTax  Decimal  @db.Decimal(10, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  category       Category @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([name])
+  @@map("service_products")
+}
+
+model MedicalAttachment {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  fileName        String
+  fileUrl         String
+  publicId        String?
+  fileType        String
+  fileSize        Int
+  description     String?
+  uploadedBy      String
+  createdAt       DateTime      @default(now())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  uploader        User          @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
+
+  @@index([medicalRecordId])
+  @@index([uploadedBy])
+  @@map("medical_attachments")
+}
+
+model SmsLog {
+  id             String    @id @default(uuid())
+  messageId      String?
+  recipientPhone String
+  recipientName  String?
+  messageBody    String
+  status         SmsStatus @default(PENDING)
+  sentAt         DateTime?
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  sentById       String?
+  sentBy         User?     @relation(fields: [sentById], references: [id])
+
+  @@index([recipientPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sms_logs")
+}
+
+model ReminderSetting {
+  id              String            @id @default(uuid())
+  eventType       ReminderEventType
+  isEnabled       Boolean           @default(true)
+  sendBeforeHours Int?
+  smsEnabled      Boolean           @default(false)
+  whatsappEnabled Boolean           @default(false)
+  emailEnabled    Boolean           @default(false)
+  pushEnabled     Boolean           @default(false)
+  templateAr      String?
+  templateEn      String?
+  reminderOrder   Int               @default(1)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  logs            ReminderLog[]
+
+  @@unique([eventType, reminderOrder])
+  @@map("reminder_settings")
+}
+
+model ReminderLog {
+  id             String              @id @default(uuid())
+  settingId      String
+  appointmentId  String?
+  channel        NotificationChannel
+  status         ReminderLogStatus   @default(PENDING)
+  recipientPhone String?
+  recipientEmail String?
+  recipientName  String?
+  messageBody    String?
+  scheduledFor   DateTime?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  errorMessage   String?
+  externalId     String?
+  createdAt      DateTime            @default(now())
+  ownerId        String?
+  appointment    Appointment?        @relation(fields: [appointmentId], references: [id])
+  owner          Owner?              @relation(fields: [ownerId], references: [id])
+  setting        ReminderSetting     @relation(fields: [settingId], references: [id], onDelete: Cascade)
+
+  @@index([settingId])
+  @@index([appointmentId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@map("reminder_logs")
+}
+
+model MessageTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  contentAr   String
+  contentEn   String
+  variables   String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("message_templates")
+}
+
+model VetSchedule {
+  id           String    @id @default(uuid())
+  vetId        String
+  dayOfWeek    DayOfWeek
+  startTime    String
+  endTime      String
+  isWorkingDay Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  vet          User      @relation("VetSchedules", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@unique([vetId, dayOfWeek])
+  @@index([vetId])
+  @@map("vet_schedules")
+}
+
+model VetDayOff {
+  id        String   @id @default(uuid())
+  vetId     String
+  date      DateTime @db.Date
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vet       User     @relation("VetDaysOff", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@unique([vetId, date])
+  @@index([vetId])
+  @@index([date])
+  @@map("vet_days_off")
+}
+
+model VetBreak {
+  id           String     @id @default(uuid())
+  vetId        String
+  dayOfWeek    DayOfWeek?
+  specificDate DateTime?  @db.Date
+  startTime    String
+  endTime      String
+  description  String?
+  isRecurring  Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  vet          User       @relation("VetBreaks", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@index([vetId])
+  @@index([dayOfWeek])
+  @@index([specificDate])
+  @@map("vet_breaks")
+}
+
+model VetSchedulePeriod {
+  id             String      @id @default(uuid())
+  vetId          String
+  startDate      DateTime    @db.Date
+  endDate        DateTime    @db.Date
+  workingDays    DayOfWeek[]
+  workStartTime  String
+  workEndTime    String
+  breakStartTime String?
+  breakEndTime   String?
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  vet            User        @relation("VetSchedulePeriods", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@index([vetId])
+  @@index([startDate, endDate])
+  @@map("vet_schedule_periods")
+}
+
+model VisitTypeConfig {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  nameEn    String
+  nameAr    String
+  duration  Int      @default(30)
+  color     String   @default("#3B82F6")
+  isActive  Boolean  @default(true)
+  isSystem  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("visit_type_configs")
+}
+
+model OwnerOtp {
+  id        String    @id @default(uuid())
+  ownerId   String?
+  email     String
+  code      String
+  type      OtpType
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+  owner     Owner?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([email, type])
+  @@index([expiresAt])
+  @@map("owner_otps")
+}
+
+model StaffNotification {
+  id            String      @id @default(uuid())
+  type          String
+  appointmentId String
+  isRead        Boolean     @default(false)
+  readAt        DateTime?
+  createdAt     DateTime    @default(now())
+  status        String?
+  actionBy      String?
+  actionAt      DateTime?
+  rejectReason  String?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([status])
+  @@map("staff_notifications")
+}
+
+model SlotReservation {
+  id              String            @id @default(uuid())
+  vetId           String
+  reservationDate DateTime          @db.Date
+  reservationTime String
+  duration        Int               @default(30)
+  customerId      String?
+  sessionId       String
+  status          ReservationStatus @default(PENDING)
+  expiresAt       DateTime
+  confirmedAt     DateTime?
+  releasedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  customer        Owner?            @relation("CustomerReservations", fields: [customerId], references: [id])
+  vet             User              @relation("VetReservations", fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@unique([vetId, reservationDate, reservationTime, status], name: "unique_active_reservation", map: "unique_active_reservation")
+  @@index([vetId, reservationDate])
+  @@index([expiresAt])
+  @@index([status])
+  @@index([sessionId])
+  @@map("slot_reservations")
+}
+
+model FormTemplate {
+  id                      String       @id @default(uuid())
+  nameEn                  String
+  nameAr                  String
+  contentEn               String
+  contentAr               String
+  category                FormCategory @default(OTHER)
+  requiresClientSignature Boolean      @default(true)
+  requiresVetSignature    Boolean      @default(true)
+  isActive                Boolean      @default(true)
+  headerLogoUrl           String?
+  footerText              String?
+  createdBy               String
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  // Relations
+  creator                 User         @relation("FormTemplateCreator", fields: [createdBy], references: [id])
+  petForms                PetForm[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("form_templates")
+}
+
+model PetForm {
+  id                 String     @id @default(uuid())
+  templateId         String
+  petId              String
+  appointmentId      String?
+  filledContentEn    String
+  filledContentAr    String
+  status             FormStatus @default(DRAFT)
+  expiresAt          DateTime?
+  notificationSentAt DateTime?
+  notificationMethod String?
+  createdBy          String
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  completedAt        DateTime?
+
+  // Relations
+  template           FormTemplate        @relation(fields: [templateId], references: [id])
+  pet                Pet                 @relation(fields: [petId], references: [id], onDelete: Cascade)
+  appointment        Appointment?        @relation(fields: [appointmentId], references: [id])
+  creator            User                @relation("PetFormCreator", fields: [createdBy], references: [id])
+  signatures         FormSignature[]
+  notifications      CustomerNotification[]
+
+  @@index([petId])
+  @@index([templateId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("pet_forms")
+}
+
+model FormSignature {
+  id            String     @id @default(uuid())
+  petFormId     String
+  signerType    SignerType
+  signerName    String
+  signerId      String?
+  signatureData String
+  signedAt      DateTime   @default(now())
+  ipAddress     String?
+  userAgent     String?
+
+  // Relations
+  petForm       PetForm    @relation(fields: [petFormId], references: [id], onDelete: Cascade)
+
+  @@unique([petFormId, signerType])
+  @@map("form_signatures")
+}
+
+model CustomerNotification {
+  id            String                   @id @default(uuid())
+  ownerId       String
+  type          CustomerNotificationType
+  titleEn       String
+  titleAr       String
+  messageEn     String
+  messageAr     String
+  petFormId     String?
+  appointmentId String?
+  isRead        Boolean                  @default(false)
+  readAt        DateTime?
+  emailSent     Boolean                  @default(false)
+  emailSentAt   DateTime?
+  createdAt     DateTime                 @default(now())
+
+  // Relations
+  owner         Owner                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  petForm       PetForm?                 @relation(fields: [petFormId], references: [id])
+
+  @@index([ownerId, isRead])
+  @@index([type])
+  @@map("customer_notifications")
+}
+
 enum UserRole {
   ADMIN
   VET
@@ -19,11 +755,11 @@ enum UserRole {
 enum AppointmentStatus {
   SCHEDULED
   CONFIRMED
-  CHECK_IN
   IN_PROGRESS
-  HOSPITALIZED
   COMPLETED
   CANCELLED
+  CHECK_IN
+  HOSPITALIZED
 }
 
 enum VisitType {
@@ -49,6 +785,22 @@ enum Species {
   TURTLE
   FISH
   OTHER
+  HORSE
+  GOAT
+  SHEEP
+  COW
+  CAMEL
+  DONKEY
+  MONKEY
+  FERRET
+  HEDGEHOG
+  SNAKE
+  LIZARD
+  FROG
+  CHICKEN
+  DUCK
+  PIG
+  ALPACA
 }
 
 enum InvoiceStatus {
@@ -61,10 +813,10 @@ enum InvoiceStatus {
 enum PaymentMethod {
   CASH
   CARD
+  BANK_TRANSFER
   MADA
   TABBY
   TAMARA
-  BANK_TRANSFER
 }
 
 enum SmsStatus {
@@ -75,12 +827,12 @@ enum SmsStatus {
 }
 
 enum ReminderEventType {
-  APPOINTMENT_BOOKED      // عند حجز موعد جديد
-  APPOINTMENT_CONFIRMED   // عند تأكيد الموعد
-  APPOINTMENT_CANCELLED   // عند إلغاء الموعد
-  PRE_APPOINTMENT         // قبل الموعد
-  FOLLOW_UP               // تذكير المواعيد القادمة
-  OWNER_CREATED           // عند إنشاء عميل جديد
+  APPOINTMENT_BOOKED
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_CANCELLED
+  PRE_APPOINTMENT
+  FOLLOW_UP
+  OWNER_CREATED
 }
 
 enum NotificationChannel {
@@ -98,588 +850,27 @@ enum ReminderLogStatus {
   SKIPPED
 }
 
-// Models
-model Role {
-  id              String   @id @default(uuid())
-  name            String   @unique
-  displayNameEn   String
-  displayNameAr   String
-  description     String?
-  isSystem        Boolean  @default(false)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  users           User[]
-  rolePermissions RolePermission[]
-
-  @@map("roles")
+enum OtpType {
+  REGISTRATION
+  PASSWORD_RESET
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  roleId    String
-  firstName String
-  lastName  String
-  phone     String?
-  avatarUrl String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Foreign Keys
-  role Role @relation(fields: [roleId], references: [id])
-
-  // Relations
-  appointments          Appointment[]
-  medicalRecords        MedicalRecord[] @relation("VetRecords")
-  closedMedicalRecords  MedicalRecord[] @relation("ClosedRecords")
-  vaccinations          Vaccination[]
-  permissions           UserPermission[]
-  auditLogs             AuditLog[]
-  preferences           UserPreferences?
-  uploadedAttachments   MedicalAttachment[] @relation("UploadedAttachments")
-  sentSmsLogs           SmsLog[]
-
-  // Clinic Setup Relations
-  vetSchedules       VetSchedule[]       @relation("VetSchedules")
-  vetDaysOff         VetDayOff[]         @relation("VetDaysOff")
-  vetBreaks          VetBreak[]          @relation("VetBreaks")
-  vetSchedulePeriods VetSchedulePeriod[] @relation("VetSchedulePeriods")
-
-  @@index([roleId])
-  @@map("users")
+enum AppointmentSource {
+  STAFF
+  CUSTOMER_PORTAL
 }
 
-model UserPreferences {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-
-  // Theme Colors (hex values)
-  headerBgColor     String?
-  sidebarBgColor    String?
-  sidebarHoverColor String?
-
-  // FlowBoard Column Colors (JSON)
-  flowBoardColors   Json?
-
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Foreign Key
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_preferences")
+enum CancelledBy {
+  STAFF
+  CUSTOMER
 }
 
-model Permission {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  category    String
-  action      String
-  createdAt   DateTime @default(now())
-
-  // Relations
-  users UserPermission[]
-  roles RolePermission[]
-
-  @@map("permissions")
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+  RELEASED
 }
-
-model RolePermission {
-  id           String   @id @default(uuid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-
-  // Foreign Keys
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@map("role_permissions")
-}
-
-model UserPermission {
-  id           String   @id @default(uuid())
-  userId       String
-  permissionId String
-  grantedBy    String?
-  grantedAt    DateTime @default(now())
-
-  // Foreign Keys
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, permissionId])
-  @@index([userId])
-  @@map("user_permissions")
-}
-
-model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String
-  action     String
-  resource   String
-  resourceId String?
-  details    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-
-  // Foreign Keys
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([resource])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
-model Owner {
-  id           String   @id @default(uuid())
-  customerCode String   @unique // C00000001
-  firstName    String
-  lastName     String
-  email        String?
-  phone        String   @unique
-  address      String?
-  nationalId   String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  pets         Pet[]
-  invoices     Invoice[]
-  reminderLogs ReminderLog[]
-
-  @@index([customerCode])
-  @@map("owners")
-}
-
-model Pet {
-  id          String    @id @default(uuid())
-  petCode     String    @unique // P00000001
-  name        String
-  species     Species
-  breed       String?
-  gender      Gender
-  birthDate   DateTime?
-  color       String?
-  weight      Float?
-  microchipId String?   @unique
-  photoUrl    String?
-  notes       String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Foreign Keys
-  ownerId String
-  owner   Owner  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  // Relations
-  appointments   Appointment[]
-  medicalRecords MedicalRecord[]
-  vaccinations   Vaccination[]
-
-  @@index([ownerId])
-  @@index([petCode])
-  @@map("pets")
-}
-
-model Appointment {
-  id              String            @id @default(uuid())
-  appointmentDate DateTime
-  appointmentTime String
-  duration        Int               @default(30) // minutes
-  status          AppointmentStatus @default(SCHEDULED)
-  isConfirmed     Boolean           @default(false) // حالة التأكيد منفصلة عن حالة الـ flow
-  visitType       String            @default("GENERAL_CHECKUP") // Now uses configurable VisitTypeConfig codes
-  reason          String?
-  notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  // Foreign Keys
-  petId String
-  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
-
-  vetId String
-  vet   User   @relation(fields: [vetId], references: [id])
-
-  // Scheduled from medical record (for follow-up appointments)
-  scheduledFromRecordId String?
-  scheduledFromRecord   MedicalRecord? @relation("ScheduledAppointments", fields: [scheduledFromRecordId], references: [id], onDelete: SetNull)
-
-  // Relations
-  medicalRecords MedicalRecord[]
-  invoice        Invoice?
-  reminderLogs   ReminderLog[]
-
-  @@index([petId])
-  @@index([vetId])
-  @@index([appointmentDate])
-  @@index([status])
-  @@index([scheduledFromRecordId])
-  @@map("appointments")
-}
-
-model MedicalRecord {
-  id        String   @id @default(uuid())
-  visitDate DateTime @default(now())
-
-  // SOAP - Subjective
-  chiefComplaint String? // الشكوى الرئيسية
-  history        String? // التاريخ المرضي
-
-  // SOAP - Objective (Vital Signs)
-  weight             Float?  // الوزن (kg)
-  temperature        Float?  // الحرارة (C)
-  heartRate          Int?    // معدل ضربات القلب (bpm)
-  respirationRate    Int?    // معدل التنفس (breaths/min)
-  bodyConditionScore Int?    // 1-9
-  muscleCondition    String? // Normal, Mild loss, Moderate loss, Severe loss
-  painScore          Int?    // 0-10
-  hydration          String? // Normal, Mild, Moderate, Severe
-  attitude           String? // BAR, QAR, Depressed, etc.
-  behaviour          String?
-  mucousMembranes    String? // Pink, Pale, Cyanotic, etc.
-  crt                Float?  // seconds
-
-  // SOAP - Assessment & Plan (existing fields)
-  diagnosis String? // التشخيص
-  symptoms  String? // الأعراض (legacy, kept for compatibility)
-  treatment String? // خطة العلاج
-  notes     String? // ملاحظات إضافية
-
-  // Metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdById String?
-  updatedById String?
-
-  // Close/Reopen status
-  isClosed   Boolean   @default(false)
-  closedAt   DateTime?
-  closedById String?
-  recordCode String?   @unique // كود السجل المغلق مثل: MR-20260119-001
-
-  // Optimistic Locking
-  version    Int       @default(1)
-
-  // Foreign Keys
-  petId String
-  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
-
-  vetId String
-  vet   User   @relation("VetRecords", fields: [vetId], references: [id])
-
-  closedBy User? @relation("ClosedRecords", fields: [closedById], references: [id])
-
-  appointmentId String?      @unique // لضمان سجل واحد لكل موعد
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-
-  // Relations
-  prescriptions         Prescription[]
-  scheduledAppointments Appointment[]  @relation("ScheduledAppointments")
-  attachments           MedicalAttachment[]
-
-  @@index([petId])
-  @@index([vetId])
-  @@index([visitDate])
-  @@index([appointmentId])
-  @@index([isClosed])
-  @@map("medical_records")
-}
-
-model Prescription {
-  id           String   @id @default(uuid())
-  medication   String
-  dosage       String
-  frequency    String
-  duration     String
-  instructions String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Foreign Keys
-  medicalRecordId String
-  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
-
-  @@index([medicalRecordId])
-  @@map("prescriptions")
-}
-
-model Vaccination {
-  id          String    @id @default(uuid())
-  vaccineName String
-  vaccineDate DateTime
-  nextDueDate DateTime?
-  batchNumber String?
-  notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Foreign Keys
-  petId String
-  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
-
-  vetId String
-  vet   User   @relation(fields: [vetId], references: [id])
-
-  @@index([petId])
-  @@index([vetId])
-  @@index([nextDueDate])
-  @@map("vaccinations")
-}
-
-model Invoice {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique
-  issueDate     DateTime      @default(now())
-  dueDate       DateTime
-  totalAmount   Float         @default(0)
-  paidAmount    Float         @default(0)
-  status        InvoiceStatus @default(PENDING)
-  isFinalized   Boolean       @default(false)
-  finalizedAt   DateTime?
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Foreign Keys
-  ownerId String
-  owner   Owner  @relation(fields: [ownerId], references: [id])
-
-  appointmentId String?      @unique
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-
-  // Relations
-  items    InvoiceItem[]
-  payments Payment[]
-
-  @@index([ownerId])
-  @@index([invoiceNumber])
-  @@index([status])
-  @@map("invoices")
-}
-
-model InvoiceItem {
-  id          String   @id @default(uuid())
-  description String
-  quantity    Int      @default(1)
-  unitPrice   Float
-  discount    Float    @default(0) // Discount percentage (0-100)
-  totalPrice  Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Foreign Keys
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([invoiceId])
-  @@map("invoice_items")
-}
-
-model Payment {
-  id            String        @id @default(uuid())
-  paymentDate   DateTime      @default(now())
-  amount        Float
-  paymentMethod PaymentMethod @default(CASH)
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Foreign Keys
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([invoiceId])
-  @@map("payments")
-}
-
-// Services & Products
-model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  items ServiceProduct[]
-
-  @@map("categories")
-}
-
-model ServiceProduct {
-  id             String   @id @default(uuid())
-  name           String
-  categoryId     String
-  priceBeforeTax Decimal  @db.Decimal(10, 2)
-  taxRate        Decimal  @db.Decimal(5, 2) // 0.00 or 15.00
-  priceAfterTax  Decimal  @db.Decimal(10, 2)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Foreign Keys
-  category Category @relation(fields: [categoryId], references: [id])
-
-  @@index([categoryId])
-  @@index([name])
-  @@map("service_products")
-}
-
-// Medical Attachments (lab reports, x-rays, etc.)
-model MedicalAttachment {
-  id              String   @id @default(uuid())
-  medicalRecordId String
-  fileName        String
-  fileUrl         String
-  publicId        String?  // Cloudinary public ID for deletion
-  fileType        String   // image, pdf, etc.
-  fileSize        Int      // bytes
-  description     String?
-  uploadedBy      String
-  createdAt       DateTime @default(now())
-
-  // Foreign Keys
-  medicalRecord MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
-  uploader      User          @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
-
-  @@index([medicalRecordId])
-  @@index([uploadedBy])
-  @@map("medical_attachments")
-}
-
-// SMS Log
-model SmsLog {
-  id             String    @id @default(uuid())
-  messageId      String?   // Madar message ID for status tracking
-  recipientPhone String
-  recipientName  String?
-  messageBody    String    @db.Text
-  status         SmsStatus @default(PENDING)
-  sentAt         DateTime?
-  errorMessage   String?
-  createdAt      DateTime  @default(now())
-
-  // Foreign Key
-  sentById String?
-  sentBy   User?   @relation(fields: [sentById], references: [id], onDelete: SetNull)
-
-  @@index([recipientPhone])
-  @@index([status])
-  @@index([createdAt])
-  @@map("sms_logs")
-}
-
-// ===========================================
-// CRM - Reminder Management
-// ===========================================
-
-// إعدادات التذكيرات
-model ReminderSetting {
-  id              String            @id @default(uuid())
-  eventType       ReminderEventType
-  isEnabled       Boolean           @default(true)
-
-  // التوقيت (بالساعات) - للأحداث التي تحتاج توقيت
-  // 24 = يوم، 48 = يومين، 72 = 3 أيام، 168 = أسبوع
-  sendBeforeHours Int?
-
-  // القنوات المفعلة
-  smsEnabled      Boolean           @default(false)
-  whatsappEnabled Boolean           @default(false)
-  emailEnabled    Boolean           @default(false)
-  pushEnabled     Boolean           @default(false)
-
-  // قوالب الرسائل
-  templateAr      String?           @db.Text
-  templateEn      String?           @db.Text
-
-  // هل هذا التذكير الأول أم الثاني (للأحداث التي لها تذكيرين)
-  reminderOrder   Int               @default(1) // 1 = أول، 2 = ثاني
-
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  // Relations
-  logs ReminderLog[]
-
-  @@unique([eventType, reminderOrder])
-  @@map("reminder_settings")
-}
-
-// سجل التذكيرات المرسلة
-model ReminderLog {
-  id              String              @id @default(uuid())
-  settingId       String
-  appointmentId   String?
-  ownerId         String?             // للتذكيرات المتعلقة بالعملاء (OWNER_CREATED)
-  channel         NotificationChannel
-  status          ReminderLogStatus   @default(PENDING)
-
-  // معلومات المستلم
-  recipientPhone  String?
-  recipientEmail  String?
-  recipientName   String?
-
-  // محتوى الرسالة المرسلة
-  messageBody     String?             @db.Text
-
-  // معلومات الإرسال
-  scheduledFor    DateTime?           // الوقت المجدول للإرسال
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  errorMessage    String?
-
-  // معرف خارجي (من مزود الخدمة)
-  externalId      String?
-
-  createdAt       DateTime            @default(now())
-
-  // Foreign Keys
-  setting     ReminderSetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
-  appointment Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  owner       Owner?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-
-  @@index([settingId])
-  @@index([appointmentId])
-  @@index([ownerId])
-  @@index([status])
-  @@index([scheduledFor])
-  @@index([createdAt])
-  @@map("reminder_logs")
-}
-
-// قوالب الرسائل الجاهزة
-model MessageTemplate {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  contentAr   String   @db.Text
-  contentEn   String   @db.Text
-  variables   String[] // المتغيرات المتاحة مثل: petName, ownerName, appointmentDate
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("message_templates")
-}
-
-// ===========================================
-// Clinic Setup - Shifts & Visit Types
-// ===========================================
 
 enum DayOfWeek {
   SUNDAY
@@ -691,103 +882,77 @@ enum DayOfWeek {
   SATURDAY
 }
 
-// جدول الدوام الأسبوعي للطبيب
-model VetSchedule {
-  id           String    @id @default(uuid())
-  vetId        String
-  dayOfWeek    DayOfWeek
-  startTime    String    // "09:00" format
-  endTime      String    // "18:00" format
-  isWorkingDay Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Foreign Key
-  vet User @relation("VetSchedules", fields: [vetId], references: [id], onDelete: Cascade)
-
-  @@unique([vetId, dayOfWeek])
-  @@index([vetId])
-  @@map("vet_schedules")
+enum FormCategory {
+  BOARDING
+  SURGERY
+  VACCINATION
+  GROOMING
+  CONSENT
+  DISCHARGE
+  OTHER
 }
 
-// أيام الإجازة للطبيب
-model VetDayOff {
-  id        String   @id @default(uuid())
-  vetId     String
-  date      DateTime @db.Date
-  reason    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Foreign Key
-  vet User @relation("VetDaysOff", fields: [vetId], references: [id], onDelete: Cascade)
-
-  @@unique([vetId, date])
-  @@index([vetId])
-  @@index([date])
-  @@map("vet_days_off")
+enum FormStatus {
+  DRAFT
+  PENDING_CLIENT
+  PENDING_VET
+  COMPLETED
+  EXPIRED
+  CANCELLED
 }
 
-// فترات الاستراحة للطبيب
-model VetBreak {
-  id           String     @id @default(uuid())
-  vetId        String
-  dayOfWeek    DayOfWeek? // للاستراحة المتكررة أسبوعياً
-  specificDate DateTime?  @db.Date // للاستراحة لمرة واحدة
-  startTime    String     // "12:00" format
-  endTime      String     // "13:00" format
-  description  String?
-  isRecurring  Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  // Foreign Key
-  vet User @relation("VetBreaks", fields: [vetId], references: [id], onDelete: Cascade)
-
-  @@index([vetId])
-  @@index([dayOfWeek])
-  @@index([specificDate])
-  @@map("vet_breaks")
+enum SignerType {
+  CLIENT
+  VET
+  WITNESS
 }
 
-// فترة جدولة للطبيب (نظام جديد بفترات زمنية محددة)
-model VetSchedulePeriod {
-  id             String      @id @default(uuid())
-  vetId          String
-  startDate      DateTime    @db.Date
-  endDate        DateTime    @db.Date
-  workingDays    DayOfWeek[] // أيام العمل في هذه الفترة
-  workStartTime  String      // "09:00" format
-  workEndTime    String      // "18:00" format
-  breakStartTime String?     // "12:00" format (اختياري)
-  breakEndTime   String?     // "13:00" format (اختياري)
-  isActive       Boolean     @default(true)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  // Foreign Key
-  vet User @relation("VetSchedulePeriods", fields: [vetId], references: [id], onDelete: Cascade)
-
-  @@index([vetId])
-  @@index([startDate, endDate])
-  @@map("vet_schedule_periods")
+enum CustomerNotificationType {
+  FORM_PENDING
+  FORM_COMPLETED
+  APPOINTMENT
+  GENERAL
 }
 
-// أنواع الزيارات (تحل محل enum VisitType الثابت)
-model VisitTypeConfig {
-  id        String   @id @default(uuid())
-  code      String   @unique // "GENERAL_CHECKUP", "CUSTOM_EXAM", etc.
-  nameEn    String
-  nameAr    String
-  duration  Int      @default(30) // بالدقائق - إدخال حر
-  color     String   @default("#3B82F6") // hex color
-  isActive  Boolean  @default(true)
-  isSystem  Boolean  @default(false) // true للأنواع الافتراضية
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// =====================================================
+// Record Code Tracker - تتبع أرقام السجلات التسلسلية
+// =====================================================
 
-  @@index([isActive])
-  @@index([sortOrder])
-  @@map("visit_type_configs")
+model RecordCodeTracker {
+  id          String   @id @default(uuid())
+  dateKey     String   @unique // Format: YYYYMMDD
+  lastNumber  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("record_code_tracker")
+}
+
+// =====================================================
+// Clinic Form Settings - إعدادات النماذج
+// =====================================================
+
+model ClinicFormSettings {
+  id                     String   @id @default(uuid())
+  logoUrl                String?
+  logoPosition           String   @default("center") // left, center, right
+  clinicNameEn           String   @default("Fluff N' Woof")
+  clinicNameAr           String   @default("فلف أند ووف")
+  addressEn              String   @default("Riyadh - Kingdom of Saudi Arabia")
+  addressAr              String   @default("الرياض - المملكة العربية السعودية")
+  phoneNumber            String?
+  fontSize               Int      @default(14) // px
+
+  // Signature Settings
+  showClientSignature    Boolean  @default(true)
+  clientSignatureLabelEn String   @default("Client Signature")
+  clientSignatureLabelAr String   @default("توقيع العميل")
+  showVetSignature       Boolean  @default(true)
+  vetSignatureLabelEn    String   @default("Veterinarian Signature")
+  vetSignatureLabelAr    String   @default("توقيع الطبيب البيطري")
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("clinic_form_settings")
 }

@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts';
 import { Card } from '../common/Card';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface SpeciesData {
   species: string;
@@ -49,6 +50,7 @@ const speciesEmoji: Record<string, string> = {
 
 export const PatientsChart = ({ data, loading = false, animationKey = 0 }: PatientsChartProps) => {
   const { t } = useTranslation('dashboard');
+  const { isDark } = useDarkMode();
 
   // Animation key to force re-render and trigger animation
   const [localAnimationKey, setLocalAnimationKey] = useState(0);
@@ -106,11 +108,11 @@ export const PatientsChart = ({ data, loading = false, animationKey = 0 }: Patie
       const speciesName = t(`species.${item.species}`) || item.species;
 
       return (
-        <div className="bg-brand-white px-4 py-3 rounded-lg shadow-lg border border-primary-200">
-          <p className="font-semibold text-brand-dark">
+        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] px-4 py-3 rounded-lg shadow-lg border border-primary-200 dark:border-[var(--app-border-default)]">
+          <p className="font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">
             {emoji} {speciesName}
           </p>
-          <p className="text-brand-dark/70">
+          <p className="text-brand-dark/70 dark:text-gray-400">
             {item.count} ({((item.count / total) * 100).toFixed(1)}%)
           </p>
         </div>
@@ -135,16 +137,16 @@ export const PatientsChart = ({ data, loading = false, animationKey = 0 }: Patie
           return (
             <div
               key={`legend-${index}`}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-50"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-50 dark:bg-[var(--app-bg-elevated)]"
             >
               <div
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm text-brand-dark">
+              <span className="text-sm text-brand-dark dark:text-[var(--app-text-primary)]">
                 {emoji} {speciesName}
               </span>
-              <span className="text-sm text-brand-dark/60">({item.count})</span>
+              <span className="text-sm text-brand-dark/60 dark:text-gray-400">({item.count})</span>
             </div>
           );
         })}
@@ -156,9 +158,9 @@ export const PatientsChart = ({ data, loading = false, animationKey = 0 }: Patie
     return (
       <Card>
         <div className="animate-pulse">
-          <div className="h-6 bg-primary-100 rounded w-40 mb-4" />
+          <div className="h-6 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded w-40 mb-4" />
           <div className="h-64 flex items-center justify-center">
-            <div className="w-40 h-40 bg-primary-50 rounded-full" />
+            <div className="w-40 h-40 bg-primary-50 dark:bg-[var(--app-bg-card)] rounded-full" />
           </div>
         </div>
       </Card>
@@ -167,13 +169,13 @@ export const PatientsChart = ({ data, loading = false, animationKey = 0 }: Patie
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-brand-dark mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)] mb-4 flex items-center gap-2">
         <span className="text-xl">🥧</span>
         {t('analytics.patientsBySpecies')}
       </h3>
 
       {data.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-brand-dark/60">
+        <div className="h-64 flex items-center justify-center text-brand-dark/60 dark:text-gray-400">
           <div className="text-center">
             <span className="text-4xl block mb-2">🐾</span>
             <p>{t('noData')}</p>
@@ -203,7 +205,7 @@ export const PatientsChart = ({ data, loading = false, animationKey = 0 }: Patie
                   <Cell
                     key={`cell-${index}`}
                     fill={COLORS[index % COLORS.length]}
-                    stroke="white"
+                    stroke={isDark ? '#1f1f23' : 'white'}
                     strokeWidth={2}
                   />
                 ))}
@@ -218,8 +220,8 @@ export const PatientsChart = ({ data, loading = false, animationKey = 0 }: Patie
       {/* Total count */}
       {data.length > 0 && (
         <div className="mt-4 text-center">
-          <span className="text-sm text-brand-dark/60">{t('analytics.totalPatients')}: </span>
-          <span className="font-bold text-brand-dark">{total}</span>
+          <span className="text-sm text-brand-dark/60 dark:text-gray-400">{t('analytics.totalPatients')}: </span>
+          <span className="font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{total}</span>
         </div>
       )}
     </Card>

@@ -7,6 +7,7 @@ import { ScreenPermissionGuard } from '../../components/common/ScreenPermissionG
 import { useScreenPermission } from '../../hooks/useScreenPermission';
 import { remindersApi, ReminderSetting, ReminderEventType } from '../../api/reminders';
 import { ReminderSettingModal } from '../../components/crm/ReminderSettingModal';
+import { ReadOnlyBadge } from '../../components/common/ReadOnlyBadge';
 
 type TabType = 'overview' | 'appointmentReminders' | 'preAppointment' | 'followUp' | 'templates' | 'logs';
 
@@ -18,17 +19,17 @@ const ChannelCard: React.FC<{
   status: string;
   provider?: string;
 }> = ({ title, icon, isConnected, status, provider }) => (
-  <div className={`p-4 rounded-lg border-2 ${isConnected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+  <div className={`p-4 rounded-lg border-2 ${isConnected ? 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-gray-200 bg-gray-50 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-tertiary)]'}`}>
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{icon}</span>
         <div>
-          <h3 className="font-semibold text-gray-800">{title}</h3>
-          {provider && <p className="text-xs text-gray-500">{provider}</p>}
+          <h3 className="font-semibold text-gray-800 dark:text-[var(--app-text-primary)]">{title}</h3>
+          {provider && <p className="text-xs text-gray-500 dark:text-gray-400">{provider}</p>}
         </div>
       </div>
       <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-        isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+        isConnected ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-[var(--app-bg-elevated)] dark:text-gray-400'
       }`}>
         {isConnected ? (
           <CheckCircleIcon className="w-4 h-4" />
@@ -51,11 +52,11 @@ const ChannelToggle: React.FC<{
   disabled?: boolean;
 }> = ({ icon, label, enabled, onToggle, colorClass, disabled }) => (
   <div className={`flex items-center justify-between p-3 rounded-lg border ${
-    enabled ? colorClass : 'bg-gray-50 border-gray-200'
+    enabled ? colorClass : 'bg-gray-50 border-gray-200 dark:bg-[var(--app-bg-tertiary)] dark:border-[var(--app-border-default)]'
   } ${disabled ? 'opacity-50' : ''}`}>
     <div className="flex items-center gap-2">
       <span className="text-lg">{icon}</span>
-      <span className={`text-sm font-medium ${enabled ? '' : 'text-gray-500'}`}>{label}</span>
+      <span className={`text-sm font-medium ${enabled ? '' : 'text-gray-500 dark:text-gray-400'}`}>{label}</span>
     </div>
     <label className="relative inline-flex items-center cursor-pointer">
       <input
@@ -82,14 +83,14 @@ const EventSettingRow: React.FC<{
   const isEnabled = setting?.isEnabled ?? false;
 
   return (
-    <div className="p-4 border rounded-lg hover:bg-gray-50">
+    <div className="p-4 border dark:border-[var(--app-border-default)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)]">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
-          <h4 className="font-medium text-gray-800">
+          <h4 className="font-medium text-gray-800 dark:text-[var(--app-text-primary)]">
             {t(`events.${eventType}.title`)}
           </h4>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {t(`events.${eventType}.description`)}
           </p>
         </div>
@@ -231,21 +232,17 @@ export const ReminderManagement: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <BellAlertIcon className="w-7 h-7 text-brand-dark" />
+            <span className="text-2xl">🔔</span>
             <div>
-              <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
-              <p className="text-sm text-gray-500">{t('description')}</p>
+              <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
             </div>
           </div>
-          {isReadOnly && (
-            <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-              {t('settings.enabled') === 'Enabled' ? 'Read Only' : 'للقراءة فقط'}
-            </span>
-          )}
+          {isReadOnly && <ReadOnlyBadge />}
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-gray-200 dark:border-[var(--app-border-default)] mb-6">
           <nav className="flex gap-4 overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -254,7 +251,7 @@ export const ReminderManagement: React.FC = () => {
                 className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === tab.key
                     ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
                 {tab.label}
@@ -268,7 +265,7 @@ export const ReminderManagement: React.FC = () => {
           <div className="space-y-6">
             {/* Channels */}
             <Card>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('channels.title')}</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4">{t('channels.title')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <ChannelCard
                   title={t('channels.sms.title')}
@@ -304,19 +301,19 @@ export const ReminderManagement: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="text-center">
                 <div className="text-3xl font-bold text-primary-600">0</div>
-                <div className="text-sm text-gray-500">{t('stats.totalSent')}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{t('stats.totalSent')}</div>
               </Card>
               <Card className="text-center">
-                <div className="text-3xl font-bold text-green-600">0</div>
-                <div className="text-sm text-gray-500">{t('stats.delivered')}</div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">0</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{t('stats.delivered')}</div>
               </Card>
               <Card className="text-center">
-                <div className="text-3xl font-bold text-red-600">0</div>
-                <div className="text-sm text-gray-500">{t('stats.failed')}</div>
+                <div className="text-3xl font-bold text-red-600 dark:text-red-400">0</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{t('stats.failed')}</div>
               </Card>
               <Card className="text-center">
-                <div className="text-3xl font-bold text-yellow-600">0</div>
-                <div className="text-sm text-gray-500">{t('stats.pending')}</div>
+                <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">0</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{t('stats.pending')}</div>
               </Card>
             </div>
           </div>
@@ -324,11 +321,11 @@ export const ReminderManagement: React.FC = () => {
 
         {activeTab === 'appointmentReminders' && (
           <Card>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('events.title')}</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4">{t('events.title')}</h2>
             {isLoading ? (
               <div className="animate-pulse space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 bg-gray-200 rounded-lg"></div>
+                  <div key={i} className="h-20 bg-gray-200 dark:bg-[var(--app-bg-elevated)] rounded-lg"></div>
                 ))}
               </div>
             ) : (
@@ -372,16 +369,16 @@ export const ReminderManagement: React.FC = () => {
 
         {activeTab === 'preAppointment' && (
           <Card>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4">
               {t('events.PRE_APPOINTMENT.title')}
             </h2>
-            <p className="text-gray-500 mb-4">{t('events.PRE_APPOINTMENT.description')}</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">{t('events.PRE_APPOINTMENT.description')}</p>
             {isLoading ? (
-              <div className="animate-pulse h-20 bg-gray-200 rounded-lg"></div>
+              <div className="animate-pulse h-20 bg-gray-200 dark:bg-[var(--app-bg-elevated)] rounded-lg"></div>
             ) : (
               <div className="space-y-4">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium text-gray-800 mb-2">{t('reminderOrder.first')}</h4>
+                <div className="p-4 border dark:border-[var(--app-border-default)] rounded-lg">
+                  <h4 className="font-medium text-gray-800 dark:text-[var(--app-text-primary)] mb-2">{t('reminderOrder.first')}</h4>
                   <EventSettingRow
                     eventType="PRE_APPOINTMENT"
                     setting={getSettingByType('PRE_APPOINTMENT')}
@@ -398,12 +395,12 @@ export const ReminderManagement: React.FC = () => {
 
         {activeTab === 'followUp' && (
           <Card>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4">
               {t('events.FOLLOW_UP.title')}
             </h2>
-            <p className="text-gray-500 mb-4">{t('events.FOLLOW_UP.description')}</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">{t('events.FOLLOW_UP.description')}</p>
             {isLoading ? (
-              <div className="animate-pulse h-20 bg-gray-200 rounded-lg"></div>
+              <div className="animate-pulse h-20 bg-gray-200 dark:bg-[var(--app-bg-elevated)] rounded-lg"></div>
             ) : (
               <div className="space-y-4">
                 <EventSettingRow
@@ -421,41 +418,41 @@ export const ReminderManagement: React.FC = () => {
 
         {activeTab === 'logs' && (
           <Card>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('logs.title')}</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mb-4">{t('logs.title')}</h2>
             {logsData?.data?.length ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-start p-3 text-sm font-medium text-gray-500">{t('logs.recipient')}</th>
-                      <th className="text-start p-3 text-sm font-medium text-gray-500">{t('logs.channel')}</th>
-                      <th className="text-start p-3 text-sm font-medium text-gray-500">{t('logs.status')}</th>
-                      <th className="text-start p-3 text-sm font-medium text-gray-500">{t('logs.sentAt')}</th>
+                    <tr className="border-b dark:border-[var(--app-border-default)]">
+                      <th className="text-start p-3 text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.recipient')}</th>
+                      <th className="text-start p-3 text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.channel')}</th>
+                      <th className="text-start p-3 text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.status')}</th>
+                      <th className="text-start p-3 text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.sentAt')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {logsData.data.map((log) => (
-                      <tr key={log.id} className="border-b hover:bg-gray-50">
+                      <tr key={log.id} className="border-b dark:border-[var(--app-border-default)] hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)]">
                         <td className="p-3">
-                          <div className="font-medium text-gray-800">{log.recipientName || '-'}</div>
-                          <div className="text-sm text-gray-500" dir="ltr">{log.recipientPhone || log.recipientEmail}</div>
+                          <div className="font-medium text-gray-800 dark:text-[var(--app-text-primary)]">{log.recipientName || '-'}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400" dir="ltr">{log.recipientPhone || log.recipientEmail}</div>
                         </td>
                         <td className="p-3">
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">
                             {log.channel}
                           </span>
                         </td>
                         <td className="p-3">
                           <span className={`px-2 py-1 text-xs rounded ${
-                            log.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
-                            log.status === 'SENT' ? 'bg-blue-100 text-blue-700' :
-                            log.status === 'FAILED' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
+                            log.status === 'DELIVERED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            log.status === 'SENT' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            log.status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }`}>
                             {t(`logs.statuses.${log.status}`)}
                           </span>
                         </td>
-                        <td className="p-3 text-sm text-gray-500">
+                        <td className="p-3 text-sm text-gray-500 dark:text-gray-400">
                           {log.sentAt ? new Date(log.sentAt).toLocaleString() : '-'}
                         </td>
                       </tr>
@@ -464,8 +461,8 @@ export const ReminderManagement: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <BellAlertIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <BellAlertIcon className="w-12 h-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                 <p>{t('logs.noLogs')}</p>
               </div>
             )}

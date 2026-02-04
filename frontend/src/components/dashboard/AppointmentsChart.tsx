@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card } from '../common/Card';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 interface TrendData {
   date: string;
@@ -28,6 +29,7 @@ interface AppointmentsChartProps {
 export const AppointmentsChart = ({ data, loading = false, animationKey = 0 }: AppointmentsChartProps) => {
   const { t, i18n } = useTranslation('dashboard');
   const isRtl = i18n.language === 'ar';
+  const { isDark } = useDarkMode();
 
   // Animation key to force re-render and trigger animation
   const [localAnimationKey, setLocalAnimationKey] = useState(0);
@@ -56,8 +58,8 @@ export const AppointmentsChart = ({ data, loading = false, animationKey = 0 }: A
     return (
       <Card>
         <div className="animate-pulse">
-          <div className="h-6 bg-primary-100 rounded w-40 mb-4" />
-          <div className="h-64 bg-primary-50 rounded" />
+          <div className="h-6 bg-primary-100 dark:bg-[var(--app-bg-elevated)] rounded w-40 mb-4" />
+          <div className="h-64 bg-primary-50 dark:bg-[var(--app-bg-card)] rounded" />
         </div>
       </Card>
     );
@@ -65,13 +67,13 @@ export const AppointmentsChart = ({ data, loading = false, animationKey = 0 }: A
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-brand-dark mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)] mb-4 flex items-center gap-2">
         <span className="text-xl">📈</span>
         {t('analytics.appointmentsTrend')}
       </h3>
 
       {data.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-brand-dark/60">
+        <div className="h-64 flex items-center justify-center text-brand-dark/60 dark:text-gray-400">
           <div className="text-center">
             <span className="text-4xl block mb-2">📊</span>
             <p>{t('noData')}</p>
@@ -85,30 +87,31 @@ export const AppointmentsChart = ({ data, loading = false, animationKey = 0 }: A
               data={chartData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#CEE8DC" />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#CEE8DC'} />
               <XAxis
                 dataKey="formattedDate"
-                tick={{ fontSize: 12, fill: '#211E1F' }}
-                tickLine={{ stroke: '#CEE8DC' }}
+                tick={{ fontSize: 12, fill: isDark ? '#a1a1aa' : '#211E1F' }}
+                tickLine={{ stroke: isDark ? '#3f3f46' : '#CEE8DC' }}
               />
               <YAxis
-                tick={{ fontSize: 12, fill: '#211E1F' }}
-                tickLine={{ stroke: '#CEE8DC' }}
+                tick={{ fontSize: 12, fill: isDark ? '#a1a1aa' : '#211E1F' }}
+                tickLine={{ stroke: isDark ? '#3f3f46' : '#CEE8DC' }}
                 allowDecimals={false}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#FDFEFF',
-                  border: '1px solid #CEE8DC',
+                  backgroundColor: isDark ? '#1f1f23' : '#FDFEFF',
+                  border: `1px solid ${isDark ? '#3f3f46' : '#CEE8DC'}`,
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  color: isDark ? '#f4f4f5' : '#211E1F',
                 }}
                 labelFormatter={(label) => label}
               />
               <Legend
                 wrapperStyle={{ paddingTop: '10px' }}
                 formatter={(value) => (
-                  <span className="text-sm text-brand-dark">{value}</span>
+                  <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-brand-dark'}`}>{value}</span>
                 )}
               />
               <Line

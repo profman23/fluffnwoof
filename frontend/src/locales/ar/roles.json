@@ -35,7 +35,8 @@
     "reminders": "التذكيرات",
     "clinicSetup": "إعدادات العيادة",
     "shiftsManagement": "إدارة الشيفتات",
-    "visitTypes": "أنواع الزيارات"
+    "visitTypes": "أنواع الزيارات",
+    "formsAndCertificates": "النماذج والشهادات"
   },
   "specialPermissions": {
     "title": "صلاحيات خاصة",

@@ -68,8 +68,10 @@ export const medicalRecordService = {
       ? {
           OR: [
             { pet: { name: { contains: search, mode: 'insensitive' as const } } },
+            { pet: { petCode: { contains: search, mode: 'insensitive' as const } } },
             { pet: { owner: { firstName: { contains: search, mode: 'insensitive' as const } } } },
             { pet: { owner: { lastName: { contains: search, mode: 'insensitive' as const } } } },
+            { pet: { owner: { customerCode: { contains: search, mode: 'insensitive' as const } } } },
             { diagnosis: { contains: search, mode: 'insensitive' as const } },
             { chiefComplaint: { contains: search, mode: 'insensitive' as const } },
           ],
@@ -422,40 +424,109 @@ export const medicalRecordService = {
   },
 
   /**
+   * Generate a sequential record code in format MR-YYYYMMDD-XXX
+   * Uses raw SQL with atomic UPDATE/INSERT to handle concurrent access safely
+   * Falls back to random if sequential generation fails
+   *
+   * @param maxRetries - Number of retry attempts for concurrent conflicts
+   */
+  async generateSequentialRecordCode(maxRetries = 5): Promise<string> {
+    const today = new Date();
+    const dateKey = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Use PostgreSQL UPSERT with RETURNING for atomic increment
+        // This handles both insert (new day) and update (existing day) in one atomic operation
+        const result = await prisma.$queryRaw<{ last_number: number }[]>`
+          INSERT INTO record_code_tracker ("id", "dateKey", "lastNumber", "createdAt", "updatedAt")
+          VALUES (gen_random_uuid(), ${dateKey}, 1, NOW(), NOW())
+          ON CONFLICT ("dateKey")
+          DO UPDATE SET
+            "lastNumber" = record_code_tracker."lastNumber" + 1,
+            "updatedAt" = NOW()
+          RETURNING "lastNumber" as last_number
+        `;
+
+        if (result && result.length > 0) {
+          const sequenceNum = result[0].last_number;
+          // Format the record code: MR-YYYYMMDD-001
+          return `MR-${dateKey}-${sequenceNum.toString().padStart(3, '0')}`;
+        }
+
+      } catch (error: any) {
+        // Handle serialization failure (concurrent access)
+        if (error.code === '40001' || error.code === '40P01') {
+          // Retry on serialization failure
+          console.log(`[RecordCode] Retry ${attempt + 1}/${maxRetries} due to concurrent access`);
+          // Small random delay before retry (10-50ms)
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 40 + 10));
+          continue;
+        }
+        // For other errors, log and fall through to random
+        console.error('[RecordCode] Sequential generation failed:', error.message);
+        break;
+      }
+    }
+
+    // Fallback to random if sequential fails after all retries
+    console.warn('[RecordCode] Falling back to random code generation');
+    return this.generateRecordCodeFallback();
+  },
+
+  /**
+   * Generate a random record code as fallback
+   * Format: MR-YYYYMMDD-XXX where XXX is random 000-999
+   */
+  generateRecordCodeFallback(): string {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `MR-${dateStr}-${randomNum}`;
+  },
+
+  /**
    * Close medical record
-   * Uses transaction with row-level locking to prevent race conditions
+   * Uses sequential record code generation with proper concurrency handling
    */
   async closeRecord(id: string, userId: string) {
+    // 1. أولاً: التحقق من السجل قبل توليد الرقم
+    const existing = await prisma.medicalRecord.findUnique({
+      where: { id },
+      include: { appointment: true },
+    });
+
+    if (!existing) {
+      throw new AppError('السجل الطبي غير موجود', 404);
+    }
+
+    if (existing.isClosed) {
+      throw new AppError('السجل مغلق بالفعل', 400);
+    }
+
+    // 2. توليد recordCode تسلسلي (خارج الـ transaction لأنه async)
+    let recordCode = existing.recordCode;
+    if (!recordCode) {
+      recordCode = await this.generateSequentialRecordCode();
+    }
+
+    // 3. تحديث السجل داخل transaction
     return await prisma.$transaction(async (tx) => {
-      // 1. قفل الصف باستخدام FOR UPDATE لمنع التزامن
-      // نحول الـ UUID column إلى text للمقارنة مع المعامل النصي
-      const existingRows = await tx.$queryRaw<any[]>`
-        SELECT id, "isClosed", "recordCode", "appointmentId"
-        FROM medical_records
-        WHERE id::text = ${id}
-        FOR UPDATE
-      `;
+      // إعادة التحقق داخل الـ transaction (double-check لضمان التزامن)
+      const currentRecord = await tx.medicalRecord.findUnique({
+        where: { id },
+        include: { appointment: true },
+      });
 
-      if (!existingRows || existingRows.length === 0) {
-        throw new AppError('Medical record not found', 404);
+      if (!currentRecord) {
+        throw new AppError('السجل الطبي غير موجود', 404);
       }
 
-      const existing = existingRows[0];
-
-      if (existing.isClosed) {
-        throw new AppError('Medical record is already closed', 400);
+      if (currentRecord.isClosed) {
+        throw new AppError('السجل مغلق بالفعل', 400);
       }
 
-      // 2. توليد recordCode باستخدام database function (atomic)
-      let recordCode = existing.recordCode;
-      if (!recordCode) {
-        const result = await tx.$queryRaw<{ generate_record_code: string }[]>`
-          SELECT generate_record_code()
-        `;
-        recordCode = result[0].generate_record_code;
-      }
-
-      // 3. تحديث السجل مع زيادة version
+      // 4. تحديث السجل مع زيادة version
       const updatedRecord = await tx.medicalRecord.update({
         where: { id },
         data: {
@@ -480,10 +551,10 @@ export const medicalRecordService = {
         },
       });
 
-      // 4. نقل الموعد إلى COMPLETED إذا موجود
-      if (existing.appointmentId) {
+      // 5. نقل الموعد إلى COMPLETED إذا موجود
+      if (currentRecord.appointmentId) {
         await tx.appointment.update({
-          where: { id: existing.appointmentId },
+          where: { id: currentRecord.appointmentId },
           data: { status: 'COMPLETED' },
         });
       }
@@ -504,11 +575,11 @@ export const medicalRecordService = {
       });
 
       if (!existing) {
-        throw new AppError('Medical record not found', 404);
+        throw new AppError('السجل الطبي غير موجود', 404);
       }
 
       if (!existing.isClosed) {
-        throw new AppError('Medical record is not closed', 400);
+        throw new AppError('السجل ليس مغلقاً', 400);
       }
 
       // Update medical record with version increment

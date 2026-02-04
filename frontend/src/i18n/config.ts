@@ -19,6 +19,9 @@ import arProfile from '../locales/ar/profile.json';
 import arSms from '../locales/ar/sms.json';
 import arReminders from '../locales/ar/reminders.json';
 import arClinicSetup from '../locales/ar/clinicSetup.json';
+import arPortal from '../locales/ar/portal.json';
+import arForms from '../locales/ar/forms.json';
+import arServiceProducts from '../locales/ar/serviceProducts.json';
 
 import enCommon from '../locales/en/common.json';
 import enAuth from '../locales/en/auth.json';
@@ -36,6 +39,9 @@ import enProfile from '../locales/en/profile.json';
 import enSms from '../locales/en/sms.json';
 import enReminders from '../locales/en/reminders.json';
 import enClinicSetup from '../locales/en/clinicSetup.json';
+import enPortal from '../locales/en/portal.json';
+import enForms from '../locales/en/forms.json';
+import enServiceProducts from '../locales/en/serviceProducts.json';
 
 const resources = {
   ar: {
@@ -55,6 +61,9 @@ const resources = {
     sms: arSms,
     reminders: arReminders,
     clinicSetup: arClinicSetup,
+    portal: arPortal,
+    forms: arForms,
+    serviceProducts: arServiceProducts,
   },
   en: {
     common: enCommon,
@@ -73,6 +82,9 @@ const resources = {
     sms: enSms,
     reminders: enReminders,
     clinicSetup: enClinicSetup,
+    portal: enPortal,
+    forms: enForms,
+    serviceProducts: enServiceProducts,
   },
 };
 

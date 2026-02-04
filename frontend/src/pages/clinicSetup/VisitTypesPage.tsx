@@ -10,6 +10,7 @@ import { LogoLoader } from '../../components/common/LogoLoader';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { ScreenPermissionGuard } from '../../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../../hooks/useScreenPermission';
+import { ReadOnlyBadge } from '../../components/common/ReadOnlyBadge';
 
 const PRESET_COLORS = [
   '#3B82F6', // Blue
@@ -179,7 +180,7 @@ export const VisitTypesPage: React.FC = () => {
       id: 'code',
       header: t('visitTypes.code'),
       render: (row) => (
-        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{row.code}</code>
+        <code className="text-xs bg-gray-100 dark:bg-[var(--app-bg-elevated)] dark:text-gray-300 px-2 py-1 rounded font-mono">{row.code}</code>
       ),
     },
     {
@@ -193,12 +194,12 @@ export const VisitTypesPage: React.FC = () => {
       render: (row) => (
         <div className="flex items-center gap-2">
           <span className={`px-2 py-1 rounded text-xs font-medium ${
-            row.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+            row.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-[var(--app-bg-elevated)] dark:text-gray-400'
           }`}>
             {row.isActive ? t('visitTypes.active') : t('visitTypes.inactive')}
           </span>
           {row.isSystem && (
-            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
+            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
               {t('visitTypes.system')}
             </span>
           )}
@@ -220,12 +221,12 @@ export const VisitTypesPage: React.FC = () => {
       <div className="page-container">
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg animate-fade-in-up">
+          <div className="fixed top-4 right-4 z-50 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 px-4 py-3 rounded shadow-lg animate-fade-in-up">
             {successMessage}
           </div>
         )}
         {errorMessage && (
-          <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg animate-fade-in-up">
+          <div className="fixed top-4 right-4 z-50 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded shadow-lg animate-fade-in-up">
             {errorMessage}
           </div>
         )}
@@ -234,14 +235,11 @@ export const VisitTypesPage: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{t('visitTypes.title')}</h1>
-              {isReadOnly && (
-                <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-                  {isRTL ? 'قراءة فقط' : 'Read Only'}
-                </span>
-              )}
+              <span className="text-2xl">🏥</span>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--app-text-primary)]">{t('visitTypes.title')}</h1>
+              {isReadOnly && <ReadOnlyBadge />}
             </div>
-            <p className="text-gray-600">{t('visitTypes.subtitle')}</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('visitTypes.subtitle')}</p>
           </div>
           {canModify && (
             <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
@@ -258,9 +256,9 @@ export const VisitTypesPage: React.FC = () => {
             type="checkbox"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
-            className="form-checkbox h-4 w-4 text-primary-600 rounded"
+            className="form-checkbox h-4 w-4 text-primary-600 rounded dark:border-gray-600"
           />
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
             {isRTL ? 'عرض غير النشطة' : 'Show inactive'}
           </span>
         </label>
@@ -279,7 +277,7 @@ export const VisitTypesPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => openEditModal(type)}
-              className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-lg transition-colors"
               title={t('visitTypes.editVisitType')}
             >
               <PencilIcon className="w-4 h-4" />
@@ -294,7 +292,7 @@ export const VisitTypesPage: React.FC = () => {
             {!type.isSystem && (
               <button
                 onClick={() => handleDelete(type)}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                 title={t('visitTypes.delete')}
               >
                 <TrashIcon className="w-4 h-4" />

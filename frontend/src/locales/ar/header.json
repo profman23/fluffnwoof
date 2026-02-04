@@ -8,5 +8,16 @@
   "logout": "تسجيل الخروج",
   "myProfile": "حسابي",
   "patients": "المرضى",
-  "flowBoard": "لوحة التدفق"
+  "flowBoard": "لوحة التدفق",
+  "notifications": "الإشعارات",
+  "noNotifications": "لا توجد إشعارات",
+  "markAllRead": "تحديد الكل كمقروء",
+  "customerBooking": "حجز عميل جديد",
+  "customerCancellation": "إلغاء حجز عميل",
+  "approve": "قبول",
+  "reject": "رفض",
+  "approved": "تم القبول",
+  "rejected": "مرفوض",
+  "pending": "في انتظار الموافقة",
+  "rejectReason": "سبب الرفض"
 }

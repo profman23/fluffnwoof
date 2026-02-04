@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import cloudinary from '../config/cloudinary';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 interface CloudinaryUploadResult {
   secure_url: string;
@@ -268,6 +266,21 @@ export const deleteMedicalAttachment = async (attachmentId: string, userId: stri
   return { success: true };
 };
 
+// Delete a file from Cloudinary by URL
+export const deleteFile = async (url: string, resourceType: string = 'image') => {
+  const publicId = extractPublicIdFromUrl(url);
+  if (publicId) {
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to delete file from Cloudinary:', error);
+      throw error;
+    }
+  }
+  throw new Error('Could not extract public ID from URL');
+};
+
 // Helper function to extract Cloudinary public_id from URL
 function extractPublicIdFromUrl(url: string): string | null {
   try {
@@ -283,3 +296,14 @@ function extractPublicIdFromUrl(url: string): string | null {
     return null;
   }
 }
+
+export const uploadService = {
+  uploadUserAvatar,
+  removeUserAvatar,
+  uploadPetPhoto,
+  removePetPhoto,
+  uploadMedicalAttachment,
+  getMedicalAttachments,
+  deleteMedicalAttachment,
+  deleteFile,
+};

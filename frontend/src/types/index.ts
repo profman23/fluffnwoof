@@ -45,6 +45,22 @@ export enum Species {
   GUINEA_PIG = 'GUINEA_PIG',
   TURTLE = 'TURTLE',
   FISH = 'FISH',
+  HORSE = 'HORSE',
+  GOAT = 'GOAT',
+  SHEEP = 'SHEEP',
+  COW = 'COW',
+  CAMEL = 'CAMEL',
+  DONKEY = 'DONKEY',
+  MONKEY = 'MONKEY',
+  FERRET = 'FERRET',
+  HEDGEHOG = 'HEDGEHOG',
+  SNAKE = 'SNAKE',
+  LIZARD = 'LIZARD',
+  FROG = 'FROG',
+  CHICKEN = 'CHICKEN',
+  DUCK = 'DUCK',
+  PIG = 'PIG',
+  ALPACA = 'ALPACA',
   OTHER = 'OTHER',
 }
 
@@ -75,12 +91,14 @@ export interface User {
   phone?: string;
   avatarUrl?: string;
   isActive: boolean;
+  isBookable?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Owner {
   id: string;
+  customerCode?: string;
   firstName: string;
   lastName: string;
   email?: string;
@@ -95,6 +113,7 @@ export interface Owner {
 
 export interface Pet {
   id: string;
+  petCode?: string;
   name: string;
   species: Species;
   breed?: string;
@@ -137,6 +156,7 @@ export interface FlowBoardAppointment {
   status: AppointmentStatus;
   isConfirmed: boolean;
   visitType?: VisitType;
+  reason?: string; // Visit reason from booking - maps to chiefComplaint
   pet: {
     id: string;
     name: string;

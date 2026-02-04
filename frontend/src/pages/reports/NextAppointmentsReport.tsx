@@ -122,11 +122,11 @@ export const NextAppointmentsReport = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'CONFIRMED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-[var(--app-bg-elevated)] dark:text-gray-400';
     }
   };
 
@@ -136,7 +136,7 @@ export const NextAppointmentsReport = () => {
       id: 'date',
       header: t('nextAppointments.table.date'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {formatDate(apt.appointmentDate)}
         </span>
       ),
@@ -145,7 +145,7 @@ export const NextAppointmentsReport = () => {
       id: 'time',
       header: t('nextAppointments.table.time'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {apt.appointmentTime}
         </span>
       ),
@@ -154,7 +154,7 @@ export const NextAppointmentsReport = () => {
       id: 'pet',
       header: t('nextAppointments.table.pet'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {apt.pet?.name} ({apt.pet?.species})
         </span>
       ),
@@ -163,7 +163,7 @@ export const NextAppointmentsReport = () => {
       id: 'owner',
       header: t('nextAppointments.table.owner'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {apt.pet?.owner?.firstName} {apt.pet?.owner?.lastName}
         </span>
       ),
@@ -172,7 +172,7 @@ export const NextAppointmentsReport = () => {
       id: 'phone',
       header: t('nextAppointments.table.phone'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap" dir="ltr">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap" dir="ltr">
           {canViewPhone
             ? apt.pet?.owner?.phone
             : maskPhoneNumber(apt.pet?.owner?.phone || '')}
@@ -183,7 +183,7 @@ export const NextAppointmentsReport = () => {
       id: 'vet',
       header: t('nextAppointments.table.vet'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {apt.vet?.firstName} {apt.vet?.lastName}
         </span>
       ),
@@ -192,7 +192,7 @@ export const NextAppointmentsReport = () => {
       id: 'visitType',
       header: t('nextAppointments.table.visitType'),
       render: (apt) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {getVisitTypeName(apt.visitType)}
         </span>
       ),
@@ -209,18 +209,18 @@ export const NextAppointmentsReport = () => {
   ];
 
   return (
-    <div className="p-6">
+    <div className="page-container">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <CalendarDaysIcon className="w-7 h-7 text-brand-dark" />
-          <h1 className="text-2xl font-bold text-brand-dark">
+          <span className="text-2xl">📆</span>
+          <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">
             {t('nextAppointments.title')}
           </h1>
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
+          className="flex items-center gap-2 px-4 py-2 border dark:border-[var(--app-border-default)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)]"
         >
           <FunnelIcon className="w-5 h-5" />
           {t('nextAppointments.filters.title', 'Filters')}
@@ -229,43 +229,43 @@ export const NextAppointmentsReport = () => {
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow dark:shadow-black/30 p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {/* Start Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                 {t('nextAppointments.filters.from')}
               </label>
               <input
                 type="date"
                 value={filters.startDate || ''}
                 onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
               />
             </div>
 
             {/* End Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                 {t('nextAppointments.filters.to')}
               </label>
               <input
                 type="date"
                 value={filters.endDate || ''}
                 onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
               />
             </div>
 
             {/* Vet Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                 {t('nextAppointments.filters.vet')}
               </label>
               <select
                 value={filters.vetId || ''}
                 onChange={(e) => setFilters(prev => ({ ...prev, vetId: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
               >
                 <option value="">{t('nextAppointments.filters.allVets')}</option>
                 {staff.map(vet => (
@@ -278,7 +278,7 @@ export const NextAppointmentsReport = () => {
 
             {/* Customer Code Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                 {t('nextAppointments.filters.customerCode')}
               </label>
               <input
@@ -286,13 +286,13 @@ export const NextAppointmentsReport = () => {
                 value={filters.customerCode || ''}
                 onChange={(e) => setFilters(prev => ({ ...prev, customerCode: e.target.value }))}
                 placeholder="C00000001"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
               />
             </div>
 
             {/* Phone Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                 {t('nextAppointments.filters.phone')}
               </label>
               <input
@@ -301,7 +301,7 @@ export const NextAppointmentsReport = () => {
                 onChange={(e) => setFilters(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="05xxxxxxxx"
                 dir="ltr"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
               />
             </div>
 
@@ -315,7 +315,7 @@ export const NextAppointmentsReport = () => {
               </button>
               <button
                 onClick={handleResetFilters}
-                className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border dark:border-[var(--app-border-default)] rounded-lg text-gray-700 dark:text-[var(--app-text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)]"
               >
                 {t('nextAppointments.filters.reset')}
               </button>
@@ -340,7 +340,7 @@ export const NextAppointmentsReport = () => {
 
       {/* Total Count */}
       {!loading && appointments.length > 0 && (
-        <div className="mt-2 text-sm text-gray-500">
+        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           {t('nextAppointments.total')}: {pagination.total}
         </div>
       )}

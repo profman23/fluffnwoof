@@ -111,6 +111,10 @@ export const roleController = {
       const { roleId } = req.params;
       const { screenPermissions, specialPermissions } = req.body;
 
+      console.log('[RoleController] updateRolePermissions called');
+      console.log('[RoleController] roleId:', roleId);
+      console.log('[RoleController] screenPermissions:', JSON.stringify(screenPermissions, null, 2));
+
       // Validate role exists
       const role = await prisma.role.findUnique({
         where: { id: roleId },
@@ -148,14 +152,24 @@ export const roleController = {
             where: { name: permissionName },
           });
 
-          if (permission) {
-            await tx.rolePermission.create({
+          // Create the permission if it doesn't exist (for new screens)
+          if (!permission) {
+            permission = await tx.permission.create({
               data: {
-                roleId,
-                permissionId: permission.id,
+                name: permissionName,
+                description: `${screen} - ${level === 'read' ? 'Read Only' : 'Full Control'}`,
+                category: 'screens',
+                action: level as string,
               },
             });
           }
+
+          await tx.rolePermission.create({
+            data: {
+              roleId,
+              permissionId: permission.id,
+            },
+          });
         }
 
         // Create new special permissions
@@ -201,6 +215,8 @@ export const roleController = {
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       });
+
+      console.log('[RoleController] Permissions saved successfully for role:', roleId);
 
       res.json({
         success: true,

@@ -1,9 +1,11 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import { config } from './config/env';
 import { errorHandler, notFound } from './middlewares/errorHandler';
 import { languageMiddleware } from './middlewares/languageMiddleware';
 import prisma from './config/database';
+import { initializeWebSocket } from './websocket';
 
 // Routes
 import authRoutes from './routes/authRoutes';
@@ -26,11 +28,21 @@ import reminderRoutes from './routes/reminderRoutes';
 import emailRoutes from './routes/emailRoutes';
 import shiftRoutes from './routes/shiftRoutes';
 import visitTypeRoutes from './routes/visitTypeRoutes';
+import customerPortalRoutes from './routes/customerPortalRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import formRoutes from './routes/formRoutes';
+import clinicSettingsRoutes from './routes/clinicSettingsRoutes';
+import publicFormRoutes from './routes/publicFormRoutes';
 
 // Jobs
 import { reminderScheduler } from './jobs/reminderScheduler';
+import { reservationCleanupJob } from './jobs/reservationCleanup';
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket
+const io = initializeWebSocket(httpServer);
 
 // Middleware
 app.use(cors({ origin: config.cors.origin, credentials: true }));
@@ -68,6 +80,11 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/visit-types', visitTypeRoutes);
+app.use('/api/portal', customerPortalRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/forms', formRoutes);
+app.use('/api/clinic-settings', clinicSettingsRoutes);
+app.use('/api/public/forms', publicFormRoutes);
 
 // 404 Handler
 app.use(notFound);
@@ -84,13 +101,16 @@ const startServer = async () => {
     await prisma.$connect();
     console.log('✅ Database connected successfully');
 
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📍 Environment: ${config.nodeEnv}`);
       console.log(`🔗 API URL: http://localhost:${PORT}`);
+      console.log(`📱 Mobile accessible on: http://10.0.2.2:${PORT} (Android Emulator)`);
+      console.log(`🔌 WebSocket path: /ws`);
 
-      // Start reminder scheduler
+      // Start schedulers
       reminderScheduler.start();
+      reservationCleanupJob.start();
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -102,6 +122,7 @@ const startServer = async () => {
 process.on('SIGINT', async () => {
   console.log('\n👋 Shutting down gracefully...');
   reminderScheduler.stop();
+  reservationCleanupJob.stop();
   await prisma.$disconnect();
   process.exit(0);
 });
@@ -109,6 +130,7 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   console.log('\n👋 Shutting down gracefully...');
   reminderScheduler.stop();
+  reservationCleanupJob.stop();
   await prisma.$disconnect();
   process.exit(0);
 });

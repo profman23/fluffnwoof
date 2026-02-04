@@ -161,14 +161,14 @@ export const MyProfile = () => {
   return (
     <div className="page-container">
       <div className="flex items-center gap-3 mb-6">
-        <UserCircleIcon className="w-7 h-7 text-brand-dark" />
-        <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+        <span className="text-2xl">👤</span>
+        <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
       </div>
 
       {/* Profile Section */}
       <div className="card mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-brand-dark">{t('profile.title')}</h2>
+          <h2 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">{t('profile.title')}</h2>
           {!isEditingProfile && (
             <button
               onClick={() => setIsEditingProfile(true)}
@@ -183,8 +183,8 @@ export const MyProfile = () => {
           <div
             className={`p-3 rounded-lg mb-4 ${
               profileMessage.type === 'success'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
             }`}
           >
             {profileMessage.text}
@@ -223,7 +223,7 @@ export const MyProfile = () => {
                   className="input"
                 />
               ) : (
-                <p className="text-brand-dark py-2">{user?.firstName}</p>
+                <p className="text-brand-dark dark:text-[var(--app-text-primary)] py-2">{user?.firstName}</p>
               )}
             </div>
             <div>
@@ -236,16 +236,16 @@ export const MyProfile = () => {
                   className="input"
                 />
               ) : (
-                <p className="text-brand-dark py-2">{user?.lastName}</p>
+                <p className="text-brand-dark dark:text-[var(--app-text-primary)] py-2">{user?.lastName}</p>
               )}
             </div>
             <div>
               <label className="label">{t('profile.email')}</label>
-              <p className="text-brand-dark py-2">{user?.email}</p>
+              <p className="text-brand-dark dark:text-[var(--app-text-primary)] py-2">{user?.email}</p>
             </div>
             <div>
               <label className="label">{t('profile.role')}</label>
-              <p className="text-brand-dark py-2">{user?.role?.displayNameAr || user?.role?.name}</p>
+              <p className="text-brand-dark dark:text-[var(--app-text-primary)] py-2">{user?.role?.displayNameAr || user?.role?.name}</p>
             </div>
           </div>
         </div>
@@ -275,14 +275,14 @@ export const MyProfile = () => {
 
       {/* Theme Customization Section */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-brand-dark mb-4">{t('theme.title')}</h2>
+        <h2 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)] mb-4">{t('theme.title')}</h2>
 
         {themeMessage && (
           <div
             className={`p-3 rounded-lg mb-4 ${
               themeMessage.type === 'success'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
             }`}
           >
             {themeMessage.text}
@@ -291,7 +291,7 @@ export const MyProfile = () => {
 
         {/* Layout Colors */}
         <div className="mb-6">
-          <h3 className="text-md font-medium text-brand-dark mb-3">{t('theme.layoutColors')}</h3>
+          <h3 className="text-md font-medium text-brand-dark dark:text-[var(--app-text-primary)] mb-3">{t('theme.layoutColors')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ColorPicker
               label={t('theme.headerColor')}
@@ -313,7 +313,7 @@ export const MyProfile = () => {
 
         {/* FlowBoard Colors */}
         <div className="mb-6">
-          <h3 className="text-md font-medium text-brand-dark mb-3">{t('theme.flowBoardColors')}</h3>
+          <h3 className="text-md font-medium text-brand-dark dark:text-[var(--app-text-primary)] mb-3">{t('theme.flowBoardColors')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <ColorPicker
               label={t('theme.columns.scheduled')}

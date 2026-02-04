@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { XMarkIcon, PlusIcon, PencilIcon, TrashIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { serviceProductsApi, Category } from '../../api/serviceProducts';
+import { Modal } from '../common/Modal';
+import { Button } from '../common/Button';
 
 interface Props {
   categories: Category[];
@@ -79,126 +81,110 @@ export const CategoryModal = ({ categories, onClose }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-
-        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold">{t('categories.title')}</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={`📂 ${t('categories.title')}`}
+      size="sm"
+    >
+      <div className="space-y-4">
+        {/* Error */}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
+            {error}
           </div>
+        )}
 
-          {/* Content */}
-          <div className="p-4 space-y-4">
-            {/* Error */}
-            {error && (
-              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                {error}
+        {/* Add New */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder={t('categories.newPlaceholder')}
+            className="input flex-1"
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          />
+          <Button
+            variant="primary"
+            onClick={handleAdd}
+            disabled={loading || !newName.trim()}
+          >
+            <PlusIcon className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Categories List */}
+        <div className="divide-y dark:divide-[var(--app-border-default)] max-h-64 overflow-y-auto">
+          {localCategories.length === 0 ? (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+              📭 {t('categories.noData')}
+            </p>
+          ) : (
+            localCategories.map((category) => (
+              <div
+                key={category.id}
+                className="flex items-center gap-2 py-3"
+              >
+                {editingId === category.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      className="input flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleEdit(category.id);
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                    />
+                    <button
+                      onClick={() => handleEdit(category.id)}
+                      disabled={loading}
+                      className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                    >
+                      <CheckIcon className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-lg transition-colors"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-gray-900 dark:text-[var(--app-text-primary)]">
+                      {category.name}
+                    </span>
+                    <button
+                      onClick={() => startEdit(category)}
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(category.id)}
+                      disabled={loading}
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
-            )}
+            ))
+          )}
+        </div>
 
-            {/* Add New */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder={t('categories.newPlaceholder')}
-                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              />
-              <button
-                onClick={handleAdd}
-                disabled={loading || !newName.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                <PlusIcon className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Categories List */}
-            <div className="divide-y max-h-64 overflow-y-auto">
-              {localCategories.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">
-                  {t('categories.noData')}
-                </p>
-              ) : (
-                localCategories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="flex items-center gap-2 py-3"
-                  >
-                    {editingId === category.id ? (
-                      <>
-                        <input
-                          type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="flex-1 px-3 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEdit(category.id);
-                            if (e.key === 'Escape') cancelEdit();
-                          }}
-                        />
-                        <button
-                          onClick={() => handleEdit(category.id)}
-                          disabled={loading}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                        >
-                          <CheckIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-gray-900">
-                          {category.name}
-                        </span>
-                        <button
-                          onClick={() => startEdit(category)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(category.id)}
-                          disabled={loading}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Close Button */}
-            <div className="pt-4">
-              <button
-                onClick={onClose}
-                className="w-full px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                {t('categories.close')}
-              </button>
-            </div>
-          </div>
+        {/* Close Button */}
+        <div className="pt-4">
+          <Button variant="secondary" onClick={onClose} className="w-full">
+            {t('categories.close')}
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

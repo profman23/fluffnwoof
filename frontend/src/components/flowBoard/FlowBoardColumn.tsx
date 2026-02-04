@@ -37,7 +37,7 @@ export const FlowBoardColumn = ({
 
   return (
     <div
-      className={`flex flex-col bg-primary-50 rounded-lg h-full flex-1 min-w-[200px] border-2 border-primary-200
+      className={`flex flex-col bg-primary-50 dark:bg-[var(--app-bg-secondary)] rounded-lg h-full flex-1 min-w-[200px] border-2 border-primary-200 dark:border-[var(--app-border-default)]
         ${isOver ? 'ring-2 ring-secondary-300 ring-opacity-50' : ''}`}
     >
       {/* Column Header */}
@@ -100,7 +100,7 @@ export const FlowBoardColumn = ({
         </SortableContext>
 
         {appointments.length === 0 && (
-          <div className="text-center text-gray-400 py-8 text-sm">
+          <div className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm">
             {/* Empty state */}
           </div>
         )}

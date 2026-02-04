@@ -30,6 +30,7 @@ import { flowBoardApi } from '../api/flowBoard';
 import { FlowBoardData, FlowBoardAppointment, AppointmentStatus, User } from '../types';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { useThemeStore } from '../store/themeStore';
+import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 
 const statusMap: Record<string, AppointmentStatus> = {
   scheduled: AppointmentStatus.SCHEDULED,
@@ -90,9 +91,18 @@ export const FlowBoardPage = () => {
   );
 
   const loadData = async () => {
+    console.log('>>> loadData CALLED at', new Date().toISOString());
     setLoading(true);
     try {
       const result = await flowBoardApi.getData(selectedDate);
+      // Debug: Check if recordCode is returned
+      console.log('=== FlowBoard Data Debug ===');
+      const allAppts = [...(result.scheduled || []), ...(result.checkIn || []), ...(result.inProgress || []), ...(result.completed || [])];
+      allAppts.forEach((appt, i) => {
+        if (appt.medicalRecord) {
+          console.log(`[${appt.status}] ${appt.pet?.name}: recordCode=${appt.medicalRecord?.recordCode}, isClosed=${appt.medicalRecord?.isClosed}`);
+        }
+      });
       setData(result);
     } catch (err) {
       console.error('Failed to load flow board data:', err);
@@ -264,52 +274,48 @@ export const FlowBoardPage = () => {
   return (
     <div className="page-container pt-1 h-screen flex flex-col">
       {/* Header - Compact */}
-      <div className="bg-white rounded-lg shadow-sm px-3 py-1.5 mb-1">
+      <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow-sm dark:shadow-black/30 px-3 py-1.5 mb-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ViewColumnsIcon className="w-6 h-6 text-brand-dark" />
-            <h1 className="text-xl font-bold text-brand-dark">{t('title')}</h1>
-            <span className="text-xs text-gray-500">{formatDisplayDate(selectedDate)}</span>
-            {isReadOnly && (
-              <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                {t('readOnly')}
-              </span>
-            )}
+            <span className="text-xl">📋</span>
+            <h1 className="text-xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{formatDisplayDate(selectedDate)}</span>
+            {isReadOnly && <ReadOnlyBadge compact namespace="flowBoard" />}
           </div>
 
           <div className="flex items-center gap-2">
             {/* Date Navigation */}
-            <div className="flex items-center bg-gray-100 rounded-md">
+            <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md">
               <button
                 onClick={() => handleDateChange(-1)}
-                className="p-1 hover:bg-white rounded-md transition-colors"
+                className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
               >
                 <ChevronLeftIcon className="w-4 h-4" />
               </button>
               <div className="flex items-center gap-1 px-1">
-                <CalendarIcon className="w-3.5 h-3.5 text-gray-500" />
+                <CalendarIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-xs font-medium w-28 py-0.5"
+                  className="bg-transparent border-none focus:ring-0 text-xs font-medium w-28 py-0.5 dark:text-[var(--app-text-primary)]"
                 />
               </div>
               <button
                 onClick={() => handleDateChange(1)}
-                className="p-1 hover:bg-white rounded-md transition-colors"
+                className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
               >
                 <ChevronRightIcon className="w-4 h-4" />
               </button>
             </div>
 
             {/* Staff Filter */}
-            <div className="flex items-center bg-gray-100 rounded-md px-1.5">
-              <UserIcon className="w-3.5 h-3.5 text-gray-500" />
+            <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-1.5">
+              <UserIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
               <select
                 value={selectedStaff}
                 onChange={(e) => setSelectedStaff(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-xs font-medium py-1 pr-5"
+                className="bg-transparent border-none focus:ring-0 text-xs font-medium py-1 pr-5 dark:text-[var(--app-text-primary)]"
               >
                 <option value="all">{t('allStaff')}</option>
                 {staffList.map((staff) => (
@@ -321,14 +327,14 @@ export const FlowBoardPage = () => {
             </div>
 
             {/* Show Cancelled Filter */}
-            <label className="flex items-center gap-1.5 bg-gray-100 rounded-md px-2 py-1 cursor-pointer">
+            <label className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-2 py-1 cursor-pointer">
               <input
                 type="checkbox"
                 checked={showCancelled}
                 onChange={(e) => setShowCancelled(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-red-500 focus:ring-red-500"
               />
-              <span className="flex items-center gap-1 text-xs font-medium text-gray-600">
+              <span className="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-400">
                 {showCancelled ? <EyeIcon className="w-3.5 h-3.5" /> : <EyeSlashIcon className="w-3.5 h-3.5" />}
                 {t('showCancelled')}
               </span>
@@ -338,7 +344,7 @@ export const FlowBoardPage = () => {
             <button
               onClick={loadData}
               disabled={loading}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-md transition-colors"
             >
               <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>

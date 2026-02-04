@@ -4,7 +4,7 @@ export const registerValidator = [
   body('email')
     .isEmail()
     .withMessage('البريد الإلكتروني غير صالح')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }),
   body('password')
     .isLength({ min: 6 })
     .withMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
@@ -34,7 +34,7 @@ export const loginValidator = [
   body('email')
     .isEmail()
     .withMessage('البريد الإلكتروني غير صالح')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }),
   body('password')
     .notEmpty()
     .withMessage('كلمة المرور مطلوبة'),

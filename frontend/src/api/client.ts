@@ -1,6 +1,21 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Automatically detect the correct API URL based on platform
+const getApiUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+
+  // If running on Android emulator, use special IP
+  if (Capacitor.getPlatform() === 'android') {
+    // 10.0.2.2 is Android emulator's alias for host machine's localhost
+    return 'http://10.0.2.2:5000/api';
+  }
+
+  // For iOS simulator or web, use localhost or env variable
+  return envUrl || 'http://localhost:5000/api';
+};
+
+const API_URL = getApiUrl();
 
 export const apiClient = axios.create({
   baseURL: API_URL,

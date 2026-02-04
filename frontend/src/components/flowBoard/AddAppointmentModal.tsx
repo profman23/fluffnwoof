@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { XMarkIcon, MagnifyingGlassIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Owner, User, VisitType, Species } from '../../types';
 import { ownersApi } from '../../api/owners';
 import { petsApi } from '../../api/pets';
@@ -33,6 +33,7 @@ export const AddAppointmentModal = ({
 }: AddAppointmentModalProps) => {
   const { t, i18n } = useTranslation('flowBoard');
   const { canViewPhone } = usePhonePermission();
+  const queryClient = useQueryClient();
   const isRTL = i18n.language === 'ar';
   const isMountedRef = useRef(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -304,6 +305,10 @@ export const AddAppointmentModal = ({
         duration: visitTypeDuration, // Use configurable duration
       });
       if (!isMountedRef.current) return;
+
+      // Invalidate availability cache to refresh time slots
+      queryClient.invalidateQueries({ queryKey: ['vet-availability-v2', selectedStaff, appointmentDate] });
+
       onSuccess();
       handleClose();
     } catch (err: unknown) {
@@ -344,15 +349,17 @@ export const AddAppointmentModal = ({
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow-xl dark:shadow-black/50 w-full max-w-md mx-4 max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-          <h2 className="text-lg font-semibold">{t('addAppointment')}</h2>
+        <div className="flex items-center justify-between p-4 border-b dark:border-[var(--app-border-default)] sticky top-0 bg-white dark:bg-[var(--app-bg-card)] rounded-t-lg">
+          <h2 className="text-lg font-semibold dark:text-[var(--app-text-primary)] flex items-center gap-2">
+            <span>📅</span> {t('addAppointment')}
+          </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             type="button"
           >
             <XMarkIcon className="w-6 h-6" />
@@ -362,15 +369,15 @@ export const AddAppointmentModal = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
           {error && (
-            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {/* Owner Search */}
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('form.owner')}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+              👤 {t('form.owner')}
             </label>
             <div className="relative">
               <MagnifyingGlassIcon className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -389,25 +396,25 @@ export const AddAppointmentModal = ({
                   setTimeout(() => setShowOwnerDropdown(false), 200);
                 }}
                 placeholder={t('form.searchOwner') || 'Search owner...'}
-                className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full ps-10 pe-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             {/* Owner Dropdown */}
             {showOwnerDropdown && owners.length > 0 && (
-              <div className="absolute z-20 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-20 w-full mt-1 bg-white dark:bg-[var(--app-bg-card)] border dark:border-[var(--app-border-default)] rounded-lg shadow-lg dark:shadow-black/50 max-h-48 overflow-y-auto">
                 {owners.map((owner) => (
                   <button
                     key={owner.id}
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleOwnerSelect(owner)}
-                    className="w-full px-4 py-2 text-start hover:bg-gray-50 flex flex-col"
+                    className="w-full px-4 py-2 text-start hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] flex flex-col"
                   >
-                    <span className="font-medium">
+                    <span className="font-medium dark:text-[var(--app-text-primary)]">
                       {owner.firstName} {owner.lastName}
                     </span>
-                    <span className="text-sm text-gray-500" dir="ltr">
+                    <span className="text-sm text-gray-500 dark:text-gray-400" dir="ltr">
                       {canViewPhone ? owner.phone : maskPhoneNumber(owner.phone)}
                     </span>
                   </button>
@@ -415,7 +422,7 @@ export const AddAppointmentModal = ({
               </div>
             )}
             {searchingOwners && (
-              <div className="absolute z-20 w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-gray-500">
+              <div className="absolute z-20 w-full mt-1 bg-white dark:bg-[var(--app-bg-card)] border dark:border-[var(--app-border-default)] rounded-lg shadow-lg dark:shadow-black/50 p-4 text-center text-gray-500 dark:text-gray-400">
                 {t('form.searching') || 'Searching'}...
               </div>
             )}
@@ -424,8 +431,8 @@ export const AddAppointmentModal = ({
           {/* Pet Selection */}
           {selectedOwner && pets.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.pet')}
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                🐾 {t('form.pet')}
               </label>
               <select
                 value={selectedPet?.id || ''}
@@ -433,7 +440,7 @@ export const AddAppointmentModal = ({
                   const pet = pets.find((p) => p.id === e.target.value);
                   setSelectedPet(pet || null);
                 }}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {pets.map((pet) => (
                   <option key={pet.id} value={pet.id}>
@@ -446,8 +453,8 @@ export const AddAppointmentModal = ({
 
           {/* Visit Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('form.visitType')}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+              🏥 {t('form.visitType')}
             </label>
             <select
               value={visitType}
@@ -459,7 +466,7 @@ export const AddAppointmentModal = ({
                   setSelectedVisitTypeConfig(config);
                 }
               }}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {/* Use configurable visit types if available, fallback to enum */}
               {visitTypesConfig.length > 0 ? (
@@ -477,7 +484,7 @@ export const AddAppointmentModal = ({
               )}
             </select>
             {/* Duration indicator */}
-            <div className="mt-1 flex items-center gap-1 text-sm text-gray-500">
+            <div className="mt-1 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
               <ClockIcon className="w-4 h-4" />
               <span>
                 {t('form.duration')}: {visitTypeDuration} {t('form.minutes')}
@@ -487,13 +494,13 @@ export const AddAppointmentModal = ({
 
           {/* Staff */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('form.staff')}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+              👨‍⚕️ {t('form.staff')}
             </label>
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {staff.length === 0 && (
                 <option value="">{t('form.loading') || 'Loading...'}</option>
@@ -508,25 +515,25 @@ export const AddAppointmentModal = ({
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('form.date')}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+              📆 {t('form.date')}
             </label>
             <input
               type="date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           {/* Time */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('form.time')} {timeSlots.length > 0 && <span className="text-gray-400">({timeSlots.length})</span>}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+              🕐 {t('form.time')} {timeSlots.length > 0 && <span className="text-gray-400">({timeSlots.length})</span>}
             </label>
             {loadingAvailability ? (
-              <div className="px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm flex items-center gap-2">
+              <div className="px-4 py-3 border border-gray-200 dark:border-[var(--app-border-default)] rounded-lg bg-gray-50 dark:bg-[var(--app-bg-elevated)] text-gray-600 dark:text-gray-400 text-sm flex items-center gap-2">
                 <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -534,7 +541,7 @@ export const AddAppointmentModal = ({
                 <span>{isRTL ? 'جاري تحميل المواعيد المتاحة...' : 'Loading available slots...'}</span>
               </div>
             ) : timeSlots.length === 0 ? (
-              <div className="px-4 py-3 border border-orange-200 rounded-lg bg-orange-50 text-orange-700 text-sm">
+              <div className="px-4 py-3 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-sm">
                 <p className="font-medium">{t('form.noSlotsAvailable') || 'No available time slots'}</p>
                 <p className="mt-1 text-orange-600">
                   {(() => {
@@ -571,7 +578,7 @@ export const AddAppointmentModal = ({
               <select
                 value={appointmentTime}
                 onChange={(e) => setAppointmentTime(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {timeSlots.map((slot) => (
                   <option key={slot} value={slot}>
@@ -587,7 +594,7 @@ export const AddAppointmentModal = ({
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border dark:border-[var(--app-border-default)] rounded-lg text-gray-700 dark:text-[var(--app-text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)]"
             >
               {t('form.cancel')}
             </button>

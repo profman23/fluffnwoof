@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from './store/authStore';
 import { Layout } from './components/layout/Layout';
 import { Login } from './pages/Login';
@@ -19,8 +20,26 @@ import { SmsPage } from './pages/SmsPage';
 import { ReminderManagement } from './pages/crm/ReminderManagement';
 import { ShiftsManagement } from './pages/clinicSetup/ShiftsManagement';
 import { VisitTypesPage } from './pages/clinicSetup/VisitTypesPage';
+import { FormsPage } from './pages/clinicSetup/FormsPage';
 import { ThemeProvider } from './components/ThemeProvider';
+import { DarkModeProvider } from './context/DarkModeContext';
 import { LogoLoader } from './components/common/LogoLoader';
+
+// Customer Portal imports - New Modern Design
+import { PortalLayout, PublicPortalLayout } from './components/portal/layout/PortalLayout';
+import { CustomerLogin } from './pages/portal/CustomerLogin';
+import { CustomerRegister } from './pages/portal/CustomerRegister';
+import { ForgotPassword } from './pages/portal/ForgotPassword';
+import { CustomerDashboard } from './pages/portal/CustomerDashboard';
+import { MyPets } from './pages/portal/MyPets';
+import { BookAppointment } from './pages/portal/BookAppointment';
+import { MyAppointments } from './pages/portal/MyAppointments';
+import { CustomerProfile } from './pages/portal/CustomerProfile';
+import { CustomerForms } from './pages/portal/CustomerForms';
+import { FormSignPage } from './pages/portal/FormSignPage';
+import { PetDetailPage } from './pages/portal/PetDetailPage';
+import { AppointmentDetailPage } from './pages/portal/AppointmentDetailPage';
+import { PublicFormSign } from './pages/PublicFormSign';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,8 +97,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <BrowserRouter>
+      <DarkModeProvider>
+        <ThemeProvider>
+          <BrowserRouter>
           <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -214,12 +234,51 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            key="clinic-setup-forms"
+            path="/clinic-setup/forms"
+            element={
+              <ProtectedRoute>
+                <FormsPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Legacy route redirect */}
           <Route path="/sms" element={<Navigate to="/crm/sms" replace />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Root route: Mobile app goes to portal, Web goes to dashboard */}
+          <Route path="/" element={
+            Capacitor.isNativePlatform()
+              ? <Navigate to="/portal/login" replace />
+              : <Navigate to="/dashboard" replace />
+          } />
+
+          {/* Customer Portal - Public Routes (Login, Register, Forgot Password) */}
+          <Route path="/portal/login" element={<CustomerLogin />} />
+          <Route path="/portal/register" element={<CustomerRegister />} />
+          <Route path="/portal/forgot" element={<ForgotPassword />} />
+
+          {/* Customer Portal - Protected Routes (with PortalLayout) */}
+          <Route path="/portal" element={<PortalLayout />}>
+            <Route path="dashboard" element={<CustomerDashboard />} />
+            <Route path="pets" element={<MyPets />} />
+            <Route path="pets/:id" element={<PetDetailPage />} />
+            <Route path="book" element={<BookAppointment />} />
+            <Route path="appointments" element={<MyAppointments />} />
+            <Route path="appointments/:id" element={<AppointmentDetailPage />} />
+            <Route path="profile" element={<CustomerProfile />} />
+            <Route path="forms" element={<CustomerForms />} />
+            <Route path="forms/:id" element={<FormSignPage />} />
+          </Route>
+
+          {/* Portal root redirects to login */}
+          <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
+
+          {/* Public Form Sign Page (no login required) */}
+          <Route path="/sign/:formId" element={<PublicFormSign />} />
           </Routes>
-        </BrowserRouter>
-      </ThemeProvider>
+          </BrowserRouter>
+        </ThemeProvider>
+      </DarkModeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

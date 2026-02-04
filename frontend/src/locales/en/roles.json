@@ -35,7 +35,8 @@
     "reminders": "Reminders",
     "clinicSetup": "Clinic Setup",
     "shiftsManagement": "Shifts Management",
-    "visitTypes": "Visit Types"
+    "visitTypes": "Visit Types",
+    "formsAndCertificates": "Forms & Certificates"
   },
   "specialPermissions": {
     "title": "Special Permissions",

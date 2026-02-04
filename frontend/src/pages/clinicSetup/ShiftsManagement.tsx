@@ -18,6 +18,7 @@ import { LogoLoader } from '../../components/common/LogoLoader';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { ScreenPermissionGuard } from '../../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../../hooks/useScreenPermission';
+import { ReadOnlyBadge } from '../../components/common/ReadOnlyBadge';
 
 const DAYS_OF_WEEK: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
@@ -237,12 +238,12 @@ export const ShiftsManagement: React.FC = () => {
       <div className="page-container">
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg">
+          <div className="fixed top-4 right-4 z-50 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 px-4 py-3 rounded shadow-lg">
             {successMessage}
           </div>
         )}
         {errorMessage && (
-          <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg">
+          <div className="fixed top-4 right-4 z-50 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded shadow-lg">
             {errorMessage}
           </div>
         )}
@@ -250,14 +251,11 @@ export const ShiftsManagement: React.FC = () => {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{t('shifts.title')}</h1>
-            {isReadOnly && (
-              <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-                {isRTL ? 'قراءة فقط' : 'Read Only'}
-              </span>
-            )}
+            <span className="text-2xl">📅</span>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--app-text-primary)]">{t('shifts.title')}</h1>
+            {isReadOnly && <ReadOnlyBadge />}
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             {isRTL
               ? 'إدارة فترات جدولة الأطباء - حدد فترة زمنية مع أيام العمل وساعات الدوام'
               : 'Manage doctor schedule periods - Define time periods with working days and hours'}
@@ -265,34 +263,34 @@ export const ShiftsManagement: React.FC = () => {
         </div>
 
       {/* Employees Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow dark:shadow-black/30 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-[var(--app-border-default)]">
+          <thead className="bg-gray-50 dark:bg-[var(--app-bg-tertiary)]">
             <tr>
-              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {isRTL ? 'الموظف' : 'Employee'}
               </th>
-              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {isRTL ? 'الوظيفة' : 'Role'}
               </th>
-              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {isRTL ? 'الدوام الحالي' : 'Current Schedule'}
               </th>
-              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {isRTL ? 'عدد الفترات' : 'Periods'}
               </th>
-              <th scope="col" className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-end text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {isRTL ? 'الإجراءات' : 'Actions'}
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-[var(--app-bg-card)] divide-y divide-gray-200 dark:divide-[var(--app-border-default)]">
             {vets.map((vet) => (
               <React.Fragment key={vet.id}>
                 {/* Main Row */}
                 <tr
-                  className={`hover:bg-gray-50 cursor-pointer transition-colors ${
-                    expandedVets.has(vet.id) ? 'bg-primary-50' : ''
+                  className={`hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] cursor-pointer transition-colors ${
+                    expandedVets.has(vet.id) ? 'bg-primary-50 dark:bg-primary-900/30' : ''
                   }`}
                   onClick={() => toggleExpanded(vet.id)}
                 >
@@ -312,7 +310,7 @@ export const ShiftsManagement: React.FC = () => {
                         </div>
                       )}
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-[var(--app-text-primary)]">
                           {vet.firstName} {vet.lastName}
                         </div>
                       </div>
@@ -321,14 +319,14 @@ export const ShiftsManagement: React.FC = () => {
 
                   {/* Role */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-[var(--app-bg-elevated)] text-gray-700 dark:text-gray-300 rounded-full">
                       {vet.role}
                     </span>
                   </td>
 
                   {/* Current Schedule */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <ClockIcon className="w-4 h-4" />
                       {getCurrentPeriodSummary(vet)}
                     </div>
@@ -338,8 +336,8 @@ export const ShiftsManagement: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       vet.schedulePeriods.length > 0
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-500 dark:bg-[var(--app-bg-elevated)] dark:text-gray-400'
                     }`}>
                       {vet.schedulePeriods.length}
                     </span>
@@ -362,7 +360,7 @@ export const ShiftsManagement: React.FC = () => {
                       )}
                       <button
                         onClick={() => toggleExpanded(vet.id)}
-                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-lg transition-colors"
                       >
                         {expandedVets.has(vet.id) ? (
                           <ChevronUpIcon className="w-5 h-5" />
@@ -377,9 +375,9 @@ export const ShiftsManagement: React.FC = () => {
                 {/* Expanded Row - Schedule Periods */}
                 {expandedVets.has(vet.id) && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 bg-gray-50">
+                    <td colSpan={5} className="px-6 py-4 bg-gray-50 dark:bg-[var(--app-bg-tertiary)]">
                       {vet.schedulePeriods.length === 0 ? (
-                        <div className="text-center py-6 text-gray-500">
+                        <div className="text-center py-6 text-gray-500 dark:text-gray-400">
                           <CalendarDaysIcon className="w-10 h-10 mx-auto mb-2 text-gray-300" />
                           <p>{isRTL ? 'لا توجد فترات جدولة' : 'No schedule periods'}</p>
                           {canModify && (
@@ -398,12 +396,12 @@ export const ShiftsManagement: React.FC = () => {
                           {vet.schedulePeriods.map((period) => (
                             <div
                               key={period.id}
-                              className="bg-white border rounded-lg p-4 hover:shadow-sm transition-shadow"
+                              className="bg-white dark:bg-[var(--app-bg-card)] border dark:border-[var(--app-border-default)] rounded-lg p-4 hover:shadow-sm transition-shadow"
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   {/* Date Range */}
-                                  <div className="flex items-center gap-2 text-base font-medium text-gray-900 mb-2">
+                                  <div className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-[var(--app-text-primary)] mb-2">
                                     <CalendarDaysIcon className="w-5 h-5 text-primary-600" />
                                     <span>
                                       {formatDisplayDate(period.startDate, i18n.language)}
@@ -419,8 +417,8 @@ export const ShiftsManagement: React.FC = () => {
                                         key={day}
                                         className={`px-2 py-0.5 rounded text-xs font-medium ${
                                           period.workingDays.includes(day)
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-400'
+                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                            : 'bg-gray-100 text-gray-400 dark:bg-[var(--app-bg-elevated)] dark:text-gray-500'
                                         }`}
                                       >
                                         {getDayLabel(day)}
@@ -429,7 +427,7 @@ export const ShiftsManagement: React.FC = () => {
                                   </div>
 
                                   {/* Work Hours & Break */}
-                                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                     <div className="flex items-center gap-1">
                                       <ClockIcon className="w-4 h-4" />
                                       <span>
@@ -478,7 +476,7 @@ export const ShiftsManagement: React.FC = () => {
 
             {vets.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                   {isRTL ? 'لا يوجد موظفين' : 'No employees found'}
                 </td>
               </tr>
@@ -556,8 +554,8 @@ export const ShiftsManagement: React.FC = () => {
                   onClick={() => toggleDay(day)}
                   className={`px-4 py-2 rounded-lg border transition-colors ${
                     periodForm.workingDays.includes(day)
-                      ? 'bg-primary-100 border-primary-500 text-primary-700'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? 'bg-primary-100 dark:bg-primary-900/30 border-primary-500 text-primary-700 dark:text-primary-400'
+                      : 'bg-white dark:bg-[var(--app-bg-elevated)] border-gray-200 dark:border-[var(--app-border-default)] text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                   }`}
                 >
                   {getDayLabel(day)}
@@ -571,7 +569,7 @@ export const ShiftsManagement: React.FC = () => {
             <label className="label">{isRTL ? 'ساعات العمل' : 'Work Hours'}</label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">{isRTL ? 'من' : 'From'}</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{isRTL ? 'من' : 'From'}</label>
                 <input
                   type="time"
                   value={periodForm.workStartTime}
@@ -580,7 +578,7 @@ export const ShiftsManagement: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">{isRTL ? 'إلى' : 'To'}</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{isRTL ? 'إلى' : 'To'}</label>
                 <input
                   type="time"
                   value={periodForm.workEndTime}
@@ -598,7 +596,7 @@ export const ShiftsManagement: React.FC = () => {
             </label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">{isRTL ? 'من' : 'From'}</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{isRTL ? 'من' : 'From'}</label>
                 <input
                   type="time"
                   value={periodForm.breakStartTime}
@@ -607,7 +605,7 @@ export const ShiftsManagement: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">{isRTL ? 'إلى' : 'To'}</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{isRTL ? 'إلى' : 'To'}</label>
                 <input
                   type="time"
                   value={periodForm.breakEndTime}
@@ -616,7 +614,7 @@ export const ShiftsManagement: React.FC = () => {
                 />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {isRTL
                 ? 'اترك الحقول فارغة إذا لم يكن هناك استراحة'
                 : 'Leave empty if there is no break'}
@@ -625,7 +623,7 @@ export const ShiftsManagement: React.FC = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t dark:border-[var(--app-border-default)]">
           <Button variant="secondary" onClick={closePeriodModal}>
             {isRTL ? 'إلغاء' : 'Cancel'}
           </Button>

@@ -15,8 +15,8 @@
   pointer-events: none;
   z-index: 0;
   opacity: 0.06;
-  background-image: url('../assets/patterns/pattern-sprite.svg');
-  background-size: 450px auto;
+  background-image: url('/pattern.png');
+  background-size: 350px auto;
   background-repeat: repeat;
 }
 
@@ -40,13 +40,64 @@
   bottom: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.05;
-  background-image: url('../assets/patterns/pattern-sprite.svg');
-  background-size: 400px auto;
+  opacity: 0.04;
+  background-image: url('/pattern.png');
+  background-size: 350px auto;
   background-repeat: repeat;
 }
 
 .brand-pattern-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   Dark Mode Pattern Styles
+   ============================================ */
+
+/* Dark mode for visible pattern */
+.dark .brand-pattern-bg-visible {
+  background-color: var(--app-bg-secondary);
+}
+
+.dark .brand-pattern-bg-visible::before {
+  opacity: 0.03;
+  filter: invert(1) brightness(0.6);
+}
+
+/* Dark mode for subtle pattern */
+.dark .brand-pattern-bg {
+  background-color: var(--app-bg-secondary);
+}
+
+.dark .brand-pattern-bg::before {
+  opacity: 0.02;
+  filter: invert(1) brightness(0.6);
+}
+
+/* Dark pattern class (for explicit dark backgrounds) */
+.brand-pattern-bg-dark {
+  position: relative;
+  background-color: var(--app-bg-secondary);
+}
+
+.brand-pattern-bg-dark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.03;
+  filter: invert(1) brightness(0.6);
+  background-image: url('/pattern.png');
+  background-size: 350px auto;
+  background-repeat: repeat;
+}
+
+.brand-pattern-bg-dark > * {
   position: relative;
   z-index: 1;
 }

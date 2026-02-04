@@ -21,7 +21,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-brand-dark mb-2">
+        <label className="block text-sm font-medium text-brand-dark dark:text-[var(--app-text-primary)] mb-2">
           {label}
         </label>
       )}
@@ -33,8 +33,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             onClick={() => onChange(color.hex)}
             className={`relative w-10 h-10 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${
               value === color.hex
-                ? 'border-brand-dark ring-2 ring-brand-dark ring-offset-2'
-                : 'border-gray-300 hover:border-gray-400'
+                ? 'border-brand-dark dark:border-primary-400 ring-2 ring-brand-dark dark:ring-primary-400 ring-offset-2 dark:ring-offset-[var(--app-bg-card)]'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
             }`}
             style={{ backgroundColor: color.hex }}
             title={isArabic ? color.labelAr : color.labelEn}

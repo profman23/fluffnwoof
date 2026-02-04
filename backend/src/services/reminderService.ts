@@ -1,9 +1,8 @@
-import { PrismaClient, ReminderEventType, NotificationChannel, ReminderLogStatus, Prisma } from '@prisma/client';
+import { ReminderEventType, NotificationChannel, ReminderLogStatus, Prisma } from '@prisma/client';
 import { sendSms } from './smsService';
 import { sendWhatsapp } from './whatsappService';
 import { sendAppointmentEmail } from './emailService';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 // Default templates for each event type
 const defaultTemplates: Record<string, { ar: string; en: string }> = {

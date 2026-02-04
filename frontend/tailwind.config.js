@@ -1,6 +1,20 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // Enable dark mode with class strategy
+  darkMode: 'class',
+  // Safelist to ensure portal colors are always generated
+  safelist: [
+    // Mint colors
+    { pattern: /^(bg|text|border|ring|from|to|via|shadow)-mint-(50|100|200|300|400|500|600|700|800|900|950)/ },
+    { pattern: /^(bg|text|border|ring|from|to|via|shadow)-mint-(50|100|200|300|400|500|600|700|800|900|950)/, variants: ['dark', 'hover', 'focus'] },
+    // Pink colors
+    { pattern: /^(bg|text|border|ring|from|to|via|shadow)-pink-(50|100|200|300|400|500|600|700|800|900|950)/ },
+    { pattern: /^(bg|text|border|ring|from|to|via|shadow)-pink-(50|100|200|300|400|500|600|700|800|900|950)/, variants: ['dark', 'hover', 'focus'] },
+    // Gold colors
+    { pattern: /^(bg|text|border|ring|from|to|via|shadow)-gold-(50|100|200|300|400|500|600|700|800|900|950)/ },
+    { pattern: /^(bg|text|border|ring|from|to|via|shadow)-gold-(50|100|200|300|400|500|600|700|800|900|950)/, variants: ['dark', 'hover', 'focus'] },
+  ],
   // Enable RTL support
   future: {
     respectDefaultRingColorOpacity: true,
@@ -15,6 +29,48 @@ export default {
           mint: '#CEE8DC',
           pink: '#EAB8D5',
           gold: '#F5DF59',
+        },
+        // Mint Green palette (Portal Primary) - Based on brand #CEE8DC
+        mint: {
+          50: '#f5fbf8',
+          100: '#e8f5ef',
+          200: '#d7ede4',
+          300: '#CEE8DC',  // Brand mint - PRIMARY
+          400: '#a8d5c2',
+          500: '#7fc2a8',
+          600: '#56af8e',
+          700: '#3d9b78',
+          800: '#2d7a5e',
+          900: '#1f5a45',
+          950: '#123b2c',
+        },
+        // Pink palette (Portal Accent) - Based on brand #EAB8D5
+        pink: {
+          50: '#fdf5f9',
+          100: '#faeaf3',
+          200: '#f5d5e7',
+          300: '#EAB8D5',  // Brand pink - PRIMARY
+          400: '#e091c0',
+          500: '#d66aab',
+          600: '#c44896',
+          700: '#a33579',
+          800: '#82295e',
+          900: '#611e45',
+          950: '#401230',
+        },
+        // Gold/Yellow palette (Portal Highlight) - Based on brand #F5DF59
+        gold: {
+          50: '#fffdf5',
+          100: '#fffbe6',
+          200: '#fdf6cc',
+          300: '#F5DF59',  // Brand gold - PRIMARY
+          400: '#e8c840',
+          500: '#d4b02e',
+          600: '#b8951f',
+          700: '#957717',
+          800: '#725a11',
+          900: '#4f3e0c',
+          950: '#2c2207',
         },
         // Primary - Mint Green palette (based on brand mint #CEE8DC)
         primary: {

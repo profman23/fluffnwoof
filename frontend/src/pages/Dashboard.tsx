@@ -128,7 +128,7 @@ export const Dashboard: React.FC = () => {
     return (
       <div className="page-container">
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <p className="text-red-500 mb-4">{error}</p>
+          <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
           <button
             onClick={fetchDashboardData}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
@@ -145,8 +145,8 @@ export const Dashboard: React.FC = () => {
       {/* Header with Title and Date Range Filter */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <ChartBarIcon className="w-7 h-7 text-brand-dark" />
-          <h1 className="text-2xl font-bold text-brand-dark">
+          <span className="text-2xl">📊</span>
+          <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">
             {t('title')}
           </h1>
           <button
@@ -154,7 +154,7 @@ export const Dashboard: React.FC = () => {
               fetchDashboardData();
               fetchAnalytics();
             }}
-            className="p-2 text-brand-dark/60 hover:text-brand-dark hover:bg-primary-100 rounded-lg transition-colors"
+            className="p-2 text-brand-dark/60 dark:text-gray-400 hover:text-brand-dark dark:hover:text-[var(--app-text-primary)] hover:bg-primary-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-lg transition-colors"
             title={t('refresh') || 'Refresh'}
           >
             <ArrowPathIcon className="w-5 h-5" />
@@ -243,28 +243,28 @@ export const Dashboard: React.FC = () => {
               data.upcomingAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-primary-50 rounded-lg gap-2 hover:bg-primary-100 transition-colors"
+                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-primary-50 dark:bg-primary-900/30 rounded-lg gap-2 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base text-brand-dark">
+                    <p className="font-medium text-sm md:text-base text-brand-dark dark:text-[var(--app-text-primary)]">
                       {getVisitTypeLabel(appointment.type)} - {appointment.petName}
                     </p>
-                    <p className="text-xs md:text-sm text-brand-dark/60">
+                    <p className="text-xs md:text-sm text-brand-dark/60 dark:text-gray-400">
                       {appointment.vetName}
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-xs md:text-sm font-medium text-brand-dark">
+                    <p className="text-xs md:text-sm font-medium text-brand-dark dark:text-[var(--app-text-primary)]">
                       {formatTime(appointment.time)}
                     </p>
-                    <p className="text-xs text-brand-dark/60">
+                    <p className="text-xs text-brand-dark/60 dark:text-gray-400">
                       {formatDate(appointment.date)}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-brand-dark/60">
+              <div className="text-center py-8 text-brand-dark/60 dark:text-gray-400">
                 <span className="text-3xl mb-2 block">📅</span>
                 <p>{t('noAppointments') || 'No upcoming appointments'}</p>
               </div>
@@ -281,13 +281,13 @@ export const Dashboard: React.FC = () => {
               data.upcomingVaccinations.map((vaccination) => (
                 <div
                   key={vaccination.id}
-                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-secondary-50 rounded-lg gap-2 hover:bg-secondary-100 transition-colors"
+                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-secondary-50 dark:bg-secondary-900/30 rounded-lg gap-2 hover:bg-secondary-100 dark:hover:bg-secondary-900/50 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base text-brand-dark">
+                    <p className="font-medium text-sm md:text-base text-brand-dark dark:text-[var(--app-text-primary)]">
                       {vaccination.petName}
                     </p>
-                    <p className="text-xs md:text-sm text-brand-dark/60">
+                    <p className="text-xs md:text-sm text-brand-dark/60 dark:text-gray-400">
                       {vaccination.vaccineName}
                     </p>
                   </div>
@@ -295,10 +295,10 @@ export const Dashboard: React.FC = () => {
                     <span
                       className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                         vaccination.daysUntil === 0
-                          ? 'bg-red-100 text-red-700'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                           : vaccination.daysUntil <= 3
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-green-100 text-green-700'
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                          : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                       }`}
                     >
                       {vaccination.daysUntil === 0
@@ -313,7 +313,7 @@ export const Dashboard: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center py-8 text-brand-dark/60">
+              <div className="col-span-full text-center py-8 text-brand-dark/60 dark:text-gray-400">
                 <span className="text-3xl mb-2 block">💉</span>
                 <p>{t('noVaccinations') || 'No upcoming vaccinations'}</p>
               </div>
@@ -324,37 +324,37 @@ export const Dashboard: React.FC = () => {
 
       {/* Summary Stats at Bottom */}
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
-          <p className="text-3xl font-bold text-primary-600">
+        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
+          <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">
             <AnimatedNumber
               value={data?.stats.todayAppointments || 0}
               duration={1500}
               delay={0}
             />
           </p>
-          <p className="text-sm text-brand-dark/60 mt-1">{t('stats.todayAppointments')}</p>
+          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.todayAppointments')}</p>
         </div>
-        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
-          <p className="text-3xl font-bold text-secondary-500">
+        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
+          <p className="text-3xl font-bold text-secondary-500 dark:text-secondary-400">
             <AnimatedNumber
               value={analytics?.patients.totalPets || data?.stats.registeredPets || 0}
               duration={1500}
               delay={100}
             />
           </p>
-          <p className="text-sm text-brand-dark/60 mt-1">{t('stats.registeredPets')}</p>
+          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.registeredPets')}</p>
         </div>
-        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
-          <p className="text-3xl font-bold text-accent-500">
+        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
+          <p className="text-3xl font-bold text-accent-500 dark:text-accent-400">
             <AnimatedNumber
               value={analytics?.patients.totalOwners || data?.stats.registeredOwners || 0}
               duration={1500}
               delay={200}
             />
           </p>
-          <p className="text-sm text-brand-dark/60 mt-1">{t('stats.registeredOwners')}</p>
+          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.registeredOwners')}</p>
         </div>
-        <div className="bg-brand-white rounded-xl p-4 border border-primary-200 text-center">
+        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
           <p className="text-3xl font-bold text-primary-400">
             <AnimatedNumber
               value={analytics?.vets.totalVets || 0}
@@ -362,7 +362,7 @@ export const Dashboard: React.FC = () => {
               delay={300}
             />
           </p>
-          <p className="text-sm text-brand-dark/60 mt-1">{t('analytics.totalVets')}</p>
+          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('analytics.totalVets')}</p>
         </div>
       </div>
     </div>

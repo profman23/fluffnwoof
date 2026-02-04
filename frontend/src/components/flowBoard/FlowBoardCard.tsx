@@ -165,24 +165,24 @@ export const FlowBoardCard = ({
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`rounded-md shadow-sm border p-2 cursor-grab active:cursor-grabbing
-        ${isCancelled ? 'bg-red-50 border-red-200 opacity-75' : 'bg-brand-white'}
+      className={`rounded-md shadow-sm dark:shadow-black/30 border p-2 cursor-grab active:cursor-grabbing
+        ${isCancelled ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 opacity-75' : 'bg-brand-white dark:bg-[var(--app-bg-card)]'}
         ${isDragging ? 'opacity-50 shadow-lg' : ''}
         hover:shadow-md transition-shadow ${onCardClick ? 'hover:ring-2 hover:ring-secondary-300' : ''}`}
     >
       {/* Header with time, status and menu */}
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium text-brand-dark/70">
+        <span className="text-xs font-medium text-brand-dark/70 dark:text-[var(--app-text-secondary)]">
           {appointment.appointmentTime}
         </span>
         <div className="flex items-center gap-1">
           <span
             className={`px-1.5 py-0.5 text-xs rounded-full ${
               isCancelled
-                ? 'bg-red-100 text-red-700'
+                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                 : isConfirmed
-                ? 'bg-green-100 text-green-700'
-                : 'bg-orange-100 text-orange-700'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
             }`}
           >
             {isCancelled ? t('cancelled') : isConfirmed ? t('confirmed') : t('unconfirmed')}
@@ -200,29 +200,29 @@ export const FlowBoardCard = ({
 
               {/* Dropdown Menu */}
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-brand-white border border-primary-200 rounded-lg shadow-lg z-50 min-w-[140px] py-1">
+                <div className="absolute right-0 top-full mt-1 bg-brand-white dark:bg-[var(--app-bg-card)] border border-primary-200 dark:border-[var(--app-border-default)] rounded-lg shadow-lg dark:shadow-black/50 z-50 min-w-[140px] py-1">
                   {/* Confirm/Unconfirm */}
                   <button
                     onClick={handleConfirmationToggle}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-primary-50 text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-primary-50 dark:hover:bg-[var(--app-bg-elevated)] text-left dark:text-[var(--app-text-primary)]"
                   >
-                    <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                    <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
                     <span>{isConfirmed ? t('menu.unconfirm') : t('menu.confirm')}</span>
                   </button>
 
                   {/* Reschedule */}
                   <button
                     onClick={handleReschedule}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-primary-50 text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-primary-50 dark:hover:bg-[var(--app-bg-elevated)] text-left dark:text-[var(--app-text-primary)]"
                   >
-                    <CalendarIcon className="w-4 h-4 text-blue-600" />
+                    <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>{t('menu.reschedule')}</span>
                   </button>
 
                   {/* Cancel */}
                   <button
                     onClick={handleCancel}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 text-left text-red-600"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-left text-red-600 dark:text-red-400"
                   >
                     <XCircleIcon className="w-4 h-4" />
                     <span>{t('menu.cancel')}</span>
@@ -235,23 +235,23 @@ export const FlowBoardCard = ({
       </div>
 
       {/* Owner name */}
-      <div className="font-medium text-brand-dark text-sm mb-0.5 truncate">
+      <div className="font-medium text-brand-dark dark:text-[var(--app-text-primary)] text-sm mb-0.5 truncate">
         {appointment.pet.owner
           ? `${appointment.pet.owner.firstName} ${appointment.pet.owner.lastName}`
           : '-'}
       </div>
 
       {/* Pet info */}
-      <div className="flex items-center gap-1 text-xs text-brand-dark/70 mb-0.5">
+      <div className="flex items-center gap-1 text-xs text-brand-dark/70 dark:text-[var(--app-text-secondary)] mb-0.5">
         <span>{speciesIcons[appointment.pet.species] || '🐾'}</span>
         <span className="truncate font-medium">{appointment.pet.name}</span>
-        <span className="text-brand-dark/40">•</span>
-        <span className="text-brand-dark/60">{t(`species.${appointment.pet.species}`)}</span>
+        <span className="text-brand-dark/40 dark:text-gray-600">•</span>
+        <span className="text-brand-dark/60 dark:text-[var(--app-text-tertiary)]">{t(`species.${appointment.pet.species}`)}</span>
       </div>
 
       {/* Vet Name */}
       {appointment.vet && (
-        <div className="flex items-center gap-1 text-xs text-brand-dark/60 mb-1">
+        <div className="flex items-center gap-1 text-xs text-brand-dark/60 dark:text-[var(--app-text-tertiary)] mb-1">
           <UserIcon className="w-3 h-3" />
           <span className="truncate">
             {appointment.vet.firstName} {appointment.vet.lastName}
@@ -262,7 +262,7 @@ export const FlowBoardCard = ({
       {/* Visit type and Check-In button */}
       <div className="flex items-center justify-between mt-1">
         {visitTypeName && (
-          <div className="text-xs text-brand-dark/60 bg-primary-100 px-1.5 py-0.5 rounded inline-block">
+          <div className="text-xs text-brand-dark/60 dark:text-[var(--app-text-tertiary)] bg-primary-100 dark:bg-primary-900/30 px-1.5 py-0.5 rounded inline-block">
             {visitTypeName}
           </div>
         )}
@@ -281,7 +281,7 @@ export const FlowBoardCard = ({
 
       {/* Medical Record Code - show when record is closed */}
       {appointment.medicalRecord?.recordCode && (
-        <div className="flex items-center gap-1 mt-1.5 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded">
+        <div className="flex items-center gap-1 mt-1.5 text-xs text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded">
           <DocumentTextIcon className="w-3 h-3" />
           <span className="font-medium">{appointment.medicalRecord.recordCode}</span>
         </div>
@@ -289,7 +289,7 @@ export const FlowBoardCard = ({
 
       {/* Invoice Number - show when invoice is finalized */}
       {appointment.invoice?.isFinalized && (
-        <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
+        <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded">
           <DocumentTextIcon className="w-3 h-3" />
           <span className="font-medium">{appointment.invoice.invoiceNumber}</span>
         </div>

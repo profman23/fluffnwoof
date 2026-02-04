@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MagnifyingGlassIcon, ArrowPathIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ArrowPathIcon, ClipboardDocumentListIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
 import { useScreenPermission } from '../hooks/useScreenPermission';
+import { useAuthStore } from '../store/authStore';
 import { medicalRecordsApi } from '../api/medicalRecords';
 import { MedicalRecord, Species } from '../types';
 import { PatientRecordModal } from '../components/flowBoard/PatientRecordModal';
 import { Input } from '../components/common/Input';
 import { DataTable, Column } from '../components/common/DataTable';
+import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 
 const speciesIcons: Record<Species, string> = {
   DOG: '🐕',
@@ -24,6 +26,7 @@ export const MedicalRecordsPage = () => {
   const { t, i18n } = useTranslation('medicalRecords');
   const isRtl = i18n.language === 'ar';
   const { isReadOnly } = useScreenPermission('medical');
+  const user = useAuthStore((state) => state.user);
 
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +37,8 @@ export const MedicalRecordsPage = () => {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  const [creatingRecord, setCreatingRecord] = useState(false);
+  const [isNewStandaloneRecord, setIsNewStandaloneRecord] = useState(false);
 
   // Fetch records
   const fetchRecords = useCallback(async () => {
@@ -63,6 +68,7 @@ export const MedicalRecordsPage = () => {
   }, [search]);
 
   const handleRowClick = (record: MedicalRecord) => {
+    setIsNewStandaloneRecord(false); // Existing record, not standalone
     setSelectedRecord(record);
     setShowModal(true);
   };
@@ -70,8 +76,34 @@ export const MedicalRecordsPage = () => {
   const handleModalClose = () => {
     setShowModal(false);
     setSelectedRecord(null);
+    setIsNewStandaloneRecord(false);
     // Refresh records to show any updates
     fetchRecords();
+  };
+
+  // Create new record for a pet (for hospitalized/daily monitoring)
+  const handleAddRecord = async (record: MedicalRecord, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click
+
+    if (!record.pet?.id || !user?.id || creatingRecord) return;
+
+    setCreatingRecord(true);
+    try {
+      // Create a new record for the same pet
+      const newRecord = await medicalRecordsApi.create({
+        petId: record.pet.id,
+        vetId: record.vetId || user.id, // Use same vet or current user
+      });
+
+      // Open the modal with the new record (standalone mode)
+      setIsNewStandaloneRecord(true);
+      setSelectedRecord(newRecord);
+      setShowModal(true);
+    } catch (error) {
+      console.error('Error creating new record:', error);
+    } finally {
+      setCreatingRecord(false);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -98,7 +130,7 @@ export const MedicalRecordsPage = () => {
       id: 'visitDate',
       header: t('table.visitDate'),
       render: (record) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
           {formatDate(record.visitDate)}
         </span>
       ),
@@ -109,9 +141,14 @@ export const MedicalRecordsPage = () => {
       render: (record) => (
         <div className="flex items-center gap-2">
           <span>{speciesIcons[record.pet?.species || 'OTHER']}</span>
-          <span className="text-sm font-medium text-gray-900">
-            {record.pet?.name || '-'}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-gray-900 dark:text-[var(--app-text-primary)]">
+              {record.pet?.name || '-'}
+            </span>
+            {record.pet?.petCode && (
+              <span className="text-xs text-gray-400">{record.pet.petCode}</span>
+            )}
+          </div>
         </div>
       ),
     },
@@ -119,7 +156,7 @@ export const MedicalRecordsPage = () => {
       id: 'species',
       header: t('table.species'),
       render: (record) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap">
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
           {record.pet?.species || '-'}
         </span>
       ),
@@ -128,18 +165,23 @@ export const MedicalRecordsPage = () => {
       id: 'owner',
       header: t('table.owner'),
       render: (record) => (
-        <span className="text-sm text-gray-900 whitespace-nowrap">
-          {record.pet?.owner
-            ? `${record.pet.owner.firstName} ${record.pet.owner.lastName}`
-            : '-'}
-        </span>
+        <div className="flex flex-col">
+          <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
+            {record.pet?.owner
+              ? `${record.pet.owner.firstName} ${record.pet.owner.lastName}`
+              : '-'}
+          </span>
+          {record.pet?.owner?.customerCode && (
+            <span className="text-xs text-gray-400">{record.pet.owner.customerCode}</span>
+          )}
+        </div>
       ),
     },
     {
       id: 'chiefComplaint',
       header: t('table.chiefComplaint'),
       render: (record) => (
-        <span className="text-sm text-gray-500 max-w-[200px] truncate block">
+        <span className="text-sm text-gray-500 dark:text-gray-400 max-w-[200px] truncate block">
           {record.chiefComplaint || '-'}
         </span>
       ),
@@ -148,7 +190,7 @@ export const MedicalRecordsPage = () => {
       id: 'diagnosis',
       header: t('table.diagnosis'),
       render: (record) => (
-        <span className="text-sm text-gray-500 max-w-[200px] truncate block">
+        <span className="text-sm text-gray-500 dark:text-gray-400 max-w-[200px] truncate block">
           {record.diagnosis || '-'}
         </span>
       ),
@@ -157,7 +199,7 @@ export const MedicalRecordsPage = () => {
       id: 'vet',
       header: t('table.vet'),
       render: (record) => (
-        <span className="text-sm text-gray-500 whitespace-nowrap">
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
           {record.vet
             ? `${record.vet.firstName} ${record.vet.lastName}`
             : '-'}
@@ -169,7 +211,7 @@ export const MedicalRecordsPage = () => {
       header: t('table.lastUpdated'),
       render: (record) => (
         <div className="flex flex-col">
-          <span className="text-sm text-gray-500 whitespace-nowrap">
+          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
             {formatDateTime(record.updatedAt)}
           </span>
           {record.updatedBy && (
@@ -180,6 +222,22 @@ export const MedicalRecordsPage = () => {
         </div>
       ),
     },
+    // Actions column - only show if not read-only
+    ...(!isReadOnly ? [{
+      id: 'actions',
+      header: t('table.actions'),
+      render: (record: MedicalRecord) => (
+        <button
+          onClick={(e) => handleAddRecord(record, e)}
+          disabled={creatingRecord}
+          title={t('addRecordTooltip')}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-brand-dark dark:text-[var(--app-text-primary)] bg-secondary-200 dark:bg-secondary-600 hover:bg-secondary-300 dark:hover:bg-secondary-500 rounded-md transition-colors disabled:opacity-50"
+        >
+          <PlusCircleIcon className="w-4 h-4" />
+          {t('addRecord')}
+        </button>
+      ),
+    }] : []),
   ];
 
   return (
@@ -188,19 +246,19 @@ export const MedicalRecordsPage = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <ClipboardDocumentListIcon className="w-7 h-7 text-brand-dark" />
-            <h1 className="text-2xl font-bold text-brand-dark">{t('title')}</h1>
+            <span className="text-2xl">📋</span>
+            <h1 className="text-2xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
           </div>
           {isReadOnly && (
-            <span className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">
-              {t('readOnly')}
-            </span>
+            <div className="mt-1">
+              <ReadOnlyBadge namespace="medicalRecords" />
+            </div>
           )}
         </div>
         <button
           onClick={fetchRecords}
           disabled={loading}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-lg transition-colors"
         >
           <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -242,6 +300,7 @@ export const MedicalRecordsPage = () => {
           onClose={handleModalClose}
           appointment={null}
           existingRecordId={selectedRecord.id}
+          isStandaloneRecord={isNewStandaloneRecord}
         />
       )}
     </div>

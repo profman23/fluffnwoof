@@ -108,17 +108,17 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="relative bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow-xl dark:shadow-2xl dark:shadow-black/50 w-full max-w-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-800">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[var(--app-border-default)]">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-[var(--app-text-primary)]">
               {t(`events.${eventType}.title`)}
             </h2>
             <button
               onClick={onClose}
-              className="p-1 hover:bg-gray-100 rounded-full"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-[var(--app-bg-elevated)] rounded-full"
             >
-              <XMarkIcon className="w-5 h-5 text-gray-500" />
+              <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
 
@@ -126,7 +126,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
           <form onSubmit={handleSubmit} className="p-4 space-y-6">
             {/* Enable/Disable */}
             <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-700">
+              <span className="font-medium text-gray-700 dark:text-[var(--app-text-secondary)]">
                 {t('settings.enabled')}
               </span>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -143,13 +143,13 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
             {/* Timing (for PRE_APPOINTMENT and FOLLOW_UP) */}
             {needsTiming && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2">
                   {t('timing.title')}
                 </label>
                 <select
                   value={sendBeforeHours ?? ''}
                   onChange={(e) => setSendBeforeHours(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                 >
                   {timingOptions.map((option) => (
                     <option key={option.label} value={option.value ?? ''}>
@@ -162,11 +162,11 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
 
             {/* Channels */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2">
                 {t('channels.title')}
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 p-3 border dark:border-[var(--app-border-default)] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)]">
                   <input
                     type="checkbox"
                     checked={smsEnabled}
@@ -175,7 +175,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
                   />
                   <span className="text-sm">💬 {t('channels.sms.title')}</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 p-3 border dark:border-[var(--app-border-default)] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)]">
                   <input
                     type="checkbox"
                     checked={whatsappEnabled}
@@ -184,7 +184,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
                   />
                   <span className="text-sm">📱 {t('channels.whatsapp.title')}</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 p-3 border dark:border-[var(--app-border-default)] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)]">
                   <input
                     type="checkbox"
                     checked={emailEnabled}
@@ -193,7 +193,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
                   />
                   <span className="text-sm">📧 {t('channels.email.title')}</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-not-allowed bg-gray-50 opacity-50">
+                <label className="flex items-center gap-2 p-3 border dark:border-[var(--app-border-default)] rounded-lg cursor-not-allowed bg-gray-50 dark:bg-[var(--app-bg-tertiary)] opacity-50 dark:text-[var(--app-text-secondary)]">
                   <input
                     type="checkbox"
                     checked={pushEnabled}
@@ -207,7 +207,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
 
             {/* Variables */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2">
                 {t('templates.variables.title')}
               </label>
               <div className="flex flex-wrap gap-2">
@@ -216,7 +216,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
                     key={variable}
                     type="button"
                     onClick={() => insertVariable(variable, isRtl ? 'ar' : 'en')}
-                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700"
+                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-[var(--app-bg-elevated)] hover:bg-gray-200 dark:hover:bg-[var(--app-bg-tertiary)] rounded-full text-gray-700 dark:text-gray-300"
                   >
                     {`{{${variable}}}`} - {t(`templates.variables.${variable}`)}
                   </button>
@@ -228,7 +228,7 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Arabic Template */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2">
                   {t('templates.arabic')}
                 </label>
                 <textarea
@@ -236,14 +236,14 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
                   onChange={(e) => setTemplateAr(e.target.value)}
                   rows={4}
                   dir="rtl"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                   placeholder="مثال: مرحباً {{ownerName}}، موعد {{petName}} غداً..."
                 />
               </div>
 
               {/* English Template */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2">
                   {t('templates.english')}
                 </label>
                 <textarea
@@ -251,18 +251,18 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
                   onChange={(e) => setTemplateEn(e.target.value)}
                   rows={4}
                   dir="ltr"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                   placeholder="Example: Hello {{ownerName}}, {{petName}}'s appointment is tomorrow..."
                 />
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[var(--app-border-default)]">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 border rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-gray-700 dark:text-[var(--app-text-secondary)] border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)]"
               >
                 {t('settings.enabled') === 'Enabled' ? 'Cancel' : 'إلغاء'}
               </button>
@@ -277,12 +277,12 @@ export const ReminderSettingModal: React.FC<ReminderSettingModalProps> = ({
 
             {/* Success/Error messages */}
             {updateMutation.isSuccess && (
-              <div className="text-green-600 text-sm text-center">
+              <div className="text-green-600 dark:text-green-400 text-sm text-center">
                 {t('settings.saveSuccess')}
               </div>
             )}
             {updateMutation.isError && (
-              <div className="text-red-600 text-sm text-center">
+              <div className="text-red-600 dark:text-red-400 text-sm text-center">
                 {t('settings.saveError')}
               </div>
             )}

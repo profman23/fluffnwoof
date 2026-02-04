@@ -6,6 +6,7 @@ import { Card } from '../components/common/Card';
 import { ScreenPermissionGuard } from '../components/common/ScreenPermissionGuard';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { DataTable, Column } from '../components/common/DataTable';
+import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 
 export const SmsPage: React.FC = () => {
   const { t } = useTranslation('sms');
@@ -54,10 +55,10 @@ export const SmsPage: React.FC = () => {
 
   const getStatusBadge = (status: SmsLog['status']) => {
     const styles: Record<string, string> = {
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      SENT: 'bg-blue-100 text-blue-800',
-      DELIVERED: 'bg-green-100 text-green-800',
-      FAILED: 'bg-red-100 text-red-800',
+      PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      SENT: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      DELIVERED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      FAILED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     };
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
@@ -77,9 +78,9 @@ export const SmsPage: React.FC = () => {
       header: t('logs.recipient'),
       render: (log) => (
         <div>
-          <div className="font-medium text-gray-800" dir="ltr">{log.recipientPhone}</div>
+          <div className="font-medium text-gray-800 dark:text-[var(--app-text-primary)]" dir="ltr">{log.recipientPhone}</div>
           {log.recipientName && (
-            <div className="text-xs text-gray-500">{log.recipientName}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{log.recipientName}</div>
           )}
         </div>
       ),
@@ -89,11 +90,11 @@ export const SmsPage: React.FC = () => {
       header: t('logs.message'),
       render: (log) => (
         <div>
-          <div className="max-w-xs truncate text-gray-600" title={log.messageBody}>
+          <div className="max-w-xs truncate text-gray-600 dark:text-gray-400" title={log.messageBody}>
             {log.messageBody}
           </div>
           {log.errorMessage && (
-            <div className="text-xs text-red-500 mt-1">{log.errorMessage}</div>
+            <div className="text-xs text-red-500 dark:text-red-400 mt-1">{log.errorMessage}</div>
           )}
         </div>
       ),
@@ -107,7 +108,7 @@ export const SmsPage: React.FC = () => {
       id: 'date',
       header: t('logs.date'),
       render: (log) => (
-        <span className="text-gray-500 text-xs whitespace-nowrap">
+        <span className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
           {formatDate(log.createdAt)}
         </span>
       ),
@@ -118,11 +119,12 @@ export const SmsPage: React.FC = () => {
     <ScreenPermissionGuard screenName="sms">
       <div className="page-container">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📱</span>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-[var(--app-text-primary)]">{t('title')}</h1>
+          </div>
           {isReadOnly && (
-            <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-              {t('readOnlyMode')}
-            </span>
+            <ReadOnlyBadge namespace="sms" translationKey="readOnlyMode" />
           )}
         </div>
 
@@ -130,7 +132,7 @@ export const SmsPage: React.FC = () => {
           {/* Balance Card */}
           <Card className="lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-700">{t('balance.title')}</h2>
+            <h2 className="text-lg font-semibold text-gray-700 dark:text-[var(--app-text-primary)]">{t('balance.title')}</h2>
             <button
               onClick={() => refetchBalance()}
               className="text-primary-600 hover:text-primary-700 text-sm"
@@ -139,13 +141,13 @@ export const SmsPage: React.FC = () => {
             </button>
           </div>
           {balanceLoading ? (
-            <div className="animate-pulse h-16 bg-gray-200 rounded"></div>
+            <div className="animate-pulse h-16 bg-gray-200 dark:bg-[var(--app-bg-elevated)] rounded"></div>
           ) : (
             <div className="text-center">
               <div className="text-4xl font-bold text-primary-600">
                 {balance?.balance || 0}
               </div>
-              <div className="text-sm text-gray-500 mt-1">{t('balance.credits')}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('balance.credits')}</div>
             </div>
           )}
         </Card>
@@ -153,11 +155,11 @@ export const SmsPage: React.FC = () => {
         {/* Send SMS Form - Only show for Full Control */}
         {canModify && (
           <Card className="lg:col-span-2">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">{t('send.title')}</h2>
+            <h2 className="text-lg font-semibold text-gray-700 dark:text-[var(--app-text-primary)] mb-4">{t('send.title')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                     {t('send.phone')}
                   </label>
                   <input
@@ -165,13 +167,13 @@ export const SmsPage: React.FC = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="966xxxxxxxxx"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                     dir="ltr"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                     {t('send.recipientName')}
                   </label>
                   <input
@@ -179,12 +181,12 @@ export const SmsPage: React.FC = () => {
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
                     placeholder={t('send.recipientNamePlaceholder')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
                   {t('send.message')}
                 </label>
                 <textarea
@@ -192,10 +194,10 @@ export const SmsPage: React.FC = () => {
                   onChange={(e) => setMessage(e.target.value)}
                   rows={3}
                   placeholder={t('send.messagePlaceholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                   required
                 />
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {message.length} {t('send.characters')}
                 </div>
               </div>
@@ -208,13 +210,13 @@ export const SmsPage: React.FC = () => {
               </button>
 
               {sendSmsMutation.isSuccess && (
-                <div className="text-green-600 text-sm mt-2">
+                <div className="text-green-600 dark:text-green-400 text-sm mt-2">
                   {sendSmsMutation.data.status === 'SENT' ? t('send.success') : t('send.failed')}
                 </div>
               )}
 
               {sendSmsMutation.isError && (
-                <div className="text-red-600 text-sm mt-2">
+                <div className="text-red-600 dark:text-red-400 text-sm mt-2">
                   {t('send.error')}
                 </div>
               )}
@@ -225,7 +227,7 @@ export const SmsPage: React.FC = () => {
 
       {/* SMS Logs */}
       <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">{t('logs.title')}</h2>
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-[var(--app-text-primary)] mb-4">{t('logs.title')}</h2>
         <DataTable<SmsLog>
           tableId="sms-logs"
           columns={columns}
