@@ -93,7 +93,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-const PORT = config.port;
+const PORT = typeof config.port === 'string' ? parseInt(config.port, 10) : config.port;
 
 const startServer = async () => {
   try {

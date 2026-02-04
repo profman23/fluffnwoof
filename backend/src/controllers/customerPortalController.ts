@@ -1072,13 +1072,17 @@ export const getForms = async (req: Request, res: Response, next: NextFunction) 
         (!form.template.requiresClientSignature || clientSigned) &&
         (!form.template.requiresVetSignature || vetSigned);
 
+      // Get signed dates from signatures
+      const clientSignature = form.signatures.find((s) => s.signerType === 'CLIENT');
+      const vetSignature = form.signatures.find((s) => s.signerType === 'VET');
+
       return {
         id: form.id,
         template: form.template,
         pet: form.pet,
         status: isComplete ? 'COMPLETED' : clientSigned ? 'AWAITING_VET' : 'PENDING',
-        clientSignedAt: form.clientSignedAt,
-        vetSignedAt: form.vetSignedAt,
+        clientSignedAt: clientSignature?.signedAt || null,
+        vetSignedAt: vetSignature?.signedAt || null,
         expiresAt: form.expiresAt,
         createdAt: form.createdAt,
         signatures: form.signatures,
@@ -1118,6 +1122,8 @@ export const getFormById = async (req: Request, res: Response, next: NextFunctio
                 phone: true,
                 email: true,
                 customerCode: true,
+                nationalId: true,
+                address: true,
               },
             },
           },
@@ -1128,23 +1134,21 @@ export const getFormById = async (req: Request, res: Response, next: NextFunctio
             appointmentDate: true,
             appointmentTime: true,
             reason: true,
-          },
-        },
-        vet: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        signatures: {
-          include: {
-            signer: {
+            vet: {
               select: {
+                id: true,
                 firstName: true,
                 lastName: true,
               },
             },
+          },
+        },
+        signatures: {
+          select: {
+            id: true,
+            signerType: true,
+            signerName: true,
+            signedAt: true,
           },
         },
       },
@@ -1160,17 +1164,18 @@ export const getFormById = async (req: Request, res: Response, next: NextFunctio
     }
 
     // Fill template variables
+    const vet = form.appointment?.vet || null;
     const filledContentEn = formService.fillTemplateVariables(
       form.template.contentEn,
       form.pet,
-      form.vet,
+      vet,
       form.appointment
     );
 
     const filledContentAr = formService.fillTemplateVariables(
       form.template.contentAr,
       form.pet,
-      form.vet,
+      vet,
       form.appointment
     );
 
@@ -1194,7 +1199,7 @@ export const getFormById = async (req: Request, res: Response, next: NextFunctio
         contentAr: filledContentAr,
         pet: form.pet,
         appointment: form.appointment,
-        vet: form.vet,
+        vet: vet,
         signatures: form.signatures,
         status: {
           clientSigned,

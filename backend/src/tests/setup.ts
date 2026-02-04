@@ -71,9 +71,26 @@ export async function cleanDatabase() {
 }
 
 // Helper function to create a test user
-export async function createTestUser(overrides = {}) {
+export async function createTestUser(overrides: Record<string, unknown> = {}) {
   const bcrypt = await import('bcrypt');
   const hashedPassword = await bcrypt.hash('Test123!@#', 10);
+
+  // Find or create a test role
+  let testRole = await prisma.role.findFirst({
+    where: { name: 'TestRole' },
+  });
+
+  if (!testRole) {
+    testRole = await prisma.role.create({
+      data: {
+        name: 'TestRole',
+        displayNameEn: 'Test Role',
+        displayNameAr: 'دور اختبار',
+        description: 'Role for testing purposes',
+        isSystem: false,
+      },
+    });
+  }
 
   return prisma.user.create({
     data: {
@@ -82,6 +99,7 @@ export async function createTestUser(overrides = {}) {
       firstName: 'Test',
       lastName: 'User',
       isActive: true,
+      roleId: testRole.id,
       ...overrides,
     },
   });

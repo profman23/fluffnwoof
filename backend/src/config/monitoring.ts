@@ -46,7 +46,9 @@ export const initMonitoring = async (app: Express): Promise<void> => {
 
   try {
     // Dynamic import to avoid issues if @sentry/node is not installed
-    Sentry = await import('@sentry/node');
+    // Using eval to avoid TypeScript checking the module at compile time
+    // eslint-disable-next-line no-eval
+    Sentry = eval('require')('@sentry/node');
 
     const config: SentryConfig = {
       dsn: sentryDsn,

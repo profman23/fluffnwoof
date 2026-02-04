@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate } from '../middlewares/auth';
 import { sendBookingApprovedEmail, sendBookingRejectedEmail } from '../services/emailService';
+import { AuthRequest } from '../types';
 
 const router = express.Router();
 
@@ -130,7 +131,7 @@ router.put('/read-all', authenticate, async (req, res, next) => {
 router.put('/:id/approve', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = (req as AuthRequest).user!.id;
 
     // Find notification with appointment details
     const notification = await prisma.staffNotification.findUnique({
@@ -219,7 +220,7 @@ router.put('/:id/reject', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const userId = req.user!.id;
+    const userId = (req as AuthRequest).user!.id;
 
     // Find notification with appointment details
     const notification = await prisma.staffNotification.findUnique({
