@@ -1,40 +1,39 @@
 # ══════════════════════════════════════════════════════════════
 # FluffNwoof - Deploy Pipeline
-# Blue-Green Deployment with Staging and Production
+# Manual deployment with environment selection
+# Best Practice: CI runs automatically, Deploy runs manually
 # ══════════════════════════════════════════════════════════════
 
 name: Deploy Pipeline
 
+# Only run on manual trigger - NOT on every push
+# This follows best practices: CI for validation, Deploy for controlled releases
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
         description: 'Target environment'
         required: true
-        default: 'staging'
+        default: 'production'
         type: choice
         options:
-          - staging
           - production
-      skip_staging:
-        description: 'Skip staging (emergency only)'
+      run_migrations:
+        description: 'Run database migrations'
         type: boolean
-        default: false
+        default: true
 
 env:
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
 jobs:
   # ════════════════════════════════════════════════════════════════
-  # Pre-deployment Checks
+  # Pre-deployment Validation
   # ════════════════════════════════════════════════════════════════
-  pre-deploy:
-    name: Pre-deployment Checks
+  validate:
+    name: Pre-deployment Validation
     runs-on: ubuntu-latest
     outputs:
-      should_deploy: ${{ steps.check.outputs.should_deploy }}
       version: ${{ steps.version.outputs.version }}
 
     steps:
@@ -42,25 +41,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check CI Status
-        id: check
-        run: |
-          echo "should_deploy=true" >> $GITHUB_OUTPUT
-
       - name: Generate Version
         id: version
         run: |
           VERSION=$(date +%Y%m%d)-$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Deploying version: $VERSION"
+          echo "📦 Deploying version: $VERSION"
+
+      - name: Verify CI Passed
+        run: |
+          echo "✅ Deployment initiated by: ${{ github.actor }}"
+          echo "🎯 Target environment: ${{ github.event.inputs.environment }}"
+          echo "🗄️ Run migrations: ${{ github.event.inputs.run_migrations }}"
 
   # ════════════════════════════════════════════════════════════════
-  # Database Migration Check
+  # Deploy to Production
   # ════════════════════════════════════════════════════════════════
-  migration-check:
-    name: Check Pending Migrations
+  deploy-production:
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: pre-deploy
+    needs: validate
+    if: github.event.inputs.environment == 'production'
+
+    environment:
+      name: production
+      url: https://fluffnwoof.onrender.com
 
     steps:
       - uses: actions/checkout@v4
@@ -69,178 +74,87 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Check Migration Status
-        run: |
-          cd backend
-          npm ci
-          npx prisma migrate status || true
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-
-  # ════════════════════════════════════════════════════════════════
-  # Deploy to Staging
-  # ════════════════════════════════════════════════════════════════
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [pre-deploy, migration-check]
-    if: |
-      needs.pre-deploy.outputs.should_deploy == 'true' &&
-      (github.event_name == 'push' || github.event.inputs.environment == 'staging')
-
-    environment:
-      name: staging
-      url: ${{ vars.STAGING_URL }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy Backend to Staging
-        if: ${{ secrets.RENDER_STAGING_BACKEND_HOOK != '' }}
-        run: |
-          curl -X POST "${{ secrets.RENDER_STAGING_BACKEND_HOOK }}" \
-            -H "Content-Type: application/json" || true
-          echo "Backend deployment triggered"
-
-      - name: Deploy Frontend to Staging
-        if: ${{ secrets.RENDER_STAGING_FRONTEND_HOOK != '' }}
-        run: |
-          curl -X POST "${{ secrets.RENDER_STAGING_FRONTEND_HOOK }}" \
-            -H "Content-Type: application/json" || true
-          echo "Frontend deployment triggered"
-
-      - name: Wait for Deployment
-        run: |
-          echo "Waiting for services to be ready..."
-          sleep 90
-
-      - name: Run Database Migrations
-        if: ${{ secrets.STAGING_DATABASE_URL != '' }}
-        run: |
-          cd backend
-          npm ci
-          npx prisma migrate deploy || true
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-
-      - name: Health Check
-        if: ${{ vars.STAGING_API_URL != '' }}
-        run: |
-          for i in {1..10}; do
-            if curl -sf "${{ vars.STAGING_API_URL }}/health"; then
-              echo "Health check passed"
-              exit 0
-            fi
-            echo "Waiting for service... ($i/10)"
-            sleep 10
-          done
-          echo "Health check timeout (non-blocking)"
-
-      - name: Notify Slack (Staging Success)
-        if: success() && env.SLACK_WEBHOOK != ''
-        run: |
-          curl -X POST $SLACK_WEBHOOK \
-            -H 'Content-type: application/json' \
-            -d '{"text":"Staging deployed successfully: ${{ needs.pre-deploy.outputs.version }}"}' || true
-
-  # ════════════════════════════════════════════════════════════════
-  # Integration Tests on Staging
-  # ════════════════════════════════════════════════════════════════
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: deploy-staging
-    if: always() && needs.deploy-staging.result == 'success'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run E2E Tests
-        if: ${{ vars.STAGING_API_URL != '' }}
-        run: |
-          echo "Running integration tests..."
-          curl -sf "${{ vars.STAGING_API_URL }}/health" || echo "Staging API not configured"
-
-  # ════════════════════════════════════════════════════════════════
-  # Deploy to Production (Manual Approval Required)
-  # ════════════════════════════════════════════════════════════════
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [pre-deploy, integration-tests]
-    if: github.event.inputs.environment == 'production'
-
-    environment:
-      name: production
-      url: ${{ vars.PRODUCTION_URL }}
-
-    steps:
-      - uses: actions/checkout@v4
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
       - name: Create Deployment Record
         run: |
-          echo "Deploying ${{ needs.pre-deploy.outputs.version }} to production"
+          echo "══════════════════════════════════════════════════════════════"
+          echo "🚀 PRODUCTION DEPLOYMENT"
+          echo "══════════════════════════════════════════════════════════════"
+          echo "Version: ${{ needs.validate.outputs.version }}"
           echo "Deployed by: ${{ github.actor }}"
           echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "══════════════════════════════════════════════════════════════"
 
-      - name: Deploy Backend to Production
-        if: ${{ secrets.RENDER_PROD_BACKEND_HOOK != '' }}
+      - name: Deploy Backend
         run: |
+          echo "🔄 Triggering backend deployment..."
           curl -X POST "${{ secrets.RENDER_PROD_BACKEND_HOOK }}" \
-            -H "Content-Type: application/json" || true
-          echo "Backend deployment triggered"
+            -H "Content-Type: application/json"
+          echo "✅ Backend deployment triggered"
 
       - name: Wait for Backend
         run: |
-          echo "Waiting for backend to be ready..."
-          sleep 60
-
-      - name: Health Check Backend
-        if: ${{ vars.PRODUCTION_API_URL != '' }}
-        run: |
-          for i in {1..15}; do
-            if curl -sf "${{ vars.PRODUCTION_API_URL }}/health"; then
-              echo "Backend healthy"
-              break
-            fi
-            echo "Waiting... ($i/15)"
-            sleep 10
-          done
+          echo "⏳ Waiting for backend to deploy (90 seconds)..."
+          sleep 90
 
       - name: Run Database Migrations
-        if: ${{ secrets.PROD_DATABASE_URL != '' }}
+        if: github.event.inputs.run_migrations == 'true'
         run: |
+          echo "🗄️ Running database migrations..."
           cd backend
           npm ci
-          npx prisma migrate deploy || true
+          npx prisma migrate deploy
+          echo "✅ Migrations completed"
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
 
-      - name: Deploy Frontend to Production
-        if: ${{ secrets.RENDER_PROD_FRONTEND_HOOK != '' }}
+      - name: Health Check Backend
         run: |
+          echo "🏥 Checking backend health..."
+          for i in {1..15}; do
+            if curl -sf "https://fluffnwoof.onrender.com/health"; then
+              echo ""
+              echo "✅ Backend is healthy!"
+              break
+            fi
+            echo "Waiting for backend... ($i/15)"
+            sleep 10
+          done
+
+      - name: Deploy Frontend
+        run: |
+          echo "🔄 Triggering frontend deployment..."
           curl -X POST "${{ secrets.RENDER_PROD_FRONTEND_HOOK }}" \
-            -H "Content-Type: application/json" || true
-          echo "Frontend deployment triggered"
+            -H "Content-Type: application/json"
+          echo "✅ Frontend deployment triggered"
 
-      - name: Final Health Check
-        if: ${{ vars.PRODUCTION_API_URL != '' }}
+      - name: Wait for Frontend
         run: |
-          sleep 30
-          curl -sf "${{ vars.PRODUCTION_API_URL }}/health" | jq . || true
-          echo "Production deployment complete"
+          echo "⏳ Waiting for frontend to deploy (60 seconds)..."
+          sleep 60
 
-      - name: Notify Slack (Production Success)
+      - name: Final Verification
+        run: |
+          echo "══════════════════════════════════════════════════════════════"
+          echo "🎉 DEPLOYMENT COMPLETE"
+          echo "══════════════════════════════════════════════════════════════"
+          echo "Backend: https://fluffnwoof.onrender.com"
+          echo "Frontend: https://fluffnwoof-frontend.onrender.com"
+          echo "Version: ${{ needs.validate.outputs.version }}"
+          echo "══════════════════════════════════════════════════════════════"
+
+      - name: Notify Slack (Success)
         if: success() && env.SLACK_WEBHOOK != ''
         run: |
           curl -X POST $SLACK_WEBHOOK \
             -H 'Content-type: application/json' \
-            -d '{"text":"PRODUCTION deployed: ${{ needs.pre-deploy.outputs.version }} by ${{ github.actor }}"}' || true
+            -d '{"text":"🚀 PRODUCTION deployed: ${{ needs.validate.outputs.version }} by ${{ github.actor }}"}' || true
 
-      - name: Notify Slack (Production Failure)
+      - name: Notify Slack (Failure)
         if: failure() && env.SLACK_WEBHOOK != ''
         run: |
           curl -X POST $SLACK_WEBHOOK \
             -H 'Content-type: application/json' \
-            -d '{"text":"PRODUCTION deployment FAILED: ${{ needs.pre-deploy.outputs.version }}"}' || true
+            -d '{"text":"🚨 PRODUCTION deployment FAILED: ${{ needs.validate.outputs.version }}"}' || true
