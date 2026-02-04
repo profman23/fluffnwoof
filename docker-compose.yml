@@ -1,0 +1,97 @@
+# ══════════════════════════════════════════════════════════════
+# FluffNwoof - Docker Compose Configuration
+# For local development and testing
+# ══════════════════════════════════════════════════════════════
+
+version: '3.9'
+
+services:
+  # ════════════════════════════════════════════════════════════
+  # Backend API
+  # ════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    networks:
+      - fluffnwoof-network
+
+  # ════════════════════════════════════════════════════════════
+  # Frontend
+  # ════════════════════════════════════════════════════════════
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_URL=http://localhost:5000/api
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - fluffnwoof-network
+
+  # ════════════════════════════════════════════════════════════
+  # PostgreSQL (Development Only)
+  # ════════════════════════════════════════════════════════════
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fluffnwoof
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - fluffnwoof-network
+
+# ════════════════════════════════════════════════════════════
+# Development Override (docker-compose.override.yml)
+# ════════════════════════════════════════════════════════════
+# Create docker-compose.override.yml for development with:
+# - Volume mounts for hot reload
+# - Debug ports
+# - Development environment variables
+
+volumes:
+  postgres_data:
+
+networks:
+  fluffnwoof-network:
+    driver: bridge

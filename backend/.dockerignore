@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build outputs
+dist
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+src/tests
+
+# Development files
+*.md
+!README.md
+.git
+.gitignore
+.eslintrc*
+.prettierrc*
+tsconfig.json
+vitest.config.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
