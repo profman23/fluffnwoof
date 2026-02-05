@@ -53,6 +53,8 @@ model User {
   vetSchedules         VetSchedule[]       @relation("VetSchedules")
   createdFormTemplates FormTemplate[]      @relation("FormTemplateCreator")
   createdPetForms      PetForm[]           @relation("PetFormCreator")
+  boardingAssignedSessions BoardingSession[] @relation("BoardingAssignedVet")
+  boardingCreatedSessions  BoardingSession[] @relation("BoardingCreatedBy")
 
   @@index([roleId])
   @@map("users")
@@ -182,6 +184,7 @@ model Pet {
   owner          Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   vaccinations   Vaccination[]
   petForms       PetForm[]
+  boardingSessions BoardingSession[]
 
   @@index([ownerId])
   @@index([petCode])
@@ -955,4 +958,72 @@ model ClinicFormSettings {
   updatedAt              DateTime @updatedAt
 
   @@map("clinic_form_settings")
+}
+
+// =====================================================
+// Boarding & ICU - إعدادات الإقامة والعناية المركزة
+// =====================================================
+
+enum BoardingType {
+  BOARDING  // Pet Hotel - فندق الحيوانات
+  ICU       // Intensive Care Unit - العناية المركزة
+}
+
+enum BoardingSessionStatus {
+  ACTIVE      // Currently staying
+  COMPLETED   // Checked out
+  CANCELLED   // Cancelled
+}
+
+model BoardingSlotConfig {
+  id            String        @id @default(uuid())
+  type          BoardingType  // BOARDING or ICU
+  species       Species       // DOG, CAT, etc.
+  totalSlots    Int           // Total number of slots available
+  pricePerDay   Decimal?      @db.Decimal(10, 2) // Optional daily price
+  notes         String?       // Additional notes
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  sessions      BoardingSession[]
+
+  // Constraints - only one config per type+species combination
+  @@unique([type, species])
+  @@index([type])
+  @@index([species])
+  @@index([isActive])
+  @@map("boarding_slot_configs")
+}
+
+model BoardingSession {
+  id            String                 @id @default(uuid())
+  configId      String
+  petId         String
+  slotNumber    Int                    // Which slot (1, 2, 3, etc.)
+  checkInDate   DateTime
+  checkOutDate  DateTime?              // Null if still active
+  expectedCheckOutDate DateTime?       // Expected checkout date
+  status        BoardingSessionStatus  @default(ACTIVE)
+  notes         String?
+  dailyRate     Decimal?               @db.Decimal(10, 2) // Rate at time of booking
+  totalAmount   Decimal?               @db.Decimal(10, 2) // Calculated on checkout
+  assignedVetId String?                // Optional assigned vet for ICU
+  createdById   String                 // Who created this session
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  // Relations
+  config        BoardingSlotConfig     @relation(fields: [configId], references: [id], onDelete: Cascade)
+  pet           Pet                    @relation(fields: [petId], references: [id], onDelete: Cascade)
+  assignedVet   User?                  @relation("BoardingAssignedVet", fields: [assignedVetId], references: [id])
+  createdBy     User                   @relation("BoardingCreatedBy", fields: [createdById], references: [id])
+
+  @@index([configId])
+  @@index([petId])
+  @@index([status])
+  @@index([checkInDate])
+  @@index([assignedVetId])
+  @@map("boarding_sessions")
 }

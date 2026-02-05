@@ -22,6 +22,7 @@ import arClinicSetup from '../locales/ar/clinicSetup.json';
 import arPortal from '../locales/ar/portal.json';
 import arForms from '../locales/ar/forms.json';
 import arServiceProducts from '../locales/ar/serviceProducts.json';
+import arBoarding from '../locales/ar/boarding.json';
 
 import enCommon from '../locales/en/common.json';
 import enAuth from '../locales/en/auth.json';
@@ -42,6 +43,7 @@ import enClinicSetup from '../locales/en/clinicSetup.json';
 import enPortal from '../locales/en/portal.json';
 import enForms from '../locales/en/forms.json';
 import enServiceProducts from '../locales/en/serviceProducts.json';
+import enBoarding from '../locales/en/boarding.json';
 
 const resources = {
   ar: {
@@ -64,6 +66,7 @@ const resources = {
     portal: arPortal,
     forms: arForms,
     serviceProducts: arServiceProducts,
+    boarding: arBoarding,
   },
   en: {
     common: enCommon,
@@ -85,6 +88,7 @@ const resources = {
     portal: enPortal,
     forms: enForms,
     serviceProducts: enServiceProducts,
+    boarding: enBoarding,
   },
 };
 

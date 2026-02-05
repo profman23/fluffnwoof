@@ -21,6 +21,7 @@ import { ReminderManagement } from './pages/crm/ReminderManagement';
 import { ShiftsManagement } from './pages/clinicSetup/ShiftsManagement';
 import { VisitTypesPage } from './pages/clinicSetup/VisitTypesPage';
 import { FormsPage } from './pages/clinicSetup/FormsPage';
+import BoardingIcuPage from './pages/clinicSetup/BoardingIcuPage';
 import { ThemeProvider } from './components/ThemeProvider';
 import { DarkModeProvider } from './context/DarkModeContext';
 import { LogoLoader } from './components/common/LogoLoader';
@@ -240,6 +241,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <FormsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            key="clinic-setup-boarding"
+            path="/clinic-setup/boarding"
+            element={
+              <ProtectedRoute>
+                <BoardingIcuPage />
               </ProtectedRoute>
             }
           />

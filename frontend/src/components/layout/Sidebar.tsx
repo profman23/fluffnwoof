@@ -69,6 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         { path: '/clinic-setup/shifts', key: 'shiftsManagement', icon: '🕐', screen: 'shiftsManagement' },
         { path: '/clinic-setup/visit-types', key: 'visitTypes', icon: '📋', screen: 'visitTypes' },
         { path: '/clinic-setup/forms', key: 'formsAndCertificates', icon: '📝', screen: 'formsAndCertificates' },
+        { path: '/clinic-setup/boarding', key: 'boardingAndIcu', icon: '🏥', screen: 'boardingAndIcu' },
       ],
     },
   ];
