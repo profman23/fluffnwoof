@@ -77,6 +77,10 @@ const permissions = [
   { name: 'screens.formsAndCertificates.read', description: 'Forms & Certificates - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.formsAndCertificates.full', description: 'Forms & Certificates - Full Control', category: 'screens', action: 'full' },
 
+  // Boarding & ICU
+  { name: 'screens.boardingAndIcu.read', description: 'Boarding & ICU - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.boardingAndIcu.full', description: 'Boarding & ICU - Full Control', category: 'screens', action: 'full' },
+
   // API-level permissions for reminders
   { name: 'reminders.read', description: 'Reminders - Read', category: 'reminders', action: 'read' },
   { name: 'reminders.write', description: 'Reminders - Write', category: 'reminders', action: 'write' },
@@ -143,6 +147,7 @@ const rolePermissions: Record<string, string[]> = {
     'screens.shiftsManagement.full',
     'screens.visitTypes.full',
     'screens.formsAndCertificates.full',
+    'screens.boardingAndIcu.full',
     // API-level permissions
     'reminders.read',
     'reminders.write',
