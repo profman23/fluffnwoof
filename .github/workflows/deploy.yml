@@ -14,9 +14,10 @@ on:
       environment:
         description: 'Target environment'
         required: true
-        default: 'production'
+        default: 'training'
         type: choice
         options:
+          - training
           - production
       run_migrations:
         description: 'Run database migrations'
@@ -53,6 +54,111 @@ jobs:
           echo "✅ Deployment initiated by: ${{ github.actor }}"
           echo "🎯 Target environment: ${{ github.event.inputs.environment }}"
           echo "🗄️ Run migrations: ${{ github.event.inputs.run_migrations }}"
+
+  # ════════════════════════════════════════════════════════════════
+  # Deploy to Training
+  # ════════════════════════════════════════════════════════════════
+  deploy-training:
+    name: Deploy to Training
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event.inputs.environment == 'training'
+
+    environment:
+      name: training
+      url: https://fluffnwoof-training-frontend.onrender.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Create Deployment Record
+        run: |
+          echo "══════════════════════════════════════════════════════════════"
+          echo "🧪 TRAINING DEPLOYMENT"
+          echo "══════════════════════════════════════════════════════════════"
+          echo "Version: ${{ needs.validate.outputs.version }}"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "══════════════════════════════════════════════════════════════"
+
+      - name: Deploy Backend
+        run: |
+          echo "🔄 Triggering training backend deployment..."
+          curl -X POST "${{ secrets.RENDER_TRAINING_BACKEND_HOOK }}" \
+            -H "Content-Type: application/json"
+          echo "✅ Training backend deployment triggered"
+
+      - name: Wait for Backend
+        run: |
+          echo "⏳ Waiting for backend to deploy (90 seconds)..."
+          sleep 90
+
+      - name: Run Database Migrations
+        if: github.event.inputs.run_migrations == 'true'
+        run: |
+          echo "🗄️ Running database migrations..."
+          cd backend
+          npm ci
+          npx prisma migrate deploy
+          echo "✅ Migrations completed"
+        env:
+          DATABASE_URL: ${{ secrets.TRAINING_DATABASE_URL }}
+
+      - name: Health Check Backend
+        run: |
+          echo "🏥 Checking training backend health..."
+          for i in {1..15}; do
+            if curl -sf "https://fluffnwoof-training-backend.onrender.com/health"; then
+              echo ""
+              echo "✅ Training backend is healthy!"
+              break
+            fi
+            echo "Waiting for backend... ($i/15)"
+            sleep 10
+          done
+
+      - name: Deploy Frontend
+        run: |
+          echo "🔄 Triggering training frontend deployment..."
+          curl -X POST "${{ secrets.RENDER_TRAINING_FRONTEND_HOOK }}" \
+            -H "Content-Type: application/json"
+          echo "✅ Training frontend deployment triggered"
+
+      - name: Wait for Frontend
+        run: |
+          echo "⏳ Waiting for frontend to deploy (60 seconds)..."
+          sleep 60
+
+      - name: Final Verification
+        run: |
+          echo "══════════════════════════════════════════════════════════════"
+          echo "🎉 TRAINING DEPLOYMENT COMPLETE"
+          echo "══════════════════════════════════════════════════════════════"
+          echo "Backend: https://fluffnwoof-training-backend.onrender.com"
+          echo "Frontend: https://fluffnwoof-training-frontend.onrender.com"
+          echo "Version: ${{ needs.validate.outputs.version }}"
+          echo "══════════════════════════════════════════════════════════════"
+
+      - name: Notify Slack (Success)
+        if: success() && env.SLACK_WEBHOOK != ''
+        run: |
+          curl -X POST $SLACK_WEBHOOK \
+            -H 'Content-type: application/json' \
+            -d '{"text":"🧪 TRAINING deployed: ${{ needs.validate.outputs.version }} by ${{ github.actor }}"}' || true
+
+      - name: Notify Slack (Failure)
+        if: failure() && env.SLACK_WEBHOOK != ''
+        run: |
+          curl -X POST $SLACK_WEBHOOK \
+            -H 'Content-type: application/json' \
+            -d '{"text":"🚨 TRAINING deployment FAILED: ${{ needs.validate.outputs.version }}"}' || true
 
   # ════════════════════════════════════════════════════════════════
   # Deploy to Production
