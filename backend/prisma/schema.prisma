@@ -977,6 +977,8 @@ enum BoardingSessionStatus {
 
 model BoardingSlotConfig {
   id            String        @id @default(uuid())
+  nameEn        String        // English name (e.g., "VIP Dog Room")
+  nameAr        String        // Arabic name (e.g., "غرفة VIP للكلاب")
   type          BoardingType  // BOARDING or ICU
   species       Species       // DOG, CAT, etc.
   totalSlots    Int           // Total number of slots available
@@ -989,8 +991,7 @@ model BoardingSlotConfig {
   // Relations
   sessions      BoardingSession[]
 
-  // Constraints - only one config per type+species combination
-  @@unique([type, species])
+  // Indexes for query performance (removed unique constraint to allow multiple configs per type+species)
   @@index([type])
   @@index([species])
   @@index([isActive])

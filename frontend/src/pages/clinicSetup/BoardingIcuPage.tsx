@@ -1,9 +1,16 @@
 /**
  * Boarding & ICU Settings Page
  * Manage boarding and ICU slot configurations
+ *
+ * Design unified with FormsPage - uses:
+ * - CSS variables for dark mode
+ * - Light variant buttons
+ * - Translation keys via t() function
+ * - Shared ConfirmationModal component
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,11 +21,15 @@ import {
   HomeIcon,
   HeartIcon,
   MagnifyingGlassIcon,
-  ExclamationTriangleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { boardingApi, BoardingSlotConfig, BoardingType, Species, CreateConfigData, UpdateConfigData } from '../../api/boarding';
 import { useScreenPermission } from '../../hooks/useScreenPermission';
 import { ScreenPermissionGuard } from '../../components/common/ScreenPermissionGuard';
+import { ConfirmationModal } from '../../components/common/ConfirmationModal';
+import { Button } from '../../components/common/Button';
+import { LogoLoader } from '../../components/common/LogoLoader';
+import { SelectionCardGroup } from '../../components/common/SelectionCard';
 
 // =====================================================
 // Types
@@ -37,7 +48,7 @@ interface ConfigModalState {
 // =====================================================
 
 const BoardingIcuPage: React.FC = () => {
-  const { i18n } = useTranslation('boarding');
+  const { t, i18n } = useTranslation('boarding');
   const isRtl = i18n.language === 'ar';
   const queryClient = useQueryClient();
   const { canModify } = useScreenPermission('boardingAndIcu');
@@ -65,10 +76,10 @@ const BoardingIcuPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boarding-configs'] });
       setConfigModal({ isOpen: false, mode: 'create' });
-      showMessage('success', isRtl ? 'تم إنشاء الإعدادات بنجاح' : 'Configuration created successfully');
+      showMessage('success', t('configCreated'));
     },
     onError: (error: any) => {
-      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || (isRtl ? 'فشل في الإنشاء' : 'Failed to create'));
+      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || t('createFailed'));
     },
   });
 
@@ -77,10 +88,10 @@ const BoardingIcuPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boarding-configs'] });
       setConfigModal({ isOpen: false, mode: 'create' });
-      showMessage('success', isRtl ? 'تم تحديث الإعدادات بنجاح' : 'Configuration updated successfully');
+      showMessage('success', t('configUpdated'));
     },
     onError: (error: any) => {
-      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || (isRtl ? 'فشل في التحديث' : 'Failed to update'));
+      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || t('updateFailed'));
     },
   });
 
@@ -89,10 +100,10 @@ const BoardingIcuPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boarding-configs'] });
       setDeleteConfirm({ isOpen: false });
-      showMessage('success', isRtl ? 'تم حذف الإعدادات بنجاح' : 'Configuration deleted successfully');
+      showMessage('success', t('configDeleted'));
     },
     onError: (error: any) => {
-      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || (isRtl ? 'فشل في الحذف' : 'Failed to delete'));
+      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || t('deleteFailed'));
     },
   });
 
@@ -115,15 +126,12 @@ const BoardingIcuPage: React.FC = () => {
   };
 
   const getTypeLabel = (type: BoardingType) => {
-    if (type === 'BOARDING') {
-      return isRtl ? 'إقامة' : 'Boarding';
-    }
-    return isRtl ? 'عناية مركزة' : 'ICU';
+    return type === 'BOARDING' ? t('boarding') : t('icu');
   };
 
   const getSpeciesLabel = (species: Species) => {
-    if (species === 'DOG') return isRtl ? 'كلب' : 'Dog';
-    if (species === 'CAT') return isRtl ? 'قطة' : 'Cat';
+    if (species === 'DOG') return t('dog');
+    if (species === 'CAT') return t('cat');
     return species;
   };
 
@@ -133,7 +141,12 @@ const BoardingIcuPage: React.FC = () => {
       const searchLower = searchQuery.toLowerCase();
       const typeLabel = getTypeLabel(config.type).toLowerCase();
       const speciesLabel = getSpeciesLabel(config.species).toLowerCase();
-      if (!typeLabel.includes(searchLower) && !speciesLabel.includes(searchLower)) {
+      const nameEn = (config.nameEn || '').toLowerCase();
+      const nameAr = config.nameAr || '';
+      if (!typeLabel.includes(searchLower) &&
+          !speciesLabel.includes(searchLower) &&
+          !nameEn.includes(searchLower) &&
+          !nameAr.includes(searchQuery)) {
         return false;
       }
     }
@@ -146,21 +159,18 @@ const BoardingIcuPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {isRtl ? 'إعدادات الإقامة والعناية المركزة' : 'Boarding & ICU Settings'}
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-[var(--app-text-primary)] flex items-center gap-2">
+              🏠 {t('title')}
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              {isRtl ? 'إدارة أماكن الإقامة والعناية المركزة للحيوانات' : 'Manage boarding and ICU slot configurations'}
+            <p className="text-gray-600 dark:text-[var(--app-text-secondary)] mt-1">
+              {t('subtitle')}
             </p>
           </div>
           {canModify && (
-            <button
-              onClick={() => setConfigModal({ isOpen: true, mode: 'create' })}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
+            <Button onClick={() => setConfigModal({ isOpen: true, mode: 'create' })} className="flex items-center gap-2">
               <PlusIcon className="w-5 h-5" />
-              {isRtl ? 'إنشاء إعدادات' : 'Create Configuration'}
-            </button>
+              {t('createConfiguration')}
+            </Button>
           )}
         </div>
 
@@ -171,13 +181,13 @@ const BoardingIcuPage: React.FC = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={`mb-4 p-4 rounded-lg ${
+              className={`mb-4 p-4 rounded-lg border ${
                 message.type === 'success'
-                  ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                  : 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                  ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-700 text-green-700 dark:text-green-400'
+                  : 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-700 text-red-700 dark:text-red-400'
               }`}
             >
-              {message.text}
+              {message.type === 'success' ? '✅' : '❌'} {message.text}
             </motion.div>
           )}
         </AnimatePresence>
@@ -185,62 +195,62 @@ const BoardingIcuPage: React.FC = () => {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           {/* Type Filter */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(['ALL', 'BOARDING', 'ICU'] as FilterType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   filterType === type
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-[var(--app-bg-elevated)] text-gray-700 dark:text-[var(--app-text-secondary)] hover:bg-gray-200 dark:hover:bg-[var(--app-bg-tertiary)]'
                 }`}
               >
-                {type === 'ALL' ? (isRtl ? 'الكل' : 'All') : getTypeLabel(type as BoardingType)}
+                {type === 'ALL' ? t('all') : getTypeLabel(type as BoardingType)}
               </button>
             ))}
           </div>
 
           {/* Search */}
           <div className="relative flex-1 max-w-xs">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <MagnifyingGlassIcon className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400`} />
             <input
               type="text"
-              placeholder={isRtl ? 'بحث...' : 'Search...'}
+              placeholder={t('search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className={`w-full ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
             />
           </div>
 
           {/* Show Inactive */}
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
             />
-            {isRtl ? 'إظهار غير النشطة' : 'Show Inactive'}
+            <span className="text-sm text-gray-700 dark:text-[var(--app-text-secondary)]">{t('showInactive')}</span>
           </label>
         </div>
 
         {/* Loading */}
         {isLoading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="flex items-center justify-center h-64">
+            <LogoLoader />
           </div>
         )}
 
         {/* Empty State */}
         {!isLoading && filteredConfigs.length === 0 && (
-          <div className="text-center py-12">
-            <HomeIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              {isRtl ? 'لا توجد إعدادات' : 'No configurations'}
+          <div className="text-center py-12 bg-gray-50 dark:bg-[var(--app-bg-tertiary)] rounded-xl">
+            <div className="text-6xl mb-4">🏠</div>
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-[var(--app-text-primary)] mb-2">
+              {t('noConfigurations')}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {isRtl ? 'ابدأ بإنشاء إعدادات جديدة للإقامة أو العناية المركزة' : 'Start by creating a new boarding or ICU configuration'}
+              {t('startByCreating')}
             </p>
             {canModify && (
               <button
@@ -248,7 +258,7 @@ const BoardingIcuPage: React.FC = () => {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
                 <PlusIcon className="w-5 h-5" />
-                {isRtl ? 'إنشاء إعدادات' : 'Create Configuration'}
+                {t('createConfiguration')}
               </button>
             )}
           </div>
@@ -256,82 +266,84 @@ const BoardingIcuPage: React.FC = () => {
 
         {/* Configurations Grid */}
         {!isLoading && filteredConfigs.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredConfigs.map((config) => (
               <motion.div
                 key={config.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border ${
-                  config.isActive
-                    ? 'border-gray-200 dark:border-gray-700'
-                    : 'border-gray-300 dark:border-gray-600 opacity-60'
-                } overflow-hidden`}
+                className={`bg-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-sm dark:shadow-black/30 border border-gray-100 dark:border-[var(--app-border-default)] overflow-hidden hover:shadow-md transition-shadow ${
+                  !config.isActive ? 'opacity-60' : ''
+                }`}
               >
                 {/* Card Header */}
-                <div className={`px-4 py-3 ${config.type === 'BOARDING' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                <div className={`px-4 py-3 ${config.type === 'BOARDING' ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-red-100 dark:bg-red-900/20'} border-b dark:border-[var(--app-border-default)]`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {getTypeIcon(config.type)}
                       <span className="text-2xl">{getSpeciesEmoji(config.species)}</span>
                     </div>
                     {!config.isActive && (
-                      <span className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-                        {isRtl ? 'غير نشط' : 'Inactive'}
+                      <span className="px-2 py-1 bg-gray-100 dark:bg-[var(--app-bg-elevated)] text-gray-600 dark:text-gray-400 text-xs rounded-full">
+                        {t('inactive')}
                       </span>
                     )}
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mt-2">
-                    {getSpeciesLabel(config.species)} {getTypeLabel(config.type)}
+                  {/* Show name as primary title */}
+                  <h3 className="font-semibold text-gray-800 dark:text-[var(--app-text-primary)] mt-2">
+                    {isRtl ? config.nameAr : config.nameEn}
                   </h3>
+                  {/* Show type + species as subtitle */}
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {getSpeciesLabel(config.species)} • {getTypeLabel(config.type)}
+                  </p>
                 </div>
 
                 {/* Card Body */}
                 <div className="p-4 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {isRtl ? 'إجمالي الأماكن' : 'Total Slots'}
+                    <span className="text-sm text-gray-500 dark:text-[var(--app-text-secondary)]">
+                      {t('totalSlots')}
                     </span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{config.totalSlots}</span>
+                    <span className="font-semibold text-gray-800 dark:text-[var(--app-text-primary)]">{config.totalSlots}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {isRtl ? 'متاح' : 'Available'}
+                    <span className="text-sm text-gray-500 dark:text-[var(--app-text-secondary)]">
+                      {t('available')}
                     </span>
                     <span className={`font-semibold ${
-                      (config.availableSlots || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                      (config.availableSlots || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                     }`}>
                       {config.availableSlots || config.totalSlots}
                     </span>
                   </div>
                   {config.pricePerDay && (
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {isRtl ? 'السعر/يوم' : 'Price/Day'}
+                      <span className="text-sm text-gray-500 dark:text-[var(--app-text-secondary)]">
+                        {t('pricePerDay')}
                       </span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {config.pricePerDay} {isRtl ? 'ر.س' : 'SAR'}
+                      <span className="font-semibold text-gray-800 dark:text-[var(--app-text-primary)]">
+                        {config.pricePerDay} {t('currency')}
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* Card Actions */}
+                {/* Card Actions - Light Variant Buttons (like FormsPage) */}
                 {canModify && (
-                  <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+                  <div className="px-4 py-3 border-t dark:border-[var(--app-border-default)] flex gap-2">
                     <button
                       onClick={() => setConfigModal({ isOpen: true, mode: 'edit', config })}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
                     >
                       <PencilIcon className="w-4 h-4" />
-                      {isRtl ? 'تعديل' : 'Edit'}
+                      {t('edit')}
                     </button>
                     <button
                       onClick={() => setDeleteConfirm({ isOpen: true, config })}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      className="flex items-center justify-center px-3 py-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                     >
                       <TrashIcon className="w-4 h-4" />
-                      {isRtl ? 'حذف' : 'Delete'}
                     </button>
                   </div>
                 )}
@@ -354,21 +366,24 @@ const BoardingIcuPage: React.FC = () => {
             }
           }}
           isLoading={createMutation.isPending || updateMutation.isPending}
-          isRtl={isRtl}
+          t={t}
         />
 
-        {/* Delete Confirmation Modal */}
-        <DeleteConfirmModal
+        {/* Delete Confirmation Modal (Shared Component) */}
+        <ConfirmationModal
           isOpen={deleteConfirm.isOpen}
-          config={deleteConfirm.config}
           onClose={() => setDeleteConfirm({ isOpen: false })}
           onConfirm={() => {
             if (deleteConfirm.config) {
               deleteMutation.mutate(deleteConfirm.config.id);
             }
           }}
-          isLoading={deleteMutation.isPending}
-          isRtl={isRtl}
+          title={t('confirmDelete')}
+          message={t('deleteWarning')}
+          confirmText={t('delete')}
+          cancelText={t('cancel')}
+          variant="danger"
+          loading={deleteMutation.isPending}
         />
       </div>
     </ScreenPermissionGuard>
@@ -386,10 +401,12 @@ interface ConfigModalProps {
   onClose: () => void;
   onSave: (data: CreateConfigData | UpdateConfigData) => void;
   isLoading: boolean;
-  isRtl: boolean;
+  t: (key: string) => string;
 }
 
-const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose, onSave, isLoading, isRtl }) => {
+const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose, onSave, isLoading, t }) => {
+  const [nameEn, setNameEn] = useState('');
+  const [nameAr, setNameAr] = useState('');
   const [type, setType] = useState<BoardingType>('BOARDING');
   const [species, setSpecies] = useState<Species>('DOG');
   const [totalSlots, setTotalSlots] = useState('10');
@@ -397,10 +414,35 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose
   const [notes, setNotes] = useState('');
   const [isActive, setIsActive] = useState(true);
 
+  // Handle Escape key
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && !isLoading) {
+        onClose();
+      }
+    },
+    [isOpen, onClose, isLoading]
+  );
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, handleEscape]);
+
   // Reset form when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && config) {
+        setNameEn(config.nameEn || '');
+        setNameAr(config.nameAr || '');
         setType(config.type);
         setSpecies(config.species);
         setTotalSlots(config.totalSlots.toString());
@@ -408,6 +450,8 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose
         setNotes(config.notes || '');
         setIsActive(config.isActive);
       } else {
+        setNameEn('');
+        setNameAr('');
         setType('BOARDING');
         setSpecies('DOG');
         setTotalSlots('10');
@@ -422,6 +466,8 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose
     e.preventDefault();
     if (mode === 'create') {
       onSave({
+        nameEn,
+        nameAr,
         type,
         species,
         totalSlots: parseInt(totalSlots),
@@ -430,6 +476,8 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose
       });
     } else {
       onSave({
+        nameEn,
+        nameAr,
         totalSlots: parseInt(totalSlots),
         pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
         notes: notes || null,
@@ -440,124 +488,124 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden"
-      >
+  // Use Portal to render modal at document.body level (fixes z-index issues with sticky headers)
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isLoading ? undefined : onClose} />
+
+      {/* Modal Content */}
+      <div className="relative bg-white dark:bg-[var(--app-bg-card)] rounded-xl shadow-2xl dark:shadow-black/50 w-full max-w-md max-h-[90vh] flex flex-col animate-modal-appear">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {mode === 'create'
-              ? (isRtl ? 'إنشاء إعدادات جديدة' : 'Create Configuration')
-              : (isRtl ? 'تعديل الإعدادات' : 'Edit Configuration')}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[var(--app-border-default)] flex-shrink-0">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-[var(--app-text-primary)] flex items-center gap-2">
+            🏠 {mode === 'create' ? t('createConfiguration') : t('editConfiguration')}
           </h2>
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form - Scrollable Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Name (English) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+              🏷️ {t('nameEn')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              placeholder={t('namePlaceholderEn')}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300"
+              required
+            />
+          </div>
+
+          {/* Name (Arabic) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+              🏷️ {t('nameAr')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              placeholder={t('namePlaceholderAr')}
+              dir="rtl"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300"
+              required
+            />
+          </div>
+
           {/* Type Selection (only for create) */}
           {mode === 'create' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {isRtl ? 'النوع' : 'Type'}
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+                📋 {t('type')}
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setType('BOARDING')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    type === 'BOARDING'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <HomeIcon className="w-8 h-8 mx-auto text-blue-500 mb-2" />
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {isRtl ? 'إقامة' : 'Boarding'}
-                  </div>
-                  <div className="text-xs text-gray-500">{isRtl ? 'فندق الحيوانات' : 'Pet Hotel'}</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType('ICU')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    type === 'ICU'
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <HeartIcon className="w-8 h-8 mx-auto text-red-500 mb-2" />
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {isRtl ? 'عناية مركزة' : 'ICU'}
-                  </div>
-                  <div className="text-xs text-gray-500">{isRtl ? 'العناية المركزة' : 'Intensive Care'}</div>
-                </button>
-              </div>
+              <SelectionCardGroup<BoardingType>
+                options={[
+                  {
+                    value: 'BOARDING',
+                    label: t('boarding'),
+                    sublabel: t('petHotel'),
+                    icon: <HomeIcon className="w-8 h-8 text-secondary-500" />,
+                  },
+                  {
+                    value: 'ICU',
+                    label: t('icu'),
+                    sublabel: t('intensiveCare'),
+                    icon: <HeartIcon className="w-8 h-8 text-secondary-500" />,
+                  },
+                ]}
+                value={type}
+                onChange={setType}
+              />
             </div>
           )}
 
           {/* Species Selection (only for create) */}
           {mode === 'create' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {isRtl ? 'الفصيلة' : 'Species'}
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+                🐾 {t('species')}
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSpecies('DOG')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    species === 'DOG'
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="text-4xl block mb-2">🐕</span>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {isRtl ? 'كلب' : 'Dog'}
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSpecies('CAT')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    species === 'CAT'
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="text-4xl block mb-2">🐈</span>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {isRtl ? 'قطة' : 'Cat'}
-                  </div>
-                </button>
-              </div>
+              <SelectionCardGroup<Species>
+                options={[
+                  { value: 'DOG', label: t('dog'), emoji: '🐕' },
+                  { value: 'CAT', label: t('cat'), emoji: '🐈' },
+                ]}
+                value={species}
+                onChange={setSpecies}
+              />
             </div>
           )}
 
           {/* Total Slots */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isRtl ? 'عدد الأماكن' : 'Number of Slots'}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+              🔢 {t('numberOfSlots')}
             </label>
             <input
               type="number"
               min="1"
               value={totalSlots}
               onChange={(e) => setTotalSlots(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300"
               required
             />
           </div>
 
           {/* Price per Day */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isRtl ? 'السعر اليومي (اختياري)' : 'Price per Day (Optional)'}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+              💰 {t('pricePerDayOptional')}
             </label>
             <div className="relative">
               <input
@@ -567,130 +615,63 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, mode, config, onClose
                 value={pricePerDay}
                 onChange={(e) => setPricePerDay(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-4 py-2 pr-14 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                {isRtl ? 'ر.س' : 'SAR'}
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
+                {t('currency')}
               </span>
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isRtl ? 'ملاحظات (اختياري)' : 'Notes (Optional)'}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-2 flex items-center gap-2">
+              📝 {t('notesOptional')}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 resize-none"
             />
           </div>
 
           {/* Active Toggle (only for edit) */}
           {mode === 'edit' && (
-            <label className="flex items-center gap-3">
+            <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5"
+                className="rounded border-gray-300 text-secondary-500 focus:ring-secondary-300 w-5 h-5"
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {isRtl ? 'نشط' : 'Active'}
+              <span className="text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] flex items-center gap-2">
+                ✅ {t('active')}
               </span>
             </label>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
+          {/* Actions - Using shared Button component (matching AddPetModal/AddUserModal pattern) */}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-[var(--app-border-default)]">
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+              disabled={isLoading}
             >
-              {isRtl ? 'إلغاء' : 'Cancel'}
-            </button>
-            <button
+              {t('cancel')}
+            </Button>
+            <Button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {isRtl ? 'جارٍ الحفظ...' : 'Saving...'}
-                </span>
-              ) : (
-                mode === 'create' ? (isRtl ? 'إنشاء' : 'Create') : (isRtl ? 'حفظ' : 'Save')
-              )}
-            </button>
+              {isLoading ? t('saving') : (mode === 'create' ? t('create') : t('save'))}
+            </Button>
           </div>
         </form>
-      </motion.div>
-    </div>
-  );
-};
-
-// =====================================================
-// Delete Confirmation Modal
-// =====================================================
-
-interface DeleteConfirmModalProps {
-  isOpen: boolean;
-  config?: BoardingSlotConfig;
-  onClose: () => void;
-  onConfirm: () => void;
-  isLoading: boolean;
-  isRtl: boolean;
-}
-
-const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, config, onClose, onConfirm, isLoading, isRtl }) => {
-  if (!isOpen || !config) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-6"
-      >
-        <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
-          <ExclamationTriangleIcon className="w-6 h-6 text-red-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-center text-gray-900 dark:text-white mb-2">
-          {isRtl ? 'تأكيد الحذف' : 'Confirm Delete'}
-        </h3>
-        <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
-          {isRtl
-            ? 'هل أنت متأكد من حذف هذه الإعدادات؟ لا يمكن التراجع عن هذا الإجراء.'
-            : 'Are you sure you want to delete this configuration? This action cannot be undone.'}
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-          >
-            {isRtl ? 'إلغاء' : 'Cancel'}
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              </span>
-            ) : (
-              isRtl ? 'حذف' : 'Delete'
-            )}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 };
 

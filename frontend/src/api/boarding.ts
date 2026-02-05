@@ -40,6 +40,8 @@ export type BoardingSessionStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
 export interface BoardingSlotConfig {
   id: string;
+  nameEn: string;
+  nameAr: string;
   type: BoardingType;
   species: Species;
   totalSlots: number;
@@ -98,6 +100,8 @@ export interface BoardingStats {
 }
 
 export interface CreateConfigData {
+  nameEn: string;
+  nameAr: string;
   type: BoardingType;
   species: Species;
   totalSlots: number;
@@ -106,6 +110,8 @@ export interface CreateConfigData {
 }
 
 export interface UpdateConfigData {
+  nameEn?: string;
+  nameAr?: string;
   totalSlots?: number;
   pricePerDay?: number | null;
   notes?: string | null;

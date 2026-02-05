@@ -1,8 +1,12 @@
 {
   "title": "Boarding & ICU Settings",
   "subtitle": "Manage boarding and ICU slot configurations",
-  "createConfiguration": "Create Configuration",
-  "editConfiguration": "Edit Configuration",
+  "createConfiguration": "Create Boarding & ICU",
+  "editConfiguration": "Edit Boarding & ICU",
+  "nameEn": "Name (English)",
+  "nameAr": "Name (Arabic)",
+  "namePlaceholderEn": "e.g., VIP Dog Room, Cat ICU Suite",
+  "namePlaceholderAr": "e.g., غرفة VIP للكلاب",
   "noConfigurations": "No configurations",
   "startByCreating": "Start by creating a new boarding or ICU configuration",
   "all": "All",
@@ -37,5 +41,6 @@
   "configDeleted": "Configuration deleted successfully",
   "createFailed": "Failed to create configuration",
   "updateFailed": "Failed to update configuration",
-  "deleteFailed": "Failed to delete configuration"
+  "deleteFailed": "Failed to delete configuration",
+  "currency": "SAR"
 }

@@ -140,37 +140,23 @@ export const getConfigById = async (req: Request, res: Response) => {
  */
 export const createConfig = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, species, totalSlots, pricePerDay, notes } = req.body;
+    const { nameEn, nameAr, type, species, totalSlots, pricePerDay, notes } = req.body;
 
     // Validate required fields
-    if (!type || !species || totalSlots === undefined) {
+    if (!nameEn || !nameAr || !type || !species || totalSlots === undefined) {
       return res.status(400).json({
         success: false,
-        error: 'Type, species, and totalSlots are required',
-        errorAr: 'النوع والفصيلة وعدد الأماكن مطلوبة',
+        error: 'Name (English & Arabic), type, species, and totalSlots are required',
+        errorAr: 'الاسم (بالإنجليزية والعربية) والنوع والفصيلة وعدد الأماكن مطلوبة',
       });
     }
 
-    // Check if config already exists for this type+species combination
-    const existing = await prisma.boardingSlotConfig.findUnique({
-      where: {
-        type_species: {
-          type: type as BoardingType,
-          species: species as Species,
-        },
-      },
-    });
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        error: 'Configuration already exists for this type and species',
-        errorAr: 'الإعدادات موجودة بالفعل لهذا النوع والفصيلة',
-      });
-    }
+    // Note: Multiple configs per type+species are now allowed (unique constraint removed)
 
     const config = await prisma.boardingSlotConfig.create({
       data: {
+        nameEn,
+        nameAr,
         type: type as BoardingType,
         species: species as Species,
         totalSlots: parseInt(totalSlots),
@@ -202,7 +188,7 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
 export const updateConfig = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { totalSlots, pricePerDay, notes, isActive } = req.body;
+    const { nameEn, nameAr, totalSlots, pricePerDay, notes, isActive } = req.body;
 
     // Check if config exists
     const existing = await prisma.boardingSlotConfig.findUnique({
@@ -236,6 +222,8 @@ export const updateConfig = async (req: AuthRequest, res: Response) => {
     const config = await prisma.boardingSlotConfig.update({
       where: { id },
       data: {
+        nameEn: nameEn !== undefined ? nameEn : undefined,
+        nameAr: nameAr !== undefined ? nameAr : undefined,
         totalSlots: totalSlots !== undefined ? parseInt(totalSlots) : undefined,
         pricePerDay: pricePerDay !== undefined ? (pricePerDay ? parseFloat(pricePerDay) : null) : undefined,
         notes: notes !== undefined ? notes : undefined,

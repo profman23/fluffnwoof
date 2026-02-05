@@ -1,8 +1,12 @@
 {
   "title": "إعدادات الإقامة والعناية المركزة",
   "subtitle": "إدارة أماكن الإقامة والعناية المركزة للحيوانات",
-  "createConfiguration": "إنشاء إعدادات",
-  "editConfiguration": "تعديل الإعدادات",
+  "createConfiguration": "إنشاء إقامة/عناية مركزة",
+  "editConfiguration": "تعديل إقامة/عناية مركزة",
+  "nameEn": "الاسم (إنجليزي)",
+  "nameAr": "الاسم (عربي)",
+  "namePlaceholderEn": "مثال: VIP Dog Room",
+  "namePlaceholderAr": "مثال: غرفة VIP للكلاب، جناح العناية المركزة",
   "noConfigurations": "لا توجد إعدادات",
   "startByCreating": "ابدأ بإنشاء إعدادات جديدة للإقامة أو العناية المركزة",
   "all": "الكل",
@@ -37,5 +41,6 @@
   "configDeleted": "تم حذف الإعدادات بنجاح",
   "createFailed": "فشل في إنشاء الإعدادات",
   "updateFailed": "فشل في تحديث الإعدادات",
-  "deleteFailed": "فشل في حذف الإعدادات"
+  "deleteFailed": "فشل في حذف الإعدادات",
+  "currency": "ر.س"
 }
