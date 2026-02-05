@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 // Brand Colors
 const BRAND_COLORS = {
@@ -9,8 +10,15 @@ const BRAND_COLORS = {
   white: '#FDFEFF',     // Background
 };
 
-// Email configuration with enhanced deliverability settings
-const transporter = nodemailer.createTransport({
+// Check if Resend API key is available (for Render deployment)
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const USE_RESEND = !!RESEND_API_KEY;
+
+// Initialize Resend client if API key is available
+const resend = USE_RESEND ? new Resend(RESEND_API_KEY) : null;
+
+// Email configuration with enhanced deliverability settings (for local development)
+const transporter = !USE_RESEND ? nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.EMAIL_PORT || '587'),
   secure: false, // true for 465, false for other ports
@@ -18,16 +26,20 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-});
+}) : null;
 
 // Verify connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('[Email Service] Connection error:', error.message);
-  } else {
-    console.log('[Email Service] Ready to send emails');
-  }
-});
+if (USE_RESEND) {
+  console.log('[Email Service] Using Resend API for email delivery');
+} else if (transporter) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('[Email Service] SMTP Connection error:', error.message);
+    } else {
+      console.log('[Email Service] SMTP Ready to send emails');
+    }
+  });
+}
 
 interface SendEmailParams {
   to: string;
@@ -44,13 +56,63 @@ interface SendEmailResult {
 }
 
 /**
- * Send an email with MAXIMUM deliverability optimizations for Gmail
+ * Send an email with MAXIMUM deliverability optimizations
+ * Supports both Resend API (for Render) and SMTP (for local development)
  */
 export const sendEmail = async (params: SendEmailParams): Promise<SendEmailResult> => {
   const { to, subject, text, html, recipientName } = params;
-  const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   const clinicName = "Fluff N' Woof Veterinary Clinic";
+  const plainText = text || generateBetterPlainText(html || '', recipientName || '');
 
+  // Use Resend API if available (for Render deployment)
+  if (USE_RESEND && resend) {
+    try {
+      // Resend requires a verified domain or use onboarding@resend.dev for testing
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+      const { data, error } = await resend.emails.send({
+        from: `${clinicName} <${fromEmail}>`,
+        to: [to],
+        subject,
+        html: html || undefined,
+        text: plainText,
+        headers: {
+          'X-Priority': '3',
+        },
+      });
+
+      if (error) {
+        console.error(`[Email Service - Resend] Failed to send email to ${to}:`, error.message);
+        return {
+          success: false,
+          errorMessage: error.message,
+        };
+      }
+
+      console.log(`[Email Service - Resend] Email sent to ${to}, id: ${data?.id}`);
+      return {
+        success: true,
+        messageId: data?.id,
+      };
+    } catch (error: any) {
+      console.error(`[Email Service - Resend] Error sending email to ${to}:`, error.message);
+      return {
+        success: false,
+        errorMessage: error.message,
+      };
+    }
+  }
+
+  // Use SMTP for local development
+  if (!transporter) {
+    console.error('[Email Service] No email transport configured');
+    return {
+      success: false,
+      errorMessage: 'No email transport configured',
+    };
+  }
+
+  const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   // Generate unique Message-ID for better deliverability
   const domain = fromEmail?.split('@')[1] || 'fluffnwoof.com';
   const messageId = `<${Date.now()}.${Math.random().toString(36).substring(2)}@${domain}>`;
@@ -62,7 +124,7 @@ export const sendEmail = async (params: SendEmailParams): Promise<SendEmailResul
       replyTo: fromEmail,
       subject,
       // IMPORTANT: Plain text MUST come first for better deliverability
-      text: text || generateBetterPlainText(html || '', recipientName || ''),
+      text: plainText,
       html,
       messageId,
       headers: {
@@ -78,14 +140,14 @@ export const sendEmail = async (params: SendEmailParams): Promise<SendEmailResul
       },
     });
 
-    console.log(`[Email Service] Email sent to ${to}, messageId: ${result.messageId}`);
+    console.log(`[Email Service - SMTP] Email sent to ${to}, messageId: ${result.messageId}`);
 
     return {
       success: true,
       messageId: result.messageId,
     };
   } catch (error: any) {
-    console.error(`[Email Service] Failed to send email to ${to}:`, error.message);
+    console.error(`[Email Service - SMTP] Failed to send email to ${to}:`, error.message);
 
     return {
       success: false,
@@ -1097,12 +1159,26 @@ export const sendFormNotificationEmail = async (params: {
 /**
  * Test email connection
  */
-export const testConnection = async (): Promise<{ success: boolean; error?: string }> => {
+export const testConnection = async (): Promise<{ success: boolean; error?: string; provider?: string }> => {
+  // If using Resend, we can't really test without sending an email
+  // But we can verify the API key is set
+  if (USE_RESEND) {
+    if (resend) {
+      return { success: true, provider: 'resend' };
+    }
+    return { success: false, error: 'Resend API key not configured', provider: 'resend' };
+  }
+
+  // Test SMTP connection
+  if (!transporter) {
+    return { success: false, error: 'SMTP not configured', provider: 'smtp' };
+  }
+
   try {
     await transporter.verify();
-    return { success: true };
+    return { success: true, provider: 'smtp' };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, provider: 'smtp' };
   }
 };
 
