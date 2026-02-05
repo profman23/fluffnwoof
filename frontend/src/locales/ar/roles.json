@@ -36,7 +36,8 @@
     "clinicSetup": "إعدادات العيادة",
     "shiftsManagement": "إدارة الشيفتات",
     "visitTypes": "أنواع الزيارات",
-    "formsAndCertificates": "النماذج والشهادات"
+    "formsAndCertificates": "النماذج والشهادات",
+    "boardingAndIcu": "الإقامة والعناية المركزة"
   },
   "specialPermissions": {
     "title": "صلاحيات خاصة",

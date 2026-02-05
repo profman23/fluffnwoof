@@ -25,7 +25,7 @@ const SCREEN_GROUPS: ScreenItem[] = [
   { name: 'serviceProducts' },
   { name: 'reports' },
   { name: 'crm', children: ['sms', 'reminders'] },
-  { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes', 'formsAndCertificates'] },
+  { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes', 'formsAndCertificates', 'boardingAndIcu'] },
 ];
 
 // Flatten for API calls

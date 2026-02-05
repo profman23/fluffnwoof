@@ -30,7 +30,7 @@
 
   --app-border-default: #e5e7eb;
   --app-border-light: #f3f4f6;
-  --app-border-focus: #CEE8DC;
+  --app-border-focus: #F5DF59;
 
   --app-mint: #CEE8DC;
   --app-mint-dark: #56af8e;
@@ -67,7 +67,7 @@
 
   --app-border-default: #3f3f46;
   --app-border-light: #27272a;
-  --app-border-focus: #7fc2a8;
+  --app-border-focus: #e8c840;
 
   --app-mint: #7fc2a8;
   --app-mint-dark: #56af8e;
@@ -227,7 +227,7 @@ html[lang="ar"] body {
   /* Select Dropdown */
   .select {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg
-           focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300
            dark:bg-[var(--app-bg-elevated)] dark:border-[var(--app-border-default)]
            dark:text-[var(--app-text-primary)];
   }
@@ -235,7 +235,7 @@ html[lang="ar"] body {
   /* Textarea */
   .textarea {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg
-           focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none
+           focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 resize-none
            dark:bg-[var(--app-bg-elevated)] dark:border-[var(--app-border-default)]
            dark:text-[var(--app-text-primary)] dark:placeholder-gray-500;
   }
