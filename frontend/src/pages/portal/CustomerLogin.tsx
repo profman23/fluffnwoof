@@ -15,6 +15,7 @@ import { AuthLayout } from '../../components/portal/layout/AuthLayout';
 import { Input } from '../../components/portal/ui/Input';
 import { Button } from '../../components/portal/ui/Button';
 import { fadeInUpSimple } from '../../styles/portal/animations';
+import { MobileVideoIntro } from '../../components/common/MobileVideoIntro';
 
 // ============================================
 // LORD ICON DECLARATION (for TypeScript)
@@ -81,6 +82,7 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showVideoIntro, setShowVideoIntro] = useState(true);
 
   const from = (location.state as any)?.from?.pathname || '/portal/dashboard';
 
@@ -112,6 +114,16 @@ const LoginForm: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Mobile video intro is always shown since portal is mobile-first
+  if (showVideoIntro) {
+    return (
+      <MobileVideoIntro
+        onDismiss={() => setShowVideoIntro(false)}
+        translationNamespace="portal"
+      />
+    );
+  }
 
   return (
     <AuthLayout

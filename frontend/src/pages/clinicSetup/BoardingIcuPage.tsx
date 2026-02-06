@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   PencilIcon,
-  TrashIcon,
   HomeIcon,
   HeartIcon,
   MagnifyingGlassIcon,
@@ -26,7 +25,6 @@ import {
 import { boardingApi, BoardingSlotConfig, BoardingType, Species, CreateConfigData, UpdateConfigData } from '../../api/boarding';
 import { useScreenPermission } from '../../hooks/useScreenPermission';
 import { ScreenPermissionGuard } from '../../components/common/ScreenPermissionGuard';
-import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { Button } from '../../components/common/Button';
 import { LogoLoader } from '../../components/common/LogoLoader';
 import { SelectionCardGroup } from '../../components/common/SelectionCard';
@@ -58,7 +56,6 @@ const BoardingIcuPage: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [configModal, setConfigModal] = useState<ConfigModalState>({ isOpen: false, mode: 'create' });
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; config?: BoardingSlotConfig }>({ isOpen: false });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Fetch configurations
@@ -95,17 +92,6 @@ const BoardingIcuPage: React.FC = () => {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: boardingApi.deleteConfig,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['boarding-configs'] });
-      setDeleteConfirm({ isOpen: false });
-      showMessage('success', t('configDeleted'));
-    },
-    onError: (error: any) => {
-      showMessage('error', error.response?.data?.errorAr || error.response?.data?.error || t('deleteFailed'));
-    },
-  });
 
   // Helpers
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -329,21 +315,15 @@ const BoardingIcuPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Card Actions - Light Variant Buttons (like FormsPage) */}
+                {/* Card Actions - Edit Only (Delete disabled by design) */}
                 {canModify && (
-                  <div className="px-4 py-3 border-t dark:border-[var(--app-border-default)] flex gap-2">
+                  <div className="px-4 py-3 border-t dark:border-[var(--app-border-default)]">
                     <button
                       onClick={() => setConfigModal({ isOpen: true, mode: 'edit', config })}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                      className="w-full flex items-center justify-center gap-1 px-3 py-2 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
                     >
                       <PencilIcon className="w-4 h-4" />
                       {t('edit')}
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm({ isOpen: true, config })}
-                      className="flex items-center justify-center px-3 py-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
-                    >
-                      <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
                 )}
@@ -369,22 +349,6 @@ const BoardingIcuPage: React.FC = () => {
           t={t}
         />
 
-        {/* Delete Confirmation Modal (Shared Component) */}
-        <ConfirmationModal
-          isOpen={deleteConfirm.isOpen}
-          onClose={() => setDeleteConfirm({ isOpen: false })}
-          onConfirm={() => {
-            if (deleteConfirm.config) {
-              deleteMutation.mutate(deleteConfirm.config.id);
-            }
-          }}
-          title={t('confirmDelete')}
-          message={t('deleteWarning')}
-          confirmText={t('delete')}
-          cancelText={t('cancel')}
-          variant="danger"
-          loading={deleteMutation.isPending}
-        />
       </div>
     </ScreenPermissionGuard>
   );

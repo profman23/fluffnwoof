@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { authApi } from '../api/auth';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
+import { MobileVideoIntro } from '../components/common/MobileVideoIntro';
 
 export const Login: React.FC = () => {
   const { t, i18n } = useTranslation('auth');
@@ -12,9 +13,21 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showVideoIntro, setShowVideoIntro] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
+
+  // Check if device is mobile/tablet (less than lg breakpoint: 1024px)
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Set document direction on mount and language change
   useEffect(() => {
@@ -47,6 +60,16 @@ export const Login: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Show video intro on mobile before login form
+  if (isMobile && showVideoIntro) {
+    return (
+      <MobileVideoIntro
+        onDismiss={() => setShowVideoIntro(false)}
+        translationNamespace="auth"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">

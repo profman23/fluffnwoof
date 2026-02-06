@@ -14,6 +14,8 @@
     "close": "Close"
   },
   "welcome": "Welcome to Fluff N' Woof",
+  "slideToLogin": "Slide to Login",
+  "appSubtitle": "Pet Care Portal",
   "login": {
     "title": "Customer Login",
     "email": "Email",
