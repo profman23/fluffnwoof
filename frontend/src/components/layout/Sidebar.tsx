@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { path: '/dashboard', key: 'dashboard', icon: '📊', screen: 'dashboard' },
     { path: '/patients', key: 'patients', icon: '🐾', screen: 'patients' },
     { path: '/flow-board', key: 'flowBoard', icon: '📋', screen: 'flowBoard' },
+    { path: '/boarding', key: 'boardingManagement', icon: '🏠', screen: 'boardingManagement' },
     { path: '/medical', key: 'medical', icon: '🏥', screen: 'medical' },
     { path: '/users', key: 'userManagement', icon: '👤', screen: 'userManagement' },
     { path: '/roles', key: 'rolesPermissions', icon: '🔐', screen: 'rolesPermissions' },

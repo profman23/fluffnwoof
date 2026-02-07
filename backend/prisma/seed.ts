@@ -21,6 +21,10 @@ const permissions = [
   { name: 'screens.medical.read', description: 'Medical - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.medical.full', description: 'Medical - Full Control', category: 'screens', action: 'full' },
 
+  // Boarding Management (Kanban board for daily operations)
+  { name: 'screens.boardingManagement.read', description: 'Boarding Management - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.boardingManagement.full', description: 'Boarding Management - Full Control', category: 'screens', action: 'full' },
+
   // Invoices
   { name: 'screens.invoices.read', description: 'Invoices - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.invoices.full', description: 'Invoices - Full Control', category: 'screens', action: 'full' },
@@ -133,6 +137,7 @@ const rolePermissions: Record<string, string[]> = {
     'screens.patients.full',
     'screens.appointments.full',
     'screens.medical.full',
+    'screens.boardingManagement.full',
     'screens.invoices.full',
     'screens.userManagement.full',
     'screens.rolesPermissions.full',
@@ -170,6 +175,8 @@ const rolePermissions: Record<string, string[]> = {
     'screens.appointments.full',
     // Medical - Full Control
     'screens.medical.full',
+    // Boarding Management - Full Control
+    'screens.boardingManagement.full',
     // Invoices - Read Only
     'screens.invoices.read',
     // Flow Board - Full Control
@@ -197,6 +204,8 @@ const rolePermissions: Record<string, string[]> = {
     'screens.invoices.full',
     // Medical - Read Only
     'screens.medical.read',
+    // Boarding Management - Full Control
+    'screens.boardingManagement.full',
     // Flow Board - Full Control
     'screens.flowBoard.full',
     // Reports - Read Only

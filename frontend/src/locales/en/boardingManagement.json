@@ -1,0 +1,59 @@
+{
+  "title": "Boarding & ICU",
+  "subtitle": "Manage boarding and ICU sessions",
+  "tabs": {
+    "boarding": "Boarding",
+    "icu": "ICU"
+  },
+  "columns": {
+    "green": "5+ Days Remaining",
+    "yellow": "3 Days Remaining",
+    "red": "1 Day Remaining",
+    "empty": "No pets"
+  },
+  "filters": {
+    "all": "All"
+  },
+  "card": {
+    "daysRemaining": "{{count}} days left",
+    "dayRemaining": "1 day left",
+    "checkout": "Checkout",
+    "cage": "Cage"
+  },
+  "stats": {
+    "safe": "5+ Days",
+    "warning": "3 Days",
+    "critical": "1 Day"
+  },
+  "modal": {
+    "sessionDetails": "Session Details",
+    "ownerInfo": "Owner Information",
+    "checkIn": "Check-in",
+    "expectedCheckout": "Expected Checkout",
+    "stayDuration": "Stay Duration",
+    "days": "days",
+    "dailyRate": "Daily Rate",
+    "notes": "Notes",
+    "assignedVet": "Assigned Vet",
+    "checkoutConfirm": "Confirm Checkout",
+    "checkoutWarning": "This action cannot be undone. The pet will be marked as checked out.",
+    "total": "Total"
+  },
+  "species": {
+    "DOG": "Dog",
+    "CAT": "Cat",
+    "BIRD": "Bird",
+    "RABBIT": "Rabbit",
+    "HAMSTER": "Hamster",
+    "GUINEA_PIG": "Guinea Pig",
+    "TURTLE": "Turtle",
+    "FISH": "Fish",
+    "HORSE": "Horse",
+    "GOAT": "Goat",
+    "OTHER": "Other"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "loading": "Loading..."
+  }
+}

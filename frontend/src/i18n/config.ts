@@ -23,6 +23,7 @@ import arPortal from '../locales/ar/portal.json';
 import arForms from '../locales/ar/forms.json';
 import arServiceProducts from '../locales/ar/serviceProducts.json';
 import arBoarding from '../locales/ar/boarding.json';
+import arBoardingManagement from '../locales/ar/boardingManagement.json';
 
 import enCommon from '../locales/en/common.json';
 import enAuth from '../locales/en/auth.json';
@@ -44,6 +45,7 @@ import enPortal from '../locales/en/portal.json';
 import enForms from '../locales/en/forms.json';
 import enServiceProducts from '../locales/en/serviceProducts.json';
 import enBoarding from '../locales/en/boarding.json';
+import enBoardingManagement from '../locales/en/boardingManagement.json';
 
 const resources = {
   ar: {
@@ -67,6 +69,7 @@ const resources = {
     forms: arForms,
     serviceProducts: arServiceProducts,
     boarding: arBoarding,
+    boardingManagement: arBoardingManagement,
   },
   en: {
     common: enCommon,
@@ -89,6 +92,7 @@ const resources = {
     forms: enForms,
     serviceProducts: enServiceProducts,
     boarding: enBoarding,
+    boardingManagement: enBoardingManagement,
   },
 };
 

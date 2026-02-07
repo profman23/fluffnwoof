@@ -1,0 +1,59 @@
+{
+  "title": "الإيواء والعناية المركزة",
+  "subtitle": "إدارة جلسات الإيواء والعناية المركزة",
+  "tabs": {
+    "boarding": "إيواء",
+    "icu": "عناية مركزة"
+  },
+  "columns": {
+    "green": "5+ أيام متبقية",
+    "yellow": "3 أيام متبقية",
+    "red": "يوم واحد متبقي",
+    "empty": "لا توجد حيوانات"
+  },
+  "filters": {
+    "all": "الكل"
+  },
+  "card": {
+    "daysRemaining": "{{count}} أيام متبقية",
+    "dayRemaining": "يوم واحد متبقي",
+    "checkout": "إخراج",
+    "cage": "قفص"
+  },
+  "stats": {
+    "safe": "5+ أيام",
+    "warning": "3 أيام",
+    "critical": "يوم واحد"
+  },
+  "modal": {
+    "sessionDetails": "تفاصيل الجلسة",
+    "ownerInfo": "معلومات المالك",
+    "checkIn": "تسجيل الدخول",
+    "expectedCheckout": "موعد الخروج المتوقع",
+    "stayDuration": "مدة الإقامة",
+    "days": "أيام",
+    "dailyRate": "السعر اليومي",
+    "notes": "ملاحظات",
+    "assignedVet": "الطبيب المعين",
+    "checkoutConfirm": "تأكيد الخروج",
+    "checkoutWarning": "لا يمكن التراجع عن هذا الإجراء. سيتم تسجيل خروج الحيوان.",
+    "total": "الإجمالي"
+  },
+  "species": {
+    "DOG": "كلب",
+    "CAT": "قط",
+    "BIRD": "طائر",
+    "RABBIT": "أرنب",
+    "HAMSTER": "هامستر",
+    "GUINEA_PIG": "خنزير غيني",
+    "TURTLE": "سلحفاة",
+    "FISH": "سمكة",
+    "HORSE": "حصان",
+    "GOAT": "ماعز",
+    "OTHER": "أخرى"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "loading": "جاري التحميل..."
+  }
+}

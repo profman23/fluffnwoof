@@ -12,6 +12,7 @@ import { RolesPermissions } from './pages/RolesPermissions';
 import { UserManagement } from './pages/UserManagement';
 import { PatientsPage } from './pages/PatientsPage';
 import { FlowBoardPage } from './pages/FlowBoardPage';
+import { BoardingManagement } from './pages/BoardingManagement';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NextAppointmentsReport } from './pages/reports/NextAppointmentsReport';
 import { ServiceProductsPage } from './pages/ServiceProductsPage';
@@ -124,6 +125,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <FlowBoardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/boarding"
+            element={
+              <ProtectedRoute>
+                <BoardingManagement />
               </ProtectedRoute>
             }
           />

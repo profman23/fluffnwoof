@@ -364,9 +364,12 @@ export const formService = {
   /**
    * Get pet forms
    */
-  async getPetForms(petId: string) {
+  async getPetForms(petId: string, appointmentId?: string) {
     return prisma.petForm.findMany({
-      where: { petId },
+      where: {
+        petId,
+        ...(appointmentId ? { appointmentId } : {}),
+      },
       include: {
         template: {
           select: {

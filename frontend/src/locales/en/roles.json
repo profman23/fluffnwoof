@@ -25,6 +25,7 @@
     "dashboard": "Dashboard",
     "patients": "Patients",
     "flowBoard": "Flow Board",
+    "boardingManagement": "Boarding & ICU Management",
     "medical": "Medical Records",
     "userManagement": "User Management",
     "rolesPermissions": "Roles & Permissions",

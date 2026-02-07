@@ -263,8 +263,9 @@ export const getAvailableVariables = async (req: Request, res: Response) => {
 export const getPetForms = async (req: Request, res: Response) => {
   try {
     const { petId } = req.params;
+    const { appointmentId } = req.query;
 
-    const forms = await formService.getPetForms(petId);
+    const forms = await formService.getPetForms(petId, appointmentId as string | undefined);
 
     res.json({
       success: true,

@@ -19,6 +19,7 @@ interface ScreenItem {
 const SCREEN_GROUPS: ScreenItem[] = [
   { name: 'patients' },
   { name: 'flowBoard' },
+  { name: 'boardingManagement' },
   { name: 'medical' },
   { name: 'userManagement' },
   { name: 'rolesPermissions' },

@@ -9,6 +9,7 @@ import { petsApi } from '../../api/pets';
 import { flowBoardApi } from '../../api/flowBoard';
 import { shiftsApi, UnavailableReason } from '../../api/shifts';
 import { visitTypesApi, VisitType as VisitTypeConfig } from '../../api/visitTypes';
+import { boardingApi, BoardingSlotConfig, BoardingType } from '../../api/boarding';
 import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked } from '../../utils/appointmentUtils';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 
@@ -69,8 +70,34 @@ export const AddAppointmentModal = ({
   const [appointmentDate, setAppointmentDate] = useState(selectedDate);
   const [appointmentTime, setAppointmentTime] = useState('09:00');
 
+  // Boarding mode state
+  const [isBoardingMode, setIsBoardingMode] = useState(false);
+  const [boardingType, setBoardingType] = useState<BoardingType>('BOARDING');
+  const [boardingConfigs, setBoardingConfigs] = useState<BoardingSlotConfig[]>([]);
+  const [loadingBoardingConfigs, setLoadingBoardingConfigs] = useState(false);
+  const [selectedBoardingConfig, setSelectedBoardingConfig] = useState<string>('');
+  const [selectedCageNumber, setSelectedCageNumber] = useState<number>(0);
+  const [checkInDate, setCheckInDate] = useState(selectedDate);
+  const [expectedCheckOutDate, setExpectedCheckOutDate] = useState('');
+  const [boardingNotes, setBoardingNotes] = useState('');
+
   // Booked appointments for selected staff on selected date
   const [bookedAppointments, setBookedAppointments] = useState<{ appointmentTime: string; duration: number }[]>([]);
+
+  // Compute available cage numbers for selected config
+  const availableCageNumbers = useMemo(() => {
+    if (!selectedBoardingConfig) return [];
+    const config = boardingConfigs.find(c => c.id === selectedBoardingConfig);
+    if (!config) return [];
+    const occupiedSlots = (config.sessions || []).map(s => s.slotNumber);
+    const available: number[] = [];
+    for (let i = 1; i <= config.totalSlots; i++) {
+      if (!occupiedSlots.includes(i)) {
+        available.push(i);
+      }
+    }
+    return available;
+  }, [selectedBoardingConfig, boardingConfigs]);
 
   // Get the duration from the selected visit type config or fallback to hardcoded values
   const visitTypeDuration = useMemo(() => {
@@ -164,6 +191,38 @@ export const AddAppointmentModal = ({
     };
     loadStaff();
   }, [isOpen]);
+
+  // Load boarding configs when boarding mode is active
+  useEffect(() => {
+    if (!isOpen || !isBoardingMode) return;
+
+    const loadBoardingConfigs = async () => {
+      setLoadingBoardingConfigs(true);
+      try {
+        const configs = await boardingApi.getConfigs({ type: boardingType, isActive: true });
+        if (!isMountedRef.current) return;
+        setBoardingConfigs(configs);
+        // Auto-select first matching config for pet species
+        if (selectedPet && configs.length > 0) {
+          const matchingConfig = configs.find(c => c.species === selectedPet.species);
+          if (matchingConfig) {
+            setSelectedBoardingConfig(matchingConfig.id);
+          } else if (configs.length > 0) {
+            setSelectedBoardingConfig(configs[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load boarding configs:', err);
+        if (!isMountedRef.current) return;
+        setBoardingConfigs([]);
+      } finally {
+        if (isMountedRef.current) {
+          setLoadingBoardingConfigs(false);
+        }
+      }
+    };
+    loadBoardingConfigs();
+  }, [isOpen, isBoardingMode, boardingType, selectedPet]);
 
   // Load booked appointments when staff or date changes
   useEffect(() => {
@@ -277,6 +336,16 @@ export const AddAppointmentModal = ({
     setAppointmentTime('09:00');
     setError(null);
     setLoading(false);
+    // Reset boarding fields
+    setIsBoardingMode(false);
+    setBoardingType('BOARDING');
+    setBoardingConfigs([]);
+    setLoadingBoardingConfigs(false);
+    setSelectedBoardingConfig('');
+    setSelectedCageNumber(0);
+    setCheckInDate(selectedDate);
+    setExpectedCheckOutDate('');
+    setBoardingNotes('');
     // Don't reset selectedStaff here - it will be set when modal opens
   }, [selectedDate]);
 
@@ -287,27 +356,54 @@ export const AddAppointmentModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOwner || !selectedPet || !selectedStaff) {
-      setError(t('form.requiredFields') || 'Please fill all required fields');
-      return;
+
+    // Validate based on mode
+    if (isBoardingMode) {
+      if (!selectedOwner || !selectedPet || !selectedBoardingConfig || !selectedCageNumber || !checkInDate || !expectedCheckOutDate) {
+        setError(t('form.requiredFields') || 'Please fill all required fields');
+        return;
+      }
+    } else {
+      if (!selectedOwner || !selectedPet || !selectedStaff) {
+        setError(t('form.requiredFields') || 'Please fill all required fields');
+        return;
+      }
     }
 
     setLoading(true);
     setError(null);
 
     try {
-      await flowBoardApi.createAppointment({
-        petId: selectedPet.id,
-        vetId: selectedStaff,
-        appointmentDate,
-        appointmentTime,
-        visitType,
-        duration: visitTypeDuration, // Use configurable duration
-      });
-      if (!isMountedRef.current) return;
+      if (isBoardingMode) {
+        // Create boarding session
+        await boardingApi.createSession({
+          configId: selectedBoardingConfig,
+          petId: selectedPet!.id,
+          slotNumber: selectedCageNumber,
+          checkInDate,
+          expectedCheckOutDate,
+          notes: boardingNotes || undefined,
+        });
+        if (!isMountedRef.current) return;
 
-      // Invalidate availability cache to refresh time slots
-      queryClient.invalidateQueries({ queryKey: ['vet-availability-v2', selectedStaff, appointmentDate] });
+        // Invalidate boarding queries
+        queryClient.invalidateQueries({ queryKey: ['boarding-kanban'] });
+        queryClient.invalidateQueries({ queryKey: ['boarding-configs'] });
+      } else {
+        // Create regular appointment
+        await flowBoardApi.createAppointment({
+          petId: selectedPet!.id,
+          vetId: selectedStaff,
+          appointmentDate,
+          appointmentTime,
+          visitType,
+          duration: visitTypeDuration, // Use configurable duration
+        });
+        if (!isMountedRef.current) return;
+
+        // Invalidate availability cache to refresh time slots
+        queryClient.invalidateQueries({ queryKey: ['vet-availability-v2', selectedStaff, appointmentDate] });
+      }
 
       onSuccess();
       handleClose();
@@ -451,6 +547,155 @@ export const AddAppointmentModal = ({
             </div>
           )}
 
+          {/* Boarding Mode Toggle */}
+          {selectedPet && (
+            <label className="flex items-center gap-3 p-3 bg-secondary-50 dark:bg-secondary-900/20 border border-secondary-200 dark:border-secondary-700 rounded-lg cursor-pointer hover:bg-secondary-100 dark:hover:bg-secondary-900/30 transition-colors">
+              <input
+                type="checkbox"
+                checked={isBoardingMode}
+                onChange={(e) => setIsBoardingMode(e.target.checked)}
+                className="w-4 h-4 text-secondary-500 border-gray-300 rounded focus:ring-secondary-500"
+              />
+              <span className="font-medium text-brand-dark dark:text-[var(--app-text-primary)]">
+                🏠 {t('form.boardingAndIcu') || 'Boarding & ICU'}
+              </span>
+            </label>
+          )}
+
+          {/* Boarding Mode Fields */}
+          {isBoardingMode ? (
+            <>
+              {/* Boarding Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                  🏥 {t('form.boardingType') || 'Type'}
+                </label>
+                <select
+                  value={boardingType}
+                  onChange={(e) => {
+                    setBoardingType(e.target.value as BoardingType);
+                    setSelectedBoardingConfig('');
+                  }}
+                  className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="BOARDING">{t('form.boarding') || 'Boarding'}</option>
+                  <option value="ICU">{t('form.icu') || 'ICU'}</option>
+                </select>
+              </div>
+
+              {/* Boarding Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                  📋 {t('form.boardingConfig') || 'Section'}
+                </label>
+                {loadingBoardingConfigs ? (
+                  <div className="px-4 py-2.5 border dark:border-[var(--app-border-default)] rounded-lg bg-gray-50 dark:bg-[var(--app-bg-elevated)] text-gray-500 dark:text-gray-400 text-sm">
+                    {t('form.loading') || 'Loading...'}
+                  </div>
+                ) : boardingConfigs.length === 0 ? (
+                  <div className="px-4 py-2.5 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-sm">
+                    {isRTL ? 'لا توجد إعدادات متاحة. أضف إعدادات من إعدادات العيادة.' : 'No configurations available. Add configs in Clinic Setup.'}
+                  </div>
+                ) : (
+                  <select
+                    value={selectedBoardingConfig}
+                    onChange={(e) => {
+                      setSelectedBoardingConfig(e.target.value);
+                      setSelectedCageNumber(0);
+                      // Auto-select first available cage for the new config
+                      if (e.target.value) {
+                        const config = boardingConfigs.find(c => c.id === e.target.value);
+                        if (config) {
+                          const occupied = (config.sessions || []).map(s => s.slotNumber);
+                          for (let i = 1; i <= config.totalSlots; i++) {
+                            if (!occupied.includes(i)) {
+                              setSelectedCageNumber(i);
+                              break;
+                            }
+                          }
+                        }
+                      }
+                    }}
+                    className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">{t('form.selectConfig') || 'Select configuration...'}</option>
+                    {boardingConfigs.map((config) => {
+                      const available = config.availableSlots ?? config.totalSlots;
+                      const isFull = available === 0;
+                      return (
+                        <option key={config.id} value={config.id} disabled={isFull}>
+                          {isRTL ? config.nameAr : config.nameEn} — {available}/{config.totalSlots} {isRTL ? 'أقفاص متاحة' : 'cages available'}{isFull ? (isRTL ? ' (ممتلئ)' : ' (Full)') : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+              </div>
+
+              {/* Cage Number Selector */}
+              {selectedBoardingConfig && availableCageNumbers.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                    🏷️ {t('form.cageNumber') || 'Cage Number'}
+                  </label>
+                  <select
+                    value={selectedCageNumber || ''}
+                    onChange={(e) => setSelectedCageNumber(Number(e.target.value))}
+                    className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">{t('form.selectCage') || 'Select cage...'}</option>
+                    {availableCageNumbers.map((num) => (
+                      <option key={num} value={num}>
+                        {isRTL ? `قفص ${num}` : `Cage ${num}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Check-in Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                  📅 {t('form.checkInDate') || 'Check-in Date'}
+                </label>
+                <input
+                  type="date"
+                  value={checkInDate}
+                  onChange={(e) => setCheckInDate(e.target.value)}
+                  className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Expected Checkout Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                  📅 {t('form.expectedCheckoutDate') || 'Expected Checkout Date'}
+                </label>
+                <input
+                  type="date"
+                  value={expectedCheckOutDate}
+                  onChange={(e) => setExpectedCheckOutDate(e.target.value)}
+                  min={checkInDate}
+                  className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                  📝 {t('form.notes') || 'Notes'} ({t('form.optional') || 'optional'})
+                </label>
+                <textarea
+                  value={boardingNotes}
+                  onChange={(e) => setBoardingNotes(e.target.value)}
+                  rows={2}
+                  placeholder={t('form.notesPlaceholder') || 'Any special instructions...'}
+                  className="w-full px-4 py-2 border dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                />
+              </div>
+            </>
+          ) : (
+            <>
           {/* Visit Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
@@ -588,6 +833,8 @@ export const AddAppointmentModal = ({
               </select>
             )}
           </div>
+            </>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
@@ -600,7 +847,14 @@ export const AddAppointmentModal = ({
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedOwner || !selectedPet || !selectedStaff || timeSlots.length === 0}
+              disabled={
+                loading ||
+                !selectedOwner ||
+                !selectedPet ||
+                (isBoardingMode
+                  ? !selectedBoardingConfig || !selectedCageNumber || !checkInDate || !expectedCheckOutDate
+                  : !selectedStaff || timeSlots.length === 0)
+              }
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (t('form.saving') || 'Saving...') : (t('form.save') || 'Save')}

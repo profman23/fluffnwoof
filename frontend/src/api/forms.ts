@@ -221,8 +221,9 @@ export const formsApi = {
   /**
    * Get forms for a specific pet
    */
-  getPetForms: async (petId: string): Promise<PetForm[]> => {
-    const response = await api.get(`/forms/pet/${petId}`);
+  getPetForms: async (petId: string, appointmentId?: string): Promise<PetForm[]> => {
+    const params = appointmentId ? { appointmentId } : {};
+    const response = await api.get(`/forms/pet/${petId}`, { params });
     return response.data.data;
   },
 

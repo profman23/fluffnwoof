@@ -74,10 +74,10 @@ export const PetFormsSection: React.FC<PetFormsSectionProps> = ({
     queryFn: getFormSettings,
   });
 
-  // Fetch pet forms
+  // Fetch pet forms (filtered by appointmentId when available)
   const { data: forms = [], isLoading } = useQuery({
-    queryKey: ['pet-forms', petId],
-    queryFn: () => formsApi.getPetForms(petId),
+    queryKey: ['pet-forms', petId, appointmentId],
+    queryFn: () => formsApi.getPetForms(petId, appointmentId),
     enabled: !!petId,
   });
 

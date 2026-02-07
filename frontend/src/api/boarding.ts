@@ -118,6 +118,101 @@ export interface UpdateConfigData {
   isActive?: boolean;
 }
 
+export interface BoardingSessionWithDetails extends Omit<BoardingSession, 'pet' | 'config'> {
+  daysRemaining?: number;
+  column?: 'green' | 'yellow' | 'red';
+  pet: {
+    id: string;
+    name: string;
+    species: Species;
+    breed?: string;
+    gender?: 'MALE' | 'FEMALE';
+    photoUrl: string | null;
+    birthDate?: string;
+    owner: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      phone: string | null;
+      email?: string;
+    };
+  };
+  config: {
+    id: string;
+    nameEn: string;
+    nameAr: string;
+    type: BoardingType;
+    species: Species;
+    pricePerDay?: number | null;
+  };
+  assignedVet?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface KanbanData {
+  green: BoardingSessionWithDetails[];
+  yellow: BoardingSessionWithDetails[];
+  red: BoardingSessionWithDetails[];
+}
+
+export interface KanbanResponse {
+  data: KanbanData;
+  counts: {
+    green: number;
+    yellow: number;
+    red: number;
+    total: number;
+  };
+}
+
+export interface CreateSessionData {
+  configId: string;
+  petId: string;
+  slotNumber?: number;
+  checkInDate: string;
+  expectedCheckOutDate: string;
+  notes?: string;
+  assignedVetId?: string;
+}
+
+export interface UpdateSessionData {
+  expectedCheckOutDate?: string;
+  notes?: string;
+  assignedVetId?: string | null;
+}
+
+export interface BoardingNotification {
+  id: string;
+  sessionId: string;
+  type: 'RED_ALERT' | 'YELLOW_WARNING';
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+  session: {
+    id: string;
+    pet: {
+      id: string;
+      name: string;
+      species: Species;
+      photoUrl: string | null;
+    };
+    config: {
+      type: BoardingType;
+      nameEn: string;
+      nameAr: string;
+    };
+    expectedCheckOutDate: string | null;
+  };
+}
+
 // =====================================================
 // API Response Types
 // =====================================================
@@ -204,14 +299,130 @@ export const getStats = async (): Promise<BoardingStats> => {
   };
 };
 
+// =====================================================
+// Session Management API
+// =====================================================
+
+/**
+ * Get sessions organized by Kanban columns
+ */
+export const getKanbanSessions = async (params?: {
+  type?: BoardingType;
+  configId?: string;
+}): Promise<KanbanResponse> => {
+  const response = await api.get<ApiResponse<KanbanData> & { counts: KanbanResponse['counts'] }>(
+    '/boarding/sessions/kanban',
+    { params }
+  );
+  return {
+    data: response.data.data || { green: [], yellow: [], red: [] },
+    counts: response.data.counts || { green: 0, yellow: 0, red: 0, total: 0 },
+  };
+};
+
+/**
+ * Get all sessions
+ */
+export const getSessions = async (params?: {
+  type?: BoardingType;
+  configId?: string;
+  status?: BoardingSessionStatus;
+}): Promise<BoardingSessionWithDetails[]> => {
+  const response = await api.get<ApiResponse<BoardingSessionWithDetails[]>>('/boarding/sessions', { params });
+  return response.data.data || [];
+};
+
+/**
+ * Get single session by ID
+ */
+export const getSessionById = async (id: string): Promise<BoardingSessionWithDetails | null> => {
+  const response = await api.get<ApiResponse<BoardingSessionWithDetails>>(`/boarding/sessions/${id}`);
+  return response.data.data || null;
+};
+
+/**
+ * Create new boarding session
+ */
+export const createSession = async (data: CreateSessionData): Promise<BoardingSession> => {
+  const response = await api.post<ApiResponse<BoardingSession>>('/boarding/sessions', data);
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to create session');
+  }
+  return response.data.data!;
+};
+
+/**
+ * Update boarding session
+ */
+export const updateSession = async (id: string, data: UpdateSessionData): Promise<BoardingSession> => {
+  const response = await api.put<ApiResponse<BoardingSession>>(`/boarding/sessions/${id}`, data);
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to update session');
+  }
+  return response.data.data!;
+};
+
+/**
+ * Checkout (complete) a boarding session
+ */
+export const checkoutSession = async (id: string, data?: { checkOutNotes?: string }): Promise<BoardingSession> => {
+  const response = await api.post<ApiResponse<BoardingSession>>(`/boarding/sessions/${id}/checkout`, data || {});
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to checkout session');
+  }
+  return response.data.data!;
+};
+
+// =====================================================
+// Notifications API
+// =====================================================
+
+/**
+ * Get boarding notifications
+ */
+export const getBoardingNotifications = async (unreadOnly?: boolean): Promise<{
+  data: BoardingNotification[];
+  unreadCount: number;
+}> => {
+  const response = await api.get<ApiResponse<BoardingNotification[]> & { unreadCount: number }>(
+    '/boarding/notifications',
+    { params: { unreadOnly } }
+  );
+  return {
+    data: response.data.data || [],
+    unreadCount: response.data.unreadCount || 0,
+  };
+};
+
+/**
+ * Mark all boarding notifications as read
+ */
+export const markAllNotificationsRead = async (): Promise<void> => {
+  const response = await api.put<ApiResponse<void>>('/boarding/notifications/read-all');
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to mark notifications as read');
+  }
+};
+
 // Export as default object for consistency with other API clients
 export const boardingApi = {
+  // Config
   getConfigs,
   getConfigById,
   createConfig,
   updateConfig,
   deleteConfig,
   getStats,
+  // Sessions
+  getKanbanSessions,
+  getSessions,
+  getSessionById,
+  createSession,
+  updateSession,
+  checkoutSession,
+  // Notifications
+  getBoardingNotifications,
+  markAllNotificationsRead,
 };
 
 export default boardingApi;

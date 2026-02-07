@@ -61,7 +61,20 @@
     "error": "حدث خطأ أثناء الحفظ",
     "noSlotsAvailable": "لا توجد مواعيد متاحة",
     "doctorFullyBooked": "د. {{doctor}} محجوز بالكامل في هذا التاريخ",
-    "selectAnotherDateOrDoctor": "يرجى اختيار تاريخ آخر أو طبيب آخر"
+    "selectAnotherDateOrDoctor": "يرجى اختيار تاريخ آخر أو طبيب آخر",
+    "boardingAndIcu": "الإيواء والعناية المركزة",
+    "boardingType": "النوع",
+    "boarding": "إيواء",
+    "icu": "عناية مركزة",
+    "boardingConfig": "القسم",
+    "selectConfig": "اختر القسم...",
+    "cageNumber": "رقم القفص",
+    "selectCage": "اختر القفص...",
+    "checkInDate": "تاريخ الدخول",
+    "expectedCheckoutDate": "تاريخ الخروج المتوقع",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "أي تعليمات خاصة...",
+    "optional": "اختياري"
   },
   "card": {
     "vet": "الطبيب"

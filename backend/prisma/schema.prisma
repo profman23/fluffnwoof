@@ -1020,6 +1020,7 @@ model BoardingSession {
   pet           Pet                    @relation(fields: [petId], references: [id], onDelete: Cascade)
   assignedVet   User?                  @relation("BoardingAssignedVet", fields: [assignedVetId], references: [id])
   createdBy     User                   @relation("BoardingCreatedBy", fields: [createdById], references: [id])
+  notifications BoardingNotification[]
 
   @@index([configId])
   @@index([petId])
@@ -1027,4 +1028,20 @@ model BoardingSession {
   @@index([checkInDate])
   @@index([assignedVetId])
   @@map("boarding_sessions")
+}
+
+model BoardingNotification {
+  id        String   @id @default(uuid())
+  sessionId String
+  type      String   // "RED_ALERT" | "YELLOW_WARNING"
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  session   BoardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("boarding_notifications")
 }

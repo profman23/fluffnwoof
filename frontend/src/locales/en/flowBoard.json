@@ -61,7 +61,20 @@
     "error": "An error occurred while saving",
     "noSlotsAvailable": "No available time slots",
     "doctorFullyBooked": "Dr. {{doctor}} is fully booked on this date",
-    "selectAnotherDateOrDoctor": "Please select another date or doctor"
+    "selectAnotherDateOrDoctor": "Please select another date or doctor",
+    "boardingAndIcu": "Boarding & ICU",
+    "boardingType": "Type",
+    "boarding": "Boarding",
+    "icu": "ICU",
+    "boardingConfig": "Section",
+    "selectConfig": "Select section...",
+    "cageNumber": "Cage Number",
+    "selectCage": "Select cage...",
+    "checkInDate": "Check-in Date",
+    "expectedCheckoutDate": "Expected Checkout Date",
+    "notes": "Notes",
+    "notesPlaceholder": "Any special instructions...",
+    "optional": "optional"
   },
   "card": {
     "vet": "Doctor"

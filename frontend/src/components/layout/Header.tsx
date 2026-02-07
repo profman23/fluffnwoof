@@ -269,6 +269,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <span className="text-xl w-6 text-center">📋</span>
             <span>{t('flowBoard')}</span>
           </Link>
+          <Link
+            to="/boarding"
+            className="flex items-center gap-2 px-4 py-1.5 text-base font-normal text-brand-dark dark:text-[var(--app-text-primary)] hover:text-primary-700 dark:hover:text-primary-400 hover:bg-primary-200 dark:hover:bg-[var(--app-bg-elevated)] rounded-lg transition-colors"
+          >
+            <span className="text-xl w-6 text-center">🏠</span>
+            <span>{t('boarding')}</span>
+          </Link>
         </div>
       </div>
 

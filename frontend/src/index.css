@@ -180,6 +180,16 @@ html[lang="ar"] body {
     color: var(--app-text-primary);
   }
 
+  /* Hide number input spinners */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
   /* Always use LTR for OTP and number inputs */
   .otp-input,
   input[type="tel"],
@@ -668,6 +678,37 @@ html[lang="ar"] body {
 
   .animate-paw-trail {
     animation: paw-trail 0.8s ease-out forwards;
+  }
+
+  /* Boarding Red Column Pulse Animation */
+  @keyframes boarding-red-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 83, 80, 0);
+      border-color: #EF5350;
+    }
+    50% {
+      box-shadow: 0 0 12px 3px rgba(239, 83, 80, 0.35);
+      border-color: #E53935;
+    }
+  }
+
+  .animate-boarding-red-pulse {
+    animation: boarding-red-pulse 2s ease-in-out infinite;
+  }
+
+  .dark .animate-boarding-red-pulse {
+    animation: boarding-red-pulse-dark 2s ease-in-out infinite;
+  }
+
+  @keyframes boarding-red-pulse-dark {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 83, 80, 0);
+      border-color: #c62828;
+    }
+    50% {
+      box-shadow: 0 0 14px 4px rgba(239, 83, 80, 0.4);
+      border-color: #EF5350;
+    }
   }
 
   /* Notification Bell Shake Animation */

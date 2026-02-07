@@ -1299,7 +1299,7 @@ export const PatientRecordModal = ({
               <div className="bg-gradient-to-r from-primary-50 to-accent-50 dark:from-[var(--app-bg-card)] dark:to-[var(--app-bg-tertiary)] rounded-xl p-5 border border-primary-200 dark:border-[var(--app-border-default)]">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.owner')}</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">👤 {t('patientInfo.owner')}</label>
                     <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">
                       {(effectiveAppointment?.pet?.owner || record?.pet?.owner)
                         ? `${(effectiveAppointment?.pet?.owner || record?.pet?.owner)?.firstName} ${(effectiveAppointment?.pet?.owner || record?.pet?.owner)?.lastName}`
@@ -1307,7 +1307,7 @@ export const PatientRecordModal = ({
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.phone')}</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">📱 {t('patientInfo.phone')}</label>
                     <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1" dir="ltr">
                       {canViewPhone
                         ? (effectiveAppointment?.pet?.owner?.phone || record?.pet?.owner?.phone || '-')
@@ -1315,22 +1315,22 @@ export const PatientRecordModal = ({
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.pet')}</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">🐾 {t('patientInfo.pet')}</label>
                     <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{effectiveAppointment?.pet?.name || record?.pet?.name || '-'}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('patientInfo.species')}</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">🏷️ {t('patientInfo.species')}</label>
                     <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{effectiveAppointment?.pet?.species || record?.pet?.species || '-'}</p>
                   </div>
                   {effectiveAppointment?.visitType && (
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{tFlow('form.visitType')}</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">📋 {tFlow('form.visitType')}</label>
                       <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{getVisitTypeName(effectiveAppointment.visitType)}</p>
                     </div>
                   )}
                   {(effectiveAppointment?.vet || record?.vet) && (
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{tFlow('card.vet')}</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">🩺 {tFlow('card.vet')}</label>
                       <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{(effectiveAppointment?.vet || record?.vet)?.firstName} {(effectiveAppointment?.vet || record?.vet)?.lastName}</p>
                     </div>
                   )}

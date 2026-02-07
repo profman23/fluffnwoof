@@ -301,6 +301,799 @@ export const deleteConfig = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// =====================================================
+// Session Management Endpoints
+// =====================================================
+
+/**
+ * Helper function to calculate days remaining until checkout
+ */
+const calculateDaysRemaining = (expectedCheckOutDate: Date): number => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkout = new Date(expectedCheckOutDate);
+  checkout.setHours(0, 0, 0, 0);
+  const diffTime = checkout.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
+};
+
+/**
+ * Helper function to get column based on days remaining
+ */
+const getColumnForDays = (days: number): 'green' | 'yellow' | 'red' => {
+  if (days <= 1) return 'red';
+  if (days <= 3) return 'yellow';
+  return 'green';
+};
+
+/**
+ * Get sessions organized by Kanban columns (for Boarding Management page)
+ */
+export const getKanbanSessions = async (req: Request, res: Response) => {
+  try {
+    const { type, configId } = req.query;
+
+    const where: any = {
+      status: 'ACTIVE',
+    };
+
+    // Filter by type through config relation
+    if (type) {
+      where.config = {
+        type: type as BoardingType,
+        isActive: true,
+      };
+    }
+
+    // Filter by specific config
+    if (configId) {
+      where.configId = configId as string;
+    }
+
+    const sessions = await prisma.boardingSession.findMany({
+      where,
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            breed: true,
+            gender: true,
+            photoUrl: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                email: true,
+              },
+            },
+          },
+        },
+        config: {
+          select: {
+            id: true,
+            nameEn: true,
+            nameAr: true,
+            type: true,
+            species: true,
+          },
+        },
+        assignedVet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        expectedCheckOutDate: 'asc',
+      },
+    });
+
+    // Organize sessions by column
+    const kanbanData = {
+      green: [] as any[],
+      yellow: [] as any[],
+      red: [] as any[],
+    };
+
+    sessions.forEach(session => {
+      if (!session.expectedCheckOutDate) return;
+
+      const daysRemaining = calculateDaysRemaining(session.expectedCheckOutDate);
+      const column = getColumnForDays(daysRemaining);
+
+      kanbanData[column].push({
+        ...session,
+        daysRemaining,
+        column,
+      });
+    });
+
+    res.json({
+      success: true,
+      data: kanbanData,
+      counts: {
+        green: kanbanData.green.length,
+        yellow: kanbanData.yellow.length,
+        red: kanbanData.red.length,
+        total: sessions.length,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error getting kanban sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get boarding sessions',
+      errorAr: 'فشل في جلب جلسات الإقامة',
+    });
+  }
+};
+
+/**
+ * Get all active sessions
+ */
+export const getSessions = async (req: Request, res: Response) => {
+  try {
+    const { type, configId, status } = req.query;
+
+    const where: any = {};
+
+    if (status) {
+      where.status = status;
+    } else {
+      where.status = 'ACTIVE';
+    }
+
+    if (type) {
+      where.config = {
+        type: type as BoardingType,
+      };
+    }
+
+    if (configId) {
+      where.configId = configId as string;
+    }
+
+    const sessions = await prisma.boardingSession.findMany({
+      where,
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            breed: true,
+            gender: true,
+            photoUrl: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        config: {
+          select: {
+            id: true,
+            nameEn: true,
+            nameAr: true,
+            type: true,
+            species: true,
+            pricePerDay: true,
+          },
+        },
+        assignedVet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        checkInDate: 'desc',
+      },
+    });
+
+    // Add days remaining to each session
+    const sessionsWithDays = sessions.map(session => ({
+      ...session,
+      daysRemaining: session.expectedCheckOutDate
+        ? calculateDaysRemaining(session.expectedCheckOutDate)
+        : null,
+    }));
+
+    res.json({
+      success: true,
+      data: sessionsWithDays,
+    });
+  } catch (error: any) {
+    console.error('Error getting sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get sessions',
+      errorAr: 'فشل في جلب الجلسات',
+    });
+  }
+};
+
+/**
+ * Get single session by ID
+ */
+export const getSessionById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const session = await prisma.boardingSession.findUnique({
+      where: { id },
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            breed: true,
+            gender: true,
+            photoUrl: true,
+            birthDate: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                email: true,
+              },
+            },
+          },
+        },
+        config: {
+          select: {
+            id: true,
+            nameEn: true,
+            nameAr: true,
+            type: true,
+            species: true,
+            pricePerDay: true,
+          },
+        },
+        assignedVet: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found',
+        errorAr: 'الجلسة غير موجودة',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...session,
+        daysRemaining: session.expectedCheckOutDate
+          ? calculateDaysRemaining(session.expectedCheckOutDate)
+          : null,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error getting session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get session',
+      errorAr: 'فشل في جلب الجلسة',
+    });
+  }
+};
+
+/**
+ * Create new boarding session
+ */
+export const createSession = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      configId,
+      petId,
+      slotNumber: requestedSlotNumber,
+      checkInDate,
+      expectedCheckOutDate,
+      notes,
+      assignedVetId,
+    } = req.body;
+
+    // Validate required fields
+    if (!configId || !petId || !checkInDate || !expectedCheckOutDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Config, pet, check-in date, and expected check-out date are required',
+        errorAr: 'الإعدادات والحيوان وتاريخ الدخول وتاريخ الخروج المتوقع مطلوبة',
+      });
+    }
+
+    // Get config to check availability
+    const config = await prisma.boardingSlotConfig.findUnique({
+      where: { id: configId },
+      include: {
+        sessions: {
+          where: {
+            status: 'ACTIVE',
+          },
+        },
+      },
+    });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        error: 'Configuration not found',
+        errorAr: 'الإعدادات غير موجودة',
+      });
+    }
+
+    if (!config.isActive) {
+      return res.status(400).json({
+        success: false,
+        error: 'Configuration is not active',
+        errorAr: 'الإعدادات غير نشطة',
+      });
+    }
+
+    // Check slot availability
+    if (config.sessions.length >= config.totalSlots) {
+      return res.status(400).json({
+        success: false,
+        error: 'No available slots in this configuration',
+        errorAr: 'لا توجد أماكن متاحة في هذه الإعدادات',
+      });
+    }
+
+    // Use requested slot number or find next available
+    const usedSlots = config.sessions.map(s => s.slotNumber);
+    let slotNumber: number;
+
+    if (requestedSlotNumber && typeof requestedSlotNumber === 'number') {
+      // Validate the requested slot is within range and available
+      if (requestedSlotNumber < 1 || requestedSlotNumber > config.totalSlots) {
+        return res.status(400).json({
+          success: false,
+          error: `Cage number must be between 1 and ${config.totalSlots}`,
+          errorAr: `رقم القفص يجب أن يكون بين 1 و ${config.totalSlots}`,
+        });
+      }
+      if (usedSlots.includes(requestedSlotNumber)) {
+        return res.status(400).json({
+          success: false,
+          error: `Cage ${requestedSlotNumber} is already occupied`,
+          errorAr: `القفص ${requestedSlotNumber} مشغول بالفعل`,
+        });
+      }
+      slotNumber = requestedSlotNumber;
+    } else {
+      // Auto-assign next available
+      slotNumber = 1;
+      while (usedSlots.includes(slotNumber)) {
+        slotNumber++;
+      }
+    }
+
+    // Create session
+    const session = await prisma.boardingSession.create({
+      data: {
+        configId,
+        petId,
+        slotNumber,
+        checkInDate: new Date(checkInDate),
+        expectedCheckOutDate: new Date(expectedCheckOutDate),
+        notes,
+        assignedVetId,
+        dailyRate: config.pricePerDay,
+        createdById: req.user!.id,
+        status: 'ACTIVE',
+      },
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        config: {
+          select: {
+            nameEn: true,
+            nameAr: true,
+            type: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: session,
+      message: 'Boarding session created successfully',
+      messageAr: 'تم إنشاء جلسة الإقامة بنجاح',
+    });
+  } catch (error: any) {
+    console.error('Error creating session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create boarding session',
+      errorAr: 'فشل في إنشاء جلسة الإقامة',
+    });
+  }
+};
+
+/**
+ * Update boarding session
+ */
+export const updateSession = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { expectedCheckOutDate, notes, assignedVetId } = req.body;
+
+    // Check if session exists
+    const existing = await prisma.boardingSession.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found',
+        errorAr: 'الجلسة غير موجودة',
+      });
+    }
+
+    if (existing.status !== 'ACTIVE') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot update non-active session',
+        errorAr: 'لا يمكن تحديث جلسة غير نشطة',
+      });
+    }
+
+    const session = await prisma.boardingSession.update({
+      where: { id },
+      data: {
+        expectedCheckOutDate: expectedCheckOutDate
+          ? new Date(expectedCheckOutDate)
+          : undefined,
+        notes: notes !== undefined ? notes : undefined,
+        assignedVetId: assignedVetId !== undefined ? assignedVetId : undefined,
+      },
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+          },
+        },
+        config: {
+          select: {
+            nameEn: true,
+            nameAr: true,
+            type: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: session,
+      message: 'Session updated successfully',
+      messageAr: 'تم تحديث الجلسة بنجاح',
+    });
+  } catch (error: any) {
+    console.error('Error updating session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update session',
+      errorAr: 'فشل في تحديث الجلسة',
+    });
+  }
+};
+
+/**
+ * Checkout (complete) a boarding session
+ */
+export const checkoutSession = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { checkOutNotes } = req.body;
+
+    // Get session with config for price calculation
+    const session = await prisma.boardingSession.findUnique({
+      where: { id },
+      include: {
+        config: true,
+      },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found',
+        errorAr: 'الجلسة غير موجودة',
+      });
+    }
+
+    if (session.status !== 'ACTIVE') {
+      return res.status(400).json({
+        success: false,
+        error: 'Session is not active',
+        errorAr: 'الجلسة غير نشطة',
+      });
+    }
+
+    // Calculate total amount
+    const checkInDate = new Date(session.checkInDate);
+    const checkOutDate = new Date();
+    const diffTime = checkOutDate.getTime() - checkInDate.getTime();
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const dailyRate = session.dailyRate ? parseFloat(session.dailyRate.toString()) : 0;
+    const totalAmount = days * dailyRate;
+
+    const updatedSession = await prisma.boardingSession.update({
+      where: { id },
+      data: {
+        status: 'COMPLETED',
+        checkOutDate,
+        totalAmount,
+        notes: checkOutNotes
+          ? (session.notes ? `${session.notes}\n\nCheckout: ${checkOutNotes}` : `Checkout: ${checkOutNotes}`)
+          : session.notes,
+      },
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        config: {
+          select: {
+            nameEn: true,
+            nameAr: true,
+            type: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ...updatedSession,
+        calculatedDays: days,
+      },
+      message: 'Pet checked out successfully',
+      messageAr: 'تم خروج الحيوان بنجاح',
+    });
+  } catch (error: any) {
+    console.error('Error checking out session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to checkout session',
+      errorAr: 'فشل في خروج الجلسة',
+    });
+  }
+};
+
+// =====================================================
+// Notification Endpoints
+// =====================================================
+
+/**
+ * Get boarding notifications
+ */
+export const getBoardingNotifications = async (req: Request, res: Response) => {
+  try {
+    const { unreadOnly } = req.query;
+
+    const where: any = {};
+    if (unreadOnly === 'true') {
+      where.isRead = false;
+    }
+
+    const notifications = await prisma.boardingNotification.findMany({
+      where,
+      include: {
+        session: {
+          select: {
+            id: true,
+            pet: {
+              select: {
+                id: true,
+                name: true,
+                species: true,
+                photoUrl: true,
+              },
+            },
+            config: {
+              select: {
+                type: true,
+                nameEn: true,
+                nameAr: true,
+              },
+            },
+            expectedCheckOutDate: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+    });
+
+    const unreadCount = await prisma.boardingNotification.count({
+      where: { isRead: false },
+    });
+
+    res.json({
+      success: true,
+      data: notifications,
+      unreadCount,
+    });
+  } catch (error: any) {
+    console.error('Error getting boarding notifications:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get notifications',
+      errorAr: 'فشل في جلب الإشعارات',
+    });
+  }
+};
+
+/**
+ * Mark all boarding notifications as read
+ */
+export const markAllNotificationsRead = async (req: Request, res: Response) => {
+  try {
+    await prisma.boardingNotification.updateMany({
+      where: { isRead: false },
+      data: {
+        isRead: true,
+        readAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read',
+      messageAr: 'تم تحديد جميع الإشعارات كمقروءة',
+    });
+  } catch (error: any) {
+    console.error('Error marking notifications as read:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark notifications as read',
+      errorAr: 'فشل في تحديد الإشعارات كمقروءة',
+    });
+  }
+};
+
+/**
+ * Generate notifications for sessions approaching checkout
+ * This should be called by a scheduled job
+ */
+export const generateNotifications = async () => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get active sessions
+    const sessions = await prisma.boardingSession.findMany({
+      where: {
+        status: 'ACTIVE',
+        expectedCheckOutDate: {
+          not: null,
+        },
+      },
+      include: {
+        notifications: {
+          where: {
+            createdAt: {
+              gte: new Date(today.getTime() - 24 * 60 * 60 * 1000), // Last 24 hours
+            },
+          },
+        },
+      },
+    });
+
+    const notificationsToCreate: { sessionId: string; type: string }[] = [];
+
+    sessions.forEach(session => {
+      if (!session.expectedCheckOutDate) return;
+
+      const daysRemaining = calculateDaysRemaining(session.expectedCheckOutDate);
+      const existingTypes = session.notifications.map(n => n.type);
+
+      // Create RED_ALERT for sessions with 1 day or less
+      if (daysRemaining <= 1 && !existingTypes.includes('RED_ALERT')) {
+        notificationsToCreate.push({
+          sessionId: session.id,
+          type: 'RED_ALERT',
+        });
+      }
+      // Create YELLOW_WARNING for sessions with 3 days or less (but more than 1)
+      else if (daysRemaining <= 3 && daysRemaining > 1 && !existingTypes.includes('YELLOW_WARNING')) {
+        notificationsToCreate.push({
+          sessionId: session.id,
+          type: 'YELLOW_WARNING',
+        });
+      }
+    });
+
+    if (notificationsToCreate.length > 0) {
+      await prisma.boardingNotification.createMany({
+        data: notificationsToCreate,
+      });
+    }
+
+    return {
+      created: notificationsToCreate.length,
+      sessions: sessions.length,
+    };
+  } catch (error) {
+    console.error('Error generating boarding notifications:', error);
+    throw error;
+  }
+};
+
+// =====================================================
+// Statistics Endpoints
+// =====================================================
+
 /**
  * Get boarding statistics
  */
