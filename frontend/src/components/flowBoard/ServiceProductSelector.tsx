@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { createPortal } from 'react-dom';
 import { MagnifyingGlassIcon, XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
 import { serviceProductsApi, ServiceProduct } from '../../api/serviceProducts';
 import { SarSymbol } from '../common/SarSymbol';
@@ -29,6 +30,7 @@ export const ServiceProductSelector = ({
   const [searchResults, setSearchResults] = useState<ServiceProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -50,7 +52,7 @@ export const ServiceProductSelector = ({
       try {
         const result = await serviceProductsApi.getAll({
           search: searchQuery,
-          limit: 10,
+          limit: 30,
         });
         // Filter out already selected items
         const filtered = result.data.filter(
@@ -72,6 +74,31 @@ export const ServiceProductSelector = ({
     };
   }, [searchQuery, selectedItems]);
 
+  // Calculate dropdown position based on input element
+  const updateDropdownPos = useCallback(() => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
+
+  // Update position when dropdown opens or window scrolls/resizes
+  useEffect(() => {
+    if (!showDropdown) return;
+    updateDropdownPos();
+
+    window.addEventListener('scroll', updateDropdownPos, true);
+    window.addEventListener('resize', updateDropdownPos);
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPos, true);
+      window.removeEventListener('resize', updateDropdownPos);
+    };
+  }, [showDropdown, updateDropdownPos]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -89,23 +116,15 @@ export const ServiceProductSelector = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Prevent modal scroll when scrolling inside dropdown (non-passive listener)
+  // Prevent modal scroll when scrolling inside dropdown
   useEffect(() => {
     const dropdown = dropdownRef.current;
     if (!dropdown || !showDropdown) return;
 
     const handleWheel = (e: WheelEvent) => {
-      const { scrollTop, scrollHeight, clientHeight } = dropdown;
-      const atTop = scrollTop <= 0 && e.deltaY < 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 1 && e.deltaY > 0;
-
-      // Always stop propagation to prevent modal from scrolling
+      e.preventDefault();
       e.stopPropagation();
-
-      // Prevent default only at scroll boundaries to avoid overscroll
-      if (atTop || atBottom) {
-        e.preventDefault();
-      }
+      dropdown.scrollTop += e.deltaY;
     };
 
     dropdown.addEventListener('wheel', handleWheel, { passive: false });
@@ -184,20 +203,27 @@ export const ServiceProductSelector = ({
           )}
         </div>
 
-        {/* Search Results Dropdown */}
-        {showDropdown && searchResults.length > 0 && (
+        {/* Search Results Dropdown - rendered via portal to avoid modal overflow clipping */}
+        {showDropdown && searchResults.length > 0 && createPortal(
           <div
             ref={dropdownRef}
-            className="absolute z-10 w-full mt-1 bg-white dark:bg-[var(--app-bg-card)] border border-gray-200 dark:border-[var(--app-border-default)] rounded-lg shadow-lg max-h-80 overflow-y-auto overscroll-contain"
+            style={{
+              position: 'fixed',
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              width: dropdownPos.width,
+              zIndex: 9999,
+            }}
+            className="bg-white dark:bg-[var(--app-bg-card)] border border-gray-200 dark:border-[var(--app-border-default)] rounded-lg shadow-lg max-h-80 overflow-y-auto"
           >
             {searchResults.map((product) => (
               <button
                 key={product.id}
                 onClick={() => handleSelectProduct(product)}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex justify-between items-center border-b last:border-b-0"
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center border-b last:border-b-0"
               >
                 <div>
-                  <div className="font-medium text-gray-900">{product.name}</div>
+                  <div className="font-medium text-gray-900 dark:text-[var(--app-text-primary)]">{product.name}</div>
                   <div className="text-xs text-gray-500">{product.category?.name}</div>
                 </div>
                 <div className="text-sm font-medium text-green-600 flex items-center gap-1">
@@ -205,7 +231,8 @@ export const ServiceProductSelector = ({
                 </div>
               </button>
             ))}
-          </div>
+          </div>,
+          document.body
         )}
 
         {showDropdown && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
