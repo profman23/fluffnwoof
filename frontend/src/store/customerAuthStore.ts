@@ -30,7 +30,7 @@ export const useCustomerAuthStore = create<CustomerAuthState>((set, get) => ({
   setAuth: (customer, token) => {
     localStorage.setItem('customer', JSON.stringify(customer));
     localStorage.setItem('customerToken', token);
-    set({ customer, token, isAuthenticated: true });
+    set({ customer, token, isAuthenticated: true, isLoading: false });
   },
 
   logout: () => {

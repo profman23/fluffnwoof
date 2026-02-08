@@ -1,0 +1,30 @@
+{
+  "name": "fluffnwoof",
+  "version": "1.0.0",
+  "description": "نظام متكامل لإدارة العيادات البيطرية يشمل إدارة الحيوانات الأليفة، المواعيد، السجلات الطبية، والفواتير.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/profman23/fluffnwoof.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/profman23/fluffnwoof/issues"
+  },
+  "homepage": "https://github.com/profman23/fluffnwoof#readme",
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx}": "bash -c 'cd frontend && npx tsc --noEmit'",
+    "backend/src/**/*.ts": "bash -c 'cd backend && npx tsc --noEmit'"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7"
+  }
+}
