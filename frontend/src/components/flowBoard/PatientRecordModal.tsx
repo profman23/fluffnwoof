@@ -100,7 +100,7 @@ export const PatientRecordModal = ({
     // Fallback to translation for old enum values
     return tFlow(`visitTypes.${code}`);
   }, [visitTypes, isRTL, tFlow]);
-  const { isFullControl: canCreateAppointments, canModify: canModifyFlowBoard } = useScreenPermission('flowBoard');
+  const { isFullControl: canCreateAppointments } = useScreenPermission('flowBoard');
   const { canViewPhone } = usePhonePermission();
   // Reopen requires medical write permission (it modifies the medical record)
   const canReopenRecord = !isReadOnly && !noMedicalAccess;
