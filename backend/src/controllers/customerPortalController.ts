@@ -178,7 +178,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw new AppError('البريد الإلكتروني وكلمة المرور مطلوبان', 400);
+      throw new AppError('البريد الإلكتروني وكلمة المرور مطلوبان', 400, 'VALIDATION_ERROR', 'Email and password are required');
     }
 
     const result = await customerAuthService.login(email, password);
