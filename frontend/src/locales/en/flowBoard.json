@@ -196,7 +196,9 @@
     "alreadyBooked": "Already booked",
     "addAnother": "Add Another",
     "existingAppointments": "Existing Appointments",
-    "newAppointment": "New Appointment"
+    "newAppointment": "New Appointment",
+    "bookingPartial": "{{created}} appointment(s) booked successfully. {{skipped}} skipped due to conflict.",
+    "bookingAllSkipped": "No appointments created. {{skipped}} skipped due to scheduling conflict."
   },
   "mandatoryFields": {
     "required": "Required",

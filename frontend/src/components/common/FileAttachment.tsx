@@ -228,14 +228,16 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
 
               {/* Actions */}
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleDownload(attachment)}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
-                  title={t('attachments.download')}
-                >
-                  <ArrowDownTrayIcon className="w-5 h-5" />
-                </button>
+                {!readonly && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(attachment)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                    title={t('attachments.download')}
+                  >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                  </button>
+                )}
                 {!readonly && (
                   <button
                     type="button"

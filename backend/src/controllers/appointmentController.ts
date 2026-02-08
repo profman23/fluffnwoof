@@ -2,10 +2,18 @@ import { Response, NextFunction } from 'express';
 import { appointmentService } from '../services/appointmentService';
 import { AuthRequest } from '../types';
 import { AppointmentStatus } from '@prisma/client';
+import { t } from '../utils/i18n';
+import { bookingNamespace } from '../websocket/bookingNamespace';
+
+const getLang = (req: AuthRequest): string => {
+  const accept = req.headers['accept-language'] || '';
+  return accept.startsWith('ar') ? 'ar' : 'en';
+};
 
 export const appointmentController = {
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      const lang = getLang(req);
       const { appointmentDate, ...rest } = req.body;
       // Convert date string to proper Date object (set to start of day in UTC)
       const dateObj = new Date(appointmentDate + 'T00:00:00.000Z');
@@ -14,9 +22,12 @@ export const appointmentController = {
         appointmentDate: dateObj,
       });
 
+      // Broadcast via WebSocket so other screens see the new appointment
+      bookingNamespace.broadcastSlotBooked(rest.vetId, appointmentDate, rest.appointmentTime);
+
       res.status(201).json({
         success: true,
-        message: 'تم إنشاء الموعد بنجاح',
+        message: t('appointment.created', lang),
         data: appointment,
       });
     } catch (error) {
@@ -31,12 +42,13 @@ export const appointmentController = {
    */
   async createBatch(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      const lang = getLang(req);
       const { appointments } = req.body;
 
       if (!Array.isArray(appointments) || appointments.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'يجب توفير قائمة بالمواعيد',
+          message: t('appointment.batchRequired', lang),
         });
       }
 
@@ -46,18 +58,23 @@ export const appointmentController = {
         appointmentDate: new Date(appt.appointmentDate + 'T00:00:00.000Z'),
       }));
 
-      const result = await appointmentService.createBatch(appointmentsWithDates);
+      const result = await appointmentService.createBatch(appointmentsWithDates, lang);
 
-      // إنشاء رسالة مناسبة
+      // Broadcast via WebSocket for each created appointment
+      for (const created of result.created) {
+        const dateStr = appointments.find((a: any) => a.appointmentTime === created.appointmentTime)?.appointmentDate || '';
+        bookingNamespace.broadcastSlotBooked(created.vetId, dateStr, created.appointmentTime);
+      }
+
       let message = '';
       if (result.created.length > 0 && result.skipped.length === 0) {
-        message = `تم إنشاء ${result.created.length} موعد بنجاح`;
+        message = t('appointment.batchAllCreated', lang, { count: result.created.length });
       } else if (result.created.length > 0 && result.skipped.length > 0) {
-        message = `تم إنشاء ${result.created.length} موعد بنجاح، وتم تخطي ${result.skipped.length} موعد بسبب تعارض`;
+        message = t('appointment.batchPartial', lang, { created: result.created.length, skipped: result.skipped.length });
       } else if (result.created.length === 0 && result.skipped.length > 0) {
-        message = `لم يتم إنشاء أي موعد. تم تخطي ${result.skipped.length} موعد بسبب تعارض`;
+        message = t('appointment.batchAllSkipped', lang, { skipped: result.skipped.length });
       } else {
-        message = 'لا توجد مواعيد للإنشاء';
+        message = t('appointment.batchEmpty', lang);
       }
 
       res.status(201).json({
@@ -109,6 +126,7 @@ export const appointmentController = {
 
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      const lang = getLang(req);
       const { appointmentDate, ...rest } = req.body;
       const updateData: any = { ...rest };
 
@@ -121,7 +139,7 @@ export const appointmentController = {
 
       res.status(200).json({
         success: true,
-        message: 'تم تحديث الموعد بنجاح',
+        message: t('appointment.updated', lang),
         data: appointment,
       });
     } catch (error) {
@@ -175,13 +193,14 @@ export const appointmentController = {
 
   async updateStatus(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      const lang = getLang(req);
       const { id } = req.params;
       const { status } = req.body;
       const appointment = await appointmentService.updateStatus(id, status);
 
       res.status(200).json({
         success: true,
-        message: 'تم تحديث حالة الموعد بنجاح',
+        message: t('appointment.statusUpdated', lang),
         data: appointment,
       });
     } catch (error) {
@@ -191,13 +210,14 @@ export const appointmentController = {
 
   async updateConfirmation(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      const lang = getLang(req);
       const { id } = req.params;
       const { isConfirmed } = req.body;
       const appointment = await appointmentService.updateConfirmation(id, isConfirmed);
 
       res.status(200).json({
         success: true,
-        message: isConfirmed ? 'تم تأكيد الموعد بنجاح' : 'تم إلغاء تأكيد الموعد',
+        message: isConfirmed ? t('appointment.confirmed', lang) : t('appointment.unconfirmed', lang),
         data: appointment,
       });
     } catch (error) {

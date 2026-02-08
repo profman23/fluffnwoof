@@ -17,6 +17,7 @@ import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked, getTomorrowDate }
 import { ServiceProductSelector, SelectedItem } from './ServiceProductSelector';
 import { PaymentSection, PaymentEntry } from './PaymentSection';
 import { ConfirmationModal } from '../common/ConfirmationModal';
+import { PermissionAlert } from '../common/PermissionAlert';
 
 interface PatientRecordModalProps {
   isOpen: boolean;
@@ -80,7 +81,7 @@ export const PatientRecordModal = ({
   const { t, i18n } = useTranslation('patientRecord');
   const { t: tFlow } = useTranslation('flowBoard');
   const isRTL = i18n.language === 'ar';
-  const { isReadOnly } = useScreenPermission('medical');
+  const { isReadOnly, hasNoAccess: noMedicalAccess } = useScreenPermission('medical');
 
   // Fetch visit types to get the actual name
   const { data: visitTypes = [] } = useQuery({
@@ -101,8 +102,8 @@ export const PatientRecordModal = ({
   }, [visitTypes, isRTL, tFlow]);
   const { isFullControl: canCreateAppointments, canModify: canModifyFlowBoard } = useScreenPermission('flowBoard');
   const { canViewPhone } = usePhonePermission();
-  // Allow reopen if user has flowBoard modify permission OR medical full permission
-  const canReopenRecord = canModifyFlowBoard || !isReadOnly;
+  // Reopen requires medical write permission (it modifies the medical record)
+  const canReopenRecord = !isReadOnly && !noMedicalAccess;
   const isMountedRef = useRef(true);
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -252,6 +253,12 @@ export const PatientRecordModal = ({
       return;
     }
 
+    // No medical access - don't attempt to load
+    if (noMedicalAccess) {
+      setLoading(false);
+      return;
+    }
+
     const loadRecord = async () => {
       setLoading(true);
       setError(null);
@@ -262,7 +269,19 @@ export const PatientRecordModal = ({
         if (existingRecordId) {
           data = await medicalRecordsApi.getById(existingRecordId);
         } else if (appointment) {
-          data = await medicalRecordsApi.getOrCreateForAppointment(appointment.id);
+          if (isReadOnly) {
+            // Read-only users: fetch existing record without creating
+            const existing = await medicalRecordsApi.getByAppointmentId(appointment.id);
+            if (!existing) {
+              if (!isMountedRef.current) return;
+              setError(t('errors.noRecordReadOnly'));
+              setLoading(false);
+              return;
+            }
+            data = existing;
+          } else {
+            data = await medicalRecordsApi.getOrCreateForAppointment(appointment.id);
+          }
         } else {
           throw new Error('No record or appointment provided');
         }
@@ -305,7 +324,7 @@ export const PatientRecordModal = ({
     };
 
     loadRecord();
-  }, [isOpen, appointment?.id, existingRecordId, openCount, t]);
+  }, [isOpen, appointment?.id, existingRecordId, openCount, t, isReadOnly, noMedicalAccess]);
 
   // Load existing invoice for appointment
   useEffect(() => {
@@ -613,12 +632,12 @@ export const PatientRecordModal = ({
         if (result.skipped && result.skipped.length > 0) {
           if (result.created.length > 0) {
             // Some created, some skipped
-            setBookingWarning(`تم حجز ${result.created.length} موعد بنجاح. تم تخطي ${result.skipped.length} موعد بسبب تعارض.`);
+            setBookingWarning(tFlow('nextAppointment.bookingPartial', { created: result.created.length, skipped: result.skipped.length }));
             // Refresh booked slots to reflect newly created appointments
             setSlotsRefreshKey(prev => prev + 1);
           } else {
             // All skipped
-            setBookingError(`لم يتم إنشاء أي موعد. تم تخطي ${result.skipped.length} موعد بسبب تعارض في المواعيد.`);
+            setBookingError(tFlow('nextAppointment.bookingAllSkipped', { skipped: result.skipped.length }));
           }
         } else if (result.created.length > 0) {
           // All created successfully
@@ -977,7 +996,7 @@ export const PatientRecordModal = ({
         if (isMountedRef.current) {
           setRecord(currentRecord);
           setShowCloseWarning(false);
-          setError('السجل مغلق بالفعل');
+          setError(t('errors.alreadyClosed'));
         }
         return;
       }
@@ -1031,7 +1050,7 @@ export const PatientRecordModal = ({
       if (!currentRecord.isClosed) {
         if (isMountedRef.current) {
           setRecord(currentRecord);
-          setError('السجل مفتوح بالفعل');
+          setError(t('errors.alreadyOpen'));
         }
         return;
       }
@@ -1289,9 +1308,13 @@ export const PatientRecordModal = ({
             <div className="flex items-center justify-center py-20">
               <ArrowPathIcon className="w-8 h-8 animate-spin text-primary-500" />
             </div>
+          ) : noMedicalAccess ? (
+            <div className="m-6">
+              <PermissionAlert type="noAccess" />
+            </div>
           ) : error ? (
-            <div className="m-6 p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
-              {error}
+            <div className="m-6">
+              <PermissionAlert type="error" message={error} />
             </div>
           ) : (appointment || record) ? (
             <div className="p-6 space-y-8">

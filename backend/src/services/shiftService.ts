@@ -4,7 +4,7 @@ import { DayOfWeek, VetSchedule, VetDayOff, VetBreak, VetSchedulePeriod } from '
 // Helper function to get day of week from date
 const getDayOfWeekFromDate = (date: Date): DayOfWeek => {
   const days: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-  return days[date.getDay()];
+  return days[date.getUTCDay()];
 };
 
 // Helper function to convert time string "HH:MM" to minutes from midnight
@@ -345,20 +345,32 @@ export const shiftService = {
     const endMinutes = timeToMinutes(endTime);
 
     // Check if booking for today - filter out past slots
-    // Clinic timezone: UTC+3 (Arabia Standard Time)
-    const CLINIC_TIMEZONE_OFFSET = 3;
+    // Use Intl.DateTimeFormat for reliable Riyadh timezone detection
     const now = new Date();
-    const todayStr = new Date(now.getTime() + CLINIC_TIMEZONE_OFFSET * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0];
+    const riyadhFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Riyadh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const riyadhParts = riyadhFormatter.formatToParts(now);
+    const getPart = (type: string) => riyadhParts.find(p => p.type === type)?.value || '0';
+    const todayStr = `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
     const isToday = date === todayStr;
+    const isPastDate = date < todayStr;
 
-    // Calculate current time in clinic timezone (minutes from midnight)
+    // If the requested date is in the past (clinic timezone), no slots available
+    if (isPastDate) {
+      return { slots: [], unavailableReason: 'fullyBooked' as const };
+    }
+
+    // Calculate current time in Riyadh timezone (minutes from midnight)
     let currentTimeMinutes = 0;
     if (isToday) {
-      const clinicHour = now.getUTCHours() + CLINIC_TIMEZONE_OFFSET;
-      const clinicMinutes = now.getUTCMinutes();
-      currentTimeMinutes = clinicHour * 60 + clinicMinutes + 30; // 30 min buffer
+      currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')) + 30; // 30 min buffer
     }
 
     // Generate slots every 15 minutes
@@ -661,20 +673,32 @@ export const shiftService = {
     const breakEnd = period.breakEndTime ? timeToMinutes(period.breakEndTime) : null;
 
     // Check if booking for today - filter out past slots
-    // Clinic timezone: UTC+3 (Arabia Standard Time)
-    const CLINIC_TIMEZONE_OFFSET = 3;
+    // Use Intl.DateTimeFormat for reliable Riyadh timezone detection
     const now = new Date();
-    const todayStr = new Date(now.getTime() + CLINIC_TIMEZONE_OFFSET * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0];
+    const riyadhFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Riyadh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const riyadhParts = riyadhFormatter.formatToParts(now);
+    const getPart = (type: string) => riyadhParts.find(p => p.type === type)?.value || '0';
+    const todayStr = `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
     const isToday = date === todayStr;
+    const isPastDate = date < todayStr;
 
-    // Calculate current time in clinic timezone (minutes from midnight)
+    // If the requested date is in the past (clinic timezone), no slots available
+    if (isPastDate) {
+      return { slots: [], unavailableReason: 'fullyBooked' as const };
+    }
+
+    // Calculate current time in Riyadh timezone (minutes from midnight)
     let currentTimeMinutes = 0;
     if (isToday) {
-      const clinicHour = now.getUTCHours() + CLINIC_TIMEZONE_OFFSET;
-      const clinicMinutes = now.getUTCMinutes();
-      currentTimeMinutes = clinicHour * 60 + clinicMinutes + 30; // 30 min buffer
+      currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')) + 30; // 30 min buffer
     }
 
     // Generate slots every 15 minutes

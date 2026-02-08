@@ -80,7 +80,10 @@
 
   "errors": {
     "loadFailed": "فشل في تحميل السجل الطبي",
-    "saveFailed": "فشل في حفظ التغييرات"
+    "noRecordReadOnly": "لم يتم إنشاء سجل طبي لهذا الموعد بعد",
+    "saveFailed": "فشل في حفظ التغييرات",
+    "alreadyClosed": "السجل مغلق بالفعل",
+    "alreadyOpen": "السجل مفتوح بالفعل"
   },
 
   "nextAppointment": {

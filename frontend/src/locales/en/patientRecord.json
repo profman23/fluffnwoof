@@ -80,7 +80,10 @@
 
   "errors": {
     "loadFailed": "Failed to load medical record",
-    "saveFailed": "Failed to save changes"
+    "noRecordReadOnly": "No medical record has been created for this appointment yet",
+    "saveFailed": "Failed to save changes",
+    "alreadyClosed": "Record is already closed",
+    "alreadyOpen": "Record is already open"
   },
 
   "nextAppointment": {

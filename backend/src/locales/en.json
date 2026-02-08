@@ -25,7 +25,17 @@
     "created": "Appointment created successfully",
     "updated": "Appointment updated successfully",
     "notFound": "Appointment not found",
-    "deleted": "Appointment deleted successfully"
+    "deleted": "Appointment deleted successfully",
+    "timeConflict": "This doctor already has an appointment at this time",
+    "batchRequired": "Appointments list is required",
+    "batchAllCreated": "{{count}} appointment(s) created successfully",
+    "batchPartial": "{{created}} appointment(s) created, {{skipped}} skipped due to conflict",
+    "batchAllSkipped": "No appointments created. {{skipped}} skipped due to conflict",
+    "batchEmpty": "No appointments to create",
+    "statusUpdated": "Appointment status updated successfully",
+    "confirmed": "Appointment confirmed successfully",
+    "unconfirmed": "Appointment unconfirmed",
+    "conflictWithTime": "Conflict with another appointment at {{time}}"
   },
   "errors": {
     "serverError": "Server error occurred",

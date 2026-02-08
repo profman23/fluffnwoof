@@ -196,7 +196,9 @@
     "alreadyBooked": "محجوز مسبقاً",
     "addAnother": "إضافة آخر",
     "existingAppointments": "المواعيد المحجوزة",
-    "newAppointment": "موعد جديد"
+    "newAppointment": "موعد جديد",
+    "bookingPartial": "تم حجز {{created}} موعد بنجاح. تم تخطي {{skipped}} موعد بسبب تعارض.",
+    "bookingAllSkipped": "لم يتم إنشاء أي موعد. تم تخطي {{skipped}} موعد بسبب تعارض في المواعيد."
   },
   "mandatoryFields": {
     "required": "مطلوب",

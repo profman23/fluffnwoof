@@ -55,7 +55,14 @@ export const requirePermission = (...permissions: string[]) => {
 
       const userPermissions = await permissionService.getUserPermissions(req.user.id);
 
-      const hasPermission = permissions.some((p) => userPermissions.includes(p));
+      const hasPermission = permissions.some((p) => {
+        if (userPermissions.includes(p)) return true;
+        // .full permission implies .read access
+        if (p.endsWith('.read')) {
+          return userPermissions.includes(p.replace('.read', '.full'));
+        }
+        return false;
+      });
 
       if (!hasPermission) {
         throw new AppError('You do not have permission to perform this action', 403);

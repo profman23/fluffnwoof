@@ -3,6 +3,7 @@ import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { AppointmentStatus } from '@prisma/client';
 import { reminderService } from './reminderService';
+import { t } from '../utils/i18n';
 
 export const appointmentService = {
   /**
@@ -109,7 +110,7 @@ export const appointmentService = {
         const existEndMinutes = existStartMinutes + (appt.duration || 30);
 
         if (newStartMinutes < existEndMinutes && newEndMinutes > existStartMinutes) {
-          throw new AppError('هذا الدكتور لديه موعد آخر في هذا الوقت', 409);
+          throw new AppError(t('appointment.timeConflict', 'ar'), 409, undefined, t('appointment.timeConflict', 'en'));
         }
       }
 
@@ -167,7 +168,7 @@ export const appointmentService = {
     reason?: string;
     notes?: string;
     scheduledFromRecordId?: string;
-  }>): Promise<{
+  }>, lang: string = 'en'): Promise<{
     created: any[];
     skipped: Array<{ visitType?: string; appointmentTime: string; appointmentDate: Date; reason: string }>;
   }> {
@@ -228,7 +229,7 @@ export const appointmentService = {
             visitType: data.visitType,
             appointmentTime: data.appointmentTime,
             appointmentDate: data.appointmentDate,
-            reason: `تعارض مع موعد آخر في الساعة ${conflictTime}`,
+            reason: t('appointment.conflictWithTime', lang, { time: conflictTime }),
           });
           continue;
         }

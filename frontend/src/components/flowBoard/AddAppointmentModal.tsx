@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { XMarkIcon, MagnifyingGlassIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { io, Socket } from 'socket.io-client';
 import { Owner, User, VisitType, Species } from '../../types';
 import { ownersApi } from '../../api/owners';
 import { petsApi } from '../../api/pets';
@@ -10,7 +11,7 @@ import { flowBoardApi } from '../../api/flowBoard';
 import { shiftsApi, UnavailableReason } from '../../api/shifts';
 import { visitTypesApi, VisitType as VisitTypeConfig } from '../../api/visitTypes';
 import { boardingApi, BoardingSlotConfig, BoardingType } from '../../api/boarding';
-import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked } from '../../utils/appointmentUtils';
+import { VISIT_TYPE_DURATION } from '../../utils/appointmentUtils';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 
 interface SimplePet {
@@ -81,9 +82,6 @@ export const AddAppointmentModal = ({
   const [expectedCheckOutDate, setExpectedCheckOutDate] = useState('');
   const [boardingNotes, setBoardingNotes] = useState('');
 
-  // Booked appointments for selected staff on selected date
-  const [bookedAppointments, setBookedAppointments] = useState<{ appointmentTime: string; duration: number }[]>([]);
-
   // Compute available cage numbers for selected config
   const availableCageNumbers = useMemo(() => {
     if (!selectedBoardingConfig) return [];
@@ -113,24 +111,22 @@ export const AddAppointmentModal = ({
     queryKey: ['vet-availability-v2', selectedStaff, appointmentDate, visitTypeDuration],
     queryFn: () => shiftsApi.getAvailabilityV2(selectedStaff, appointmentDate, visitTypeDuration),
     enabled: !!selectedStaff && !!appointmentDate && isOpen,
-    staleTime: 1000 * 30, // Cache for 30 seconds
+    staleTime: 1000 * 10, // Cache for 10 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Derive unavailableReason from availabilityData directly
   const unavailableReason: UnavailableReason = availabilityData?.unavailableReason ?? null;
 
-  // Calculate time slots - prefer availability API, fallback to local calculation
+  // Calculate time slots from availability API only (no fallback)
   const timeSlots = useMemo(() => {
-    // If we have availability data from the shifts API, use it
+    // Only show slots that come from the shifts/availability API
     if (availabilityData && availabilityData.slots) {
       return availabilityData.slots;
     }
-    // Fallback to the original local calculation
-    const duration = visitTypeDuration;
-    const allSlots = generateTimeSlots(duration, appointmentDate);
-    // Filter out booked slots
-    return allSlots.filter(slot => !isSlotBooked(slot, duration, bookedAppointments));
-  }, [availabilityData, visitTypeDuration, appointmentDate, bookedAppointments]);
+    // No availability data = no slots (vet has no schedule or API not yet loaded)
+    return [];
+  }, [availabilityData]);
 
   // Reset time when visit type changes (to ensure valid slot)
   useEffect(() => {
@@ -224,27 +220,37 @@ export const AddAppointmentModal = ({
     loadBoardingConfigs();
   }, [isOpen, isBoardingMode, boardingType, selectedPet]);
 
-  // Load booked appointments when staff or date changes
+  // WebSocket: subscribe to vet/date room for real-time slot updates
+  // When another user books/cancels a slot, invalidate the availability query to refresh
   useEffect(() => {
-    if (!isOpen || !selectedStaff || !appointmentDate) {
-      setBookedAppointments([]);
-      return;
-    }
+    if (!isOpen || !selectedStaff || !appointmentDate) return;
 
-    const loadBookedAppointments = async () => {
-      try {
-        const data = await flowBoardApi.getVetAppointments(selectedStaff, appointmentDate);
-        if (!isMountedRef.current) return;
-        setBookedAppointments(data);
-        console.log('Booked appointments loaded:', data);
-      } catch (err) {
-        console.error('Failed to load booked appointments:', err);
-        if (!isMountedRef.current) return;
-        setBookedAppointments([]);
-      }
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const wsUrl = apiUrl.replace(/\/api\/?$/, '');
+
+    const socket: Socket = io(`${wsUrl}/booking`, {
+      path: '/ws',
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 3,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('subscribe', { vetId: selectedStaff, date: appointmentDate });
+    });
+
+    const refreshAvailability = () => {
+      queryClient.invalidateQueries({ queryKey: ['vet-availability-v2', selectedStaff, appointmentDate] });
     };
-    loadBookedAppointments();
-  }, [isOpen, selectedStaff, appointmentDate]);
+
+    socket.on('slot:booked', refreshAvailability);
+    socket.on('slot:cancelled', refreshAvailability);
+
+    return () => {
+      socket.emit('unsubscribe', { vetId: selectedStaff, date: appointmentDate });
+      socket.disconnect();
+    };
+  }, [isOpen, selectedStaff, appointmentDate, queryClient]);
 
   // Search owners with debounce
   useEffect(() => {
@@ -409,8 +415,11 @@ export const AddAppointmentModal = ({
       handleClose();
     } catch (err: unknown) {
       if (!isMountedRef.current) return;
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || t('form.error') || 'Error saving');
+      const error = err as { response?: { data?: { message?: string; messageEn?: string } } };
+      const errMsg = i18n.language === 'en'
+        ? (error.response?.data?.messageEn || error.response?.data?.message)
+        : error.response?.data?.message;
+      setError(errMsg || t('form.error') || 'Error saving');
     } finally {
       if (isMountedRef.current) {
         setLoading(false);

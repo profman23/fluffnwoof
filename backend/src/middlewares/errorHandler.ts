@@ -31,6 +31,7 @@ const errorMessages: Record<string, BilingualMessage> = {
   emailExists: { ar: 'البريد الإلكتروني مستخدم بالفعل', en: 'Email is already in use' },
   phoneExists: { ar: 'رقم الهاتف مستخدم بالفعل', en: 'Phone number is already in use' },
   recordExists: { ar: 'هذا السجل موجود بالفعل', en: 'This record already exists' },
+  appointmentConflict: { ar: 'هذا الدكتور لديه موعد آخر في هذا الوقت', en: 'This doctor already has an appointment at this time' },
   recordNotFound: { ar: 'السجل المطلوب غير موجود', en: 'Requested record not found' },
   relationError: { ar: 'خطأ في العلاقة بين البيانات', en: 'Data relationship error' },
   invalidData: { ar: 'بيانات غير صالحة', en: 'Invalid data' },
@@ -83,6 +84,10 @@ export const errorHandler = (
       } else if (targetFields.some(f => f.includes('phone'))) {
         message = errorMessages.phoneExists.ar;
         messageEn = errorMessages.phoneExists.en;
+      } else if (err.meta?.modelName === 'Appointment') {
+        statusCode = 409;
+        message = errorMessages.appointmentConflict.ar;
+        messageEn = errorMessages.appointmentConflict.en;
       } else {
         message = errorMessages.recordExists.ar;
         messageEn = errorMessages.recordExists.en;
@@ -135,9 +140,13 @@ export const errorHandler = (
     console.error('Error:', err);
   }
 
+  // Use request language to return the correct message
+  const lang = (req as any).language || 'ar';
+  const finalMessage = lang === 'en' ? (messageEn || message) : message;
+
   res.status(statusCode).json({
     success: false,
-    message,
+    message: finalMessage,
     messageEn,
     ...(errorCode && { errorCode }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),

@@ -55,7 +55,14 @@ export const Login: React.FC = () => {
 
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || t('loginError'));
+      const status = err.response?.status;
+      if (status === 401) {
+        setError(t('invalidCredentials'));
+      } else if (status === 403) {
+        setError(t('accountDisabled'));
+      } else {
+        setError(t('loginError'));
+      }
     } finally {
       setLoading(false);
     }

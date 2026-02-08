@@ -10,6 +10,11 @@
     "medical": "Medical Records",
     "invoices": "Invoices"
   },
+  "permission": {
+    "noAccess": "You don't have permission to access this content",
+    "readOnly": "You have read-only access to this content",
+    "error": "An error occurred while loading the content"
+  },
   "cancel": "Cancel",
   "upload": {
     "dragDrop": "Drag & drop or click",

@@ -126,14 +126,14 @@ router.delete(
 // This uses read permission since it's needed for booking
 router.get(
   '/availability/:vetId',
-  requirePermission('screens.appointments.read'),
+  requirePermission('screens.appointments.read', 'screens.flowBoard.read', 'screens.flowBoard.full'),
   shiftController.getAvailability
 );
 
 // Get availability using the new period-based system
 router.get(
   '/availability-v2/:vetId',
-  requirePermission('screens.appointments.read'),
+  requirePermission('screens.appointments.read', 'screens.flowBoard.read', 'screens.flowBoard.full'),
   shiftController.getAvailabilityWithPeriod
 );
 
