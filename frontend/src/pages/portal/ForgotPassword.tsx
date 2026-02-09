@@ -1,20 +1,66 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Portal Forgot Password Page
+ * Multi-step: Email → OTP → New Password
+ * Uses AuthLayout + PortalThemeProvider for dark mode support
+ */
+
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
-import { GlobeAltIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { customerPortalApi } from '../../api/customerPortal';
 import { useCustomerAuthStore } from '../../store/customerAuthStore';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
+import { PortalThemeProvider } from '../../context/PortalThemeContext';
+import { AuthLayout } from '../../components/portal/layout/AuthLayout';
+import { Input } from '../../components/portal/ui/Input';
+import { Button } from '../../components/portal/ui/Button';
 import { OtpInput } from '../../components/portal/OtpInput';
+import { fadeInUpSimple } from '../../styles/portal/animations';
 
 type Step = 'email' | 'otp' | 'password';
 
-export const ForgotPassword: React.FC = () => {
-  const { t, i18n } = useTranslation('portal');
+// ============================================
+// STEP ICONS
+// ============================================
+
+const EmailIcon: React.FC = () => (
+  <div className="flex items-center justify-center">
+    <div className="w-20 h-20 rounded-full bg-mint-100 dark:bg-mint-900/30 flex items-center justify-center">
+      <svg className="w-10 h-10 text-mint-600 dark:text-mint-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+      </svg>
+    </div>
+  </div>
+);
+
+const OtpIcon: React.FC = () => (
+  <div className="flex items-center justify-center">
+    <div className="w-20 h-20 rounded-full bg-mint-100 dark:bg-mint-900/30 flex items-center justify-center">
+      <svg className="w-10 h-10 text-mint-600 dark:text-mint-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+      </svg>
+    </div>
+  </div>
+);
+
+const PasswordIcon: React.FC = () => (
+  <div className="flex items-center justify-center">
+    <div className="w-20 h-20 rounded-full bg-mint-100 dark:bg-mint-900/30 flex items-center justify-center">
+      <svg className="w-10 h-10 text-mint-600 dark:text-mint-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+    </div>
+  </div>
+);
+
+// ============================================
+// FORM COMPONENT
+// ============================================
+
+const ForgotPasswordForm: React.FC = () => {
+  const { t } = useTranslation('portal');
   const navigate = useNavigate();
   const { setAuth } = useCustomerAuthStore();
-  const isRtl = i18n.language === 'ar';
 
   const [step, setStep] = useState<Step>('email');
   const [loading, setLoading] = useState(false);
@@ -25,19 +71,6 @@ export const ForgotPassword: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // Set document direction on mount and language change
-  useEffect(() => {
-    const currentLang = i18n.language;
-    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = currentLang;
-  }, [i18n.language]);
-
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'ar' ? 'en' : 'ar';
-    i18n.changeLanguage(newLang);
-    localStorage.setItem('language', newLang);
-  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +130,6 @@ export const ForgotPassword: React.FC = () => {
         setAuth(response.owner, response.token);
         navigate('/portal/dashboard', { replace: true });
       } else {
-        // Fallback to old behavior if no token (shouldn't happen)
         setSuccess(t('resetPassword.success'));
         setTimeout(() => navigate('/portal/login'), 2000);
       }
@@ -108,108 +140,173 @@ export const ForgotPassword: React.FC = () => {
     }
   };
 
-  const BackIcon = isRtl ? ArrowRightIcon : ArrowLeftIcon;
+  // Step icon and subtitle
+  const stepIcon = step === 'email' ? <EmailIcon /> : step === 'otp' ? <OtpIcon /> : <PasswordIcon />;
+  const stepSubtitle = step === 'email'
+    ? t('forgotPassword.description')
+    : step === 'otp'
+    ? t('register.enterOtp')
+    : t('resetPassword.title');
 
   return (
-    <div className={`min-h-screen bg-primary-200 flex items-center justify-center p-4 ${isRtl ? 'rtl' : 'ltr'}`}>
-      {/* Language Toggle */}
-      <button
-        onClick={toggleLanguage}
-        className="absolute top-4 end-4 p-2 bg-white rounded-full shadow hover:shadow-md transition-shadow"
-        title={i18n.language === 'ar' ? 'English' : 'العربية'}
-      >
-        <GlobeAltIcon className="w-5 h-5 text-brand-dark" />
-      </button>
-
-      <div className="bg-white rounded-lg shadow-2xl p-6 sm:p-8 md:p-10 w-full max-w-md">
-        <div className="text-center mb-6">
-          <img src="/logo.png" alt="Fluff N' Woof" className="h-20 w-auto mx-auto mb-3" />
-          <h1 className="text-xl font-bold text-brand-dark">
-            {step === 'password' ? t('resetPassword.title') : t('forgotPassword.title')}
-          </h1>
-          {step === 'email' && (
-            <p className="text-sm text-gray-500 mt-2">{t('forgotPassword.description')}</p>
-          )}
-        </div>
-
+    <AuthLayout
+      titleIcon={stepIcon}
+      subtitle={stepSubtitle}
+      showBackToLogin={true}
+    >
+      <div className="space-y-5">
+        {/* Error Message */}
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
-            {error}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl border bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+          >
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </motion.div>
         )}
 
+        {/* Success Message */}
         {success && (
-          <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm mb-4">
-            {success}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+          >
+            <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
+          </motion.div>
         )}
 
         {/* Step 1: Email */}
         {step === 'email' && (
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <Input
-              type="email"
-              label={t('login.email')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '...' : t('forgotPassword.submit')}
-            </Button>
+          <form onSubmit={handleEmailSubmit} className="space-y-5">
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.2 }}
+            >
+              <Input
+                type="email"
+                label={t('login.email')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@email.com"
+                required
+                autoComplete="email"
+                dir="ltr"
+                size="lg"
+              />
+            </motion.div>
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.3 }}
+            >
+              <Button
+                type="submit"
+                variant="primary"
+                size="xl"
+                fullWidth
+                loading={loading}
+              >
+                {t('forgotPassword.submit')}
+              </Button>
+            </motion.div>
           </form>
         )}
 
         {/* Step 2: OTP */}
         {step === 'otp' && (
-          <form onSubmit={handleOtpSubmit} className="space-y-4">
-            <p className="text-center text-sm text-gray-600 mb-4">
-              {t('register.enterOtp')}
-            </p>
-            <OtpInput value={otp} onChange={setOtp} length={6} />
-            <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
-              {loading ? '...' : t('register.verify')}
-            </Button>
+          <form onSubmit={handleOtpSubmit} className="space-y-5">
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.2 }}
+            >
+              <OtpInput value={otp} onChange={setOtp} length={6} />
+            </motion.div>
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.3 }}
+            >
+              <Button
+                type="submit"
+                variant="primary"
+                size="xl"
+                fullWidth
+                loading={loading}
+                disabled={otp.length !== 6}
+              >
+                {t('register.verify')}
+              </Button>
+            </motion.div>
           </form>
         )}
 
         {/* Step 3: New Password */}
         {step === 'password' && (
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <div>
+          <form onSubmit={handlePasswordSubmit} className="space-y-5">
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.2 }}
+            >
               <Input
                 type="password"
                 label={t('resetPassword.newPassword')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                size="lg"
               />
-              <p className="text-xs text-gray-500 mt-1">{t('register.passwordRequirements')}</p>
-            </div>
-            <Input
-              type="password"
-              label={t('resetPassword.confirmPassword')}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '...' : t('resetPassword.submit')}
-            </Button>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('register.passwordRequirements')}</p>
+            </motion.div>
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.3 }}
+            >
+              <Input
+                type="password"
+                label={t('resetPassword.confirmPassword')}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                size="lg"
+              />
+            </motion.div>
+            <motion.div
+              initial={fadeInUpSimple.initial}
+              animate={fadeInUpSimple.animate}
+              transition={{ ...fadeInUpSimple.transition, delay: 0.4 }}
+            >
+              <Button
+                type="submit"
+                variant="primary"
+                size="xl"
+                fullWidth
+                loading={loading}
+              >
+                {t('resetPassword.submit')}
+              </Button>
+            </motion.div>
           </form>
         )}
-
-        <div className="mt-6 text-center">
-          <Link
-            to="/portal/login"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-brand-dark"
-          >
-            <BackIcon className="w-4 h-4" />
-            {t('forgotPassword.backToLogin')}
-          </Link>
-        </div>
       </div>
-    </div>
+    </AuthLayout>
+  );
+};
+
+// ============================================
+// MAIN EXPORT
+// ============================================
+
+export const ForgotPassword: React.FC = () => {
+  return (
+    <PortalThemeProvider>
+      <ForgotPasswordForm />
+    </PortalThemeProvider>
   );
 };
 
