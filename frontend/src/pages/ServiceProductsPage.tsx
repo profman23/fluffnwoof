@@ -4,7 +4,6 @@ import {
   PlusIcon,
   ArrowUpTrayIcon,
   PencilIcon,
-  TrashIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { serviceProductsApi, ServiceProduct, Category } from '../api/serviceProducts';
@@ -91,16 +90,6 @@ export const ServiceProductsPage = () => {
     setShowAddEdit(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('confirmDelete'))) return;
-    try {
-      await serviceProductsApi.delete(id);
-      loadItems();
-    } catch (error) {
-      console.error('Failed to delete:', error);
-    }
-  };
-
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       setPagination((prev) => ({ ...prev, page: newPage }));
@@ -184,13 +173,6 @@ export const ServiceProductsPage = () => {
         title={t('edit')}
       >
         <PencilIcon className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => handleDelete(item.id)}
-        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
-        title={t('delete')}
-      >
-        <TrashIcon className="w-4 h-4" />
       </button>
     </div>
   );

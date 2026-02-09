@@ -85,18 +85,6 @@ export const PatientsPage: React.FC = () => {
     setIsEditOwnerModalOpen(true);
   };
 
-  const handleDeactivate = async (pet: PetWithOwner) => {
-    if (!window.confirm(t('confirmDeactivate'))) return;
-    try {
-      await petsApi.deactivate(pet.id);
-      setSuccessMessage(t('messages.petDeactivated'));
-      fetchPets();
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('Error deactivating pet:', error);
-    }
-  };
-
   const handleSuccess = () => {
     fetchPets();
     setSuccessMessage(t('messages.petCreated'));
@@ -199,13 +187,6 @@ export const PatientsPage: React.FC = () => {
         >
           ✏️
         </button>
-        <button
-          onClick={() => handleDeactivate(pet)}
-          className="text-red-600 hover:text-red-800"
-          title={t('actions.deactivate')}
-        >
-          🗑️
-        </button>
       </div>
     );
   };
@@ -218,7 +199,6 @@ export const PatientsPage: React.FC = () => {
       onEditPet={() => handleEditPet(pet)}
       onEditOwner={() => handleEditOwner(pet.owner as Owner)}
       onAddAnotherPet={() => handleAddAnotherPet(pet.owner.id)}
-      onDeactivate={() => handleDeactivate(pet)}
     />
   );
 

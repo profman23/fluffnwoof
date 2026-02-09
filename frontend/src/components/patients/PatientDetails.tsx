@@ -12,7 +12,6 @@ interface PatientDetailsProps {
   onEditPet: () => void;
   onEditOwner: () => void;
   onAddAnotherPet: () => void;
-  onDeactivate: () => void;
 }
 
 export const PatientDetails: React.FC<PatientDetailsProps> = ({
@@ -21,7 +20,6 @@ export const PatientDetails: React.FC<PatientDetailsProps> = ({
   onEditPet,
   onEditOwner,
   onAddAnotherPet,
-  onDeactivate,
 }) => {
   const { t, i18n } = useTranslation('patients');
   const isRtl = i18n.language === 'ar';
@@ -140,13 +138,6 @@ export const PatientDetails: React.FC<PatientDetailsProps> = ({
             </Button>
             <Button variant="secondary" onClick={onAddAnotherPet}>
               + {t('addAnotherPet')}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={onDeactivate}
-              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              {t('actions.deactivate')}
             </Button>
           </div>
         )}
