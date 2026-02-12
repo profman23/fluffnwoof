@@ -325,6 +325,7 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
                 label={t('pet.birthDate')}
                 value={formData.birthDate}
                 onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
               />
               <Input
                 label={t('pet.color')}

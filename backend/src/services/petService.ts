@@ -35,13 +35,19 @@ export const petService = {
     ownerId: string;
     sendWelcomeEmail?: boolean;
   }) {
-    const { sendWelcomeEmail, ...petData } = data;
+    const { sendWelcomeEmail, birthDate, ...restData } = data;
     const petCode = await generatePetCode();
+
+    // Convert birthDate string (YYYY-MM-DD) to proper ISO DateTime for Prisma
+    const parsedBirthDate = birthDate
+      ? new Date(`${String(birthDate).split('T')[0]}T00:00:00.000Z`)
+      : undefined;
 
     const pet = await prisma.pet.create({
       data: {
-        ...petData,
+        ...restData,
         petCode,
+        birthDate: parsedBirthDate,
       },
       include: {
         owner: {
@@ -182,9 +188,16 @@ export const petService = {
       isActive?: boolean;
     }
   ) {
+    const { birthDate, ...restData } = data;
+    const parsedBirthDate = birthDate
+      ? new Date(`${String(birthDate).split('T')[0]}T00:00:00.000Z`)
+      : undefined;
     const pet = await prisma.pet.update({
       where: { id },
-      data,
+      data: {
+        ...restData,
+        birthDate: parsedBirthDate,
+      },
       include: {
         owner: {
           select: {

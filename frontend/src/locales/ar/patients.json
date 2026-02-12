@@ -129,6 +129,7 @@
     "ownerRequired": "يرجى اختيار أو إنشاء مالك",
     "petNameRequired": "اسم الحيوان مطلوب",
     "speciesRequired": "النوع مطلوب",
+    "breedRequired": "السلالة مطلوبة",
     "genderRequired": "الجنس مطلوب",
     "firstNameRequired": "الاسم الأول مطلوب",
     "lastNameRequired": "الاسم الثاني مطلوب",

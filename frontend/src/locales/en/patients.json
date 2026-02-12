@@ -129,6 +129,7 @@
     "ownerRequired": "Please select or create an owner",
     "petNameRequired": "Pet name is required",
     "speciesRequired": "Species is required",
+    "breedRequired": "Breed is required",
     "genderRequired": "Gender is required",
     "firstNameRequired": "First name is required",
     "lastNameRequired": "Last name is required",

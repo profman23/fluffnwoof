@@ -55,6 +55,7 @@ interface FormErrors {
   email?: string;
   petName?: string;
   species?: string;
+  breed?: string;
   gender?: string;
 }
 
@@ -231,6 +232,9 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
     }
     if (!formData.pet.species) {
       newErrors.species = t('errors.speciesRequired');
+    }
+    if (!formData.pet.breed) {
+      newErrors.breed = t('errors.breedRequired');
     }
     if (!formData.pet.gender) {
       newErrors.gender = t('errors.genderRequired');
@@ -537,7 +541,8 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                 placeholder={t('selectBreed')}
                 searchPlaceholder={t('searchPlaceholder')}
                 disabled={!formData.pet.species || availableBreeds.length === 0}
-                allowClear
+                required
+                error={errors.breed}
                 showIcons={false}
               />
             </div>
@@ -587,6 +592,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                 label={`🎂 ${t('pet.birthDate')}`}
                 value={formData.pet.birthDate}
                 onChange={(e) => handleInputChange('pet.birthDate', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
               />
               <Input
                 label={`🎨 ${t('pet.color')}`}
