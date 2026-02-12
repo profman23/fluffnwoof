@@ -5,8 +5,8 @@ import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { SearchableSelect, SearchableSelectOption } from '../common/SearchableSelect';
 import { PhoneInput } from '../common/PhoneInput';
-import { ownersApi, CreateOwnerInput } from '../../api/owners';
-import { petsApi, CreatePetInput } from '../../api/pets';
+import { ownersApi } from '../../api/owners';
+import { petsApi } from '../../api/pets';
 import { Owner, Species, Gender } from '../../types';
 import {
   speciesList,
@@ -253,40 +253,44 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
     try {
       let ownerId = formData.existingOwnerId || selectedOwner?.id;
 
-      // Create new owner if needed
-      if (formData.ownerMode === 'new') {
-        const ownerData: CreateOwnerInput = {
-          firstName: formData.newOwner.firstName.trim(),
-          lastName: formData.newOwner.lastName.trim(),
-          phone: formData.newOwner.phone.trim(),
-          email: formData.newOwner.email.trim() || undefined,
-        };
-        const newOwner = await ownersApi.create(ownerData);
-        ownerId = newOwner.id;
-        setSelectedOwner(newOwner);
-      }
-
-      if (!ownerId) {
-        setApiError(t('errors.ownerRequired'));
-        return;
-      }
-
-      // Create pet
-      const isNewOwner = formData.ownerMode === 'new';
-      const petData: CreatePetInput = {
+      const petFields = {
         name: formData.pet.name.trim(),
         species: formData.pet.species as Species,
         breed: formData.pet.breed || undefined,
         gender: formData.pet.gender as Gender,
-        ownerId,
         birthDate: formData.pet.birthDate || undefined,
         color: formData.pet.color.trim() || undefined,
         weight: formData.pet.weight ? parseFloat(formData.pet.weight) : undefined,
         notes: formData.pet.notes.trim() || undefined,
-        sendWelcomeEmail: isNewOwner, // Send welcome email only for new owners
       };
 
-      await petsApi.create(petData);
+      if (formData.ownerMode === 'new') {
+        // Atomic: create owner + pet in single transaction
+        const result = await petsApi.createWithOwner({
+          owner: {
+            firstName: formData.newOwner.firstName.trim(),
+            lastName: formData.newOwner.lastName.trim(),
+            phone: formData.newOwner.phone.trim(),
+            email: formData.newOwner.email.trim() || undefined,
+          },
+          pet: petFields,
+        });
+        ownerId = result.owner?.id || '';
+        setSelectedOwner(result.owner as Owner);
+      } else {
+        if (!ownerId) {
+          setApiError(t('errors.ownerRequired'));
+          return;
+        }
+
+        // Existing owner: create pet only
+        await petsApi.create({
+          ...petFields,
+          ownerId,
+          sendWelcomeEmail: false,
+        });
+      }
+
       setSuccessMessage(t('messages.petCreated'));
       onSuccess();
 
@@ -309,6 +313,8 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
       const errorCode = error.response?.data?.errorCode;
       if (errorCode === 'PHONE_EXISTS') {
         setApiError(t('errors.phoneExists'));
+      } else if (errorCode === 'EMAIL_EXISTS') {
+        setApiError(t('errors.emailExists'));
       } else {
         setApiError(error.response?.data?.message || t('messages.error'));
       }

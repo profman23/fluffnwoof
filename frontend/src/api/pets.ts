@@ -16,6 +16,25 @@ export interface CreatePetInput {
   sendWelcomeEmail?: boolean;
 }
 
+export interface CreatePetWithOwnerInput {
+  owner: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+  };
+  pet: {
+    name: string;
+    species: Species;
+    breed?: string;
+    gender: Gender;
+    birthDate?: string;
+    color?: string;
+    weight?: number;
+    notes?: string;
+  };
+}
+
 export interface UpdatePetInput {
   name?: string;
   species?: Species;
@@ -82,6 +101,14 @@ export const petsApi = {
    */
   create: async (data: CreatePetInput): Promise<Pet> => {
     const response = await api.post('/pets', data);
+    return response.data.data;
+  },
+
+  /**
+   * Create owner + pet in a single atomic transaction
+   */
+  createWithOwner: async (data: CreatePetWithOwnerInput): Promise<Pet> => {
+    const response = await api.post('/pets/with-owner', data);
     return response.data.data;
   },
 

@@ -135,6 +135,7 @@
     "lastNameRequired": "Last name is required",
     "phoneRequired": "Phone number is required",
     "phoneExists": "Phone number already exists",
+    "emailExists": "Email already exists",
     "emailRequired": "Email is required",
     "invalidEmail": "Please enter a valid email"
   },

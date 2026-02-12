@@ -13,6 +13,7 @@ router.get('/', requireScreenAccess('patients'), petController.findAll);
 router.get('/:id', requireScreenAccess('patients'), petController.findById);
 
 // Write operations - requireScreenModify requires 'full' level only
+router.post('/with-owner', requireScreenModify('patients'), petController.createWithOwner);
 router.post('/', requireScreenModify('patients'), petController.create);
 router.put('/:id', requireScreenModify('patients'), petController.update);
 router.delete('/:id', requireScreenModify('patients'), petController.delete);

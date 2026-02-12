@@ -3,6 +3,20 @@ import { petService } from '../services/petService';
 import { AuthRequest } from '../types';
 
 export const petController = {
+  async createWithOwner(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const pet = await petService.createWithOwner(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'تم إضافة العميل والحيوان الأليف بنجاح',
+        data: pet,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const pet = await petService.create(req.body);

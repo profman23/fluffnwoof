@@ -20,7 +20,107 @@ async function generatePetCode(): Promise<string> {
   return `P${nextNumber.toString().padStart(8, '0')}`;
 }
 
+// Generate next customer code (C00000001, C00000002, etc.)
+async function generateCustomerCode(): Promise<string> {
+  const lastOwner = await prisma.owner.findFirst({
+    orderBy: { customerCode: 'desc' },
+    select: { customerCode: true },
+  });
+
+  if (!lastOwner || !lastOwner.customerCode) {
+    return 'C00000001';
+  }
+
+  const lastNumber = parseInt(lastOwner.customerCode.substring(1), 10);
+  const nextNumber = lastNumber + 1;
+  return `C${nextNumber.toString().padStart(8, '0')}`;
+}
+
 export const petService = {
+  /**
+   * Create owner + pet in a single transaction (atomic).
+   * If pet creation fails, owner creation is rolled back.
+   */
+  async createWithOwner(data: {
+    owner: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      email?: string;
+    };
+    pet: {
+      name: string;
+      species: Species;
+      breed?: string;
+      gender: Gender;
+      birthDate?: Date;
+      color?: string;
+      weight?: number;
+      microchipId?: string;
+      photoUrl?: string;
+      notes?: string;
+    };
+  }) {
+    const { owner: ownerData, pet: petData } = data;
+    const { birthDate, ...restPetData } = petData;
+
+    const parsedBirthDate = birthDate
+      ? new Date(`${String(birthDate).split('T')[0]}T00:00:00.000Z`)
+      : undefined;
+
+    // Check phone uniqueness before transaction
+    const existingOwner = await prisma.owner.findUnique({
+      where: { phone: ownerData.phone },
+    });
+    if (existingOwner) {
+      throw new AppError('Phone number already exists', 400, 'PHONE_EXISTS');
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const customerCode = await generateCustomerCode();
+      const petCode = await generatePetCode();
+
+      const owner = await tx.owner.create({
+        data: {
+          ...ownerData,
+          customerCode,
+        },
+      });
+
+      const pet = await tx.pet.create({
+        data: {
+          ...restPetData,
+          petCode,
+          birthDate: parsedBirthDate,
+          ownerId: owner.id,
+        },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true,
+              customerCode: true,
+            },
+          },
+        },
+      });
+
+      return pet;
+    });
+
+    // Send welcome email outside transaction (non-blocking)
+    if (result.owner) {
+      reminderService.sendOwnerWelcomeReminder(result.owner.id, result.name).catch((error) => {
+        console.error('[PetService] Failed to send welcome reminder:', error);
+      });
+    }
+
+    return result;
+  },
+
   async create(data: {
     name: string;
     species: Species;
