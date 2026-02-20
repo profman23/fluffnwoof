@@ -73,6 +73,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         { path: '/clinic-setup/boarding', key: 'boardingAndIcu', icon: '🏥', screen: 'boardingAndIcu' },
       ],
     },
+    {
+      key: 'importData',
+      icon: '📥',
+      screen: 'importData',
+      children: [
+        { path: '/import/clients-pets', key: 'importClients', icon: '👥', screen: 'importClients' },
+      ],
+    },
   ];
 
   const toggleSubmenu = (key: string) => {

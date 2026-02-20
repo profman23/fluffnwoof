@@ -1,0 +1,84 @@
+{
+  "clientsPets": {
+    "title": "استيراد العملاء والأليف",
+    "description": "قم بتحميل النموذج، أدخل بيانات العملاء والأليف، ثم ارفع الملف للاستيراد",
+    "steps": {
+      "step1Title": "الخطوة 1: تحميل النموذج",
+      "step1Desc": "حمّل ملف Excel الجاهز يحتوي على أعمدة البيانات المطلوبة مع مثال توضيحي",
+      "step2Title": "الخطوة 2: تعبئة البيانات",
+      "step2Desc": "أدخل بيانات العملاء والأليف في الملف ابتداءً من الصف الثالث (تجاهل صف المثال)",
+      "step3Title": "الخطوة 3: رفع الملف",
+      "step3Desc": "ارفع الملف المعبأ وراجع البيانات في جدول المعاينة قبل الاستيراد"
+    },
+    "downloadTemplate": "تحميل النموذج",
+    "templateNote": "الأعمدة المطلوبة: الاسم الأول، الاسم الثاني، الهاتف، اسم الأليف، النوع، الجنس",
+    "uploadSection": {
+      "title": "رفع ملف البيانات",
+      "dragDrop": "اسحب وأفلت الملف هنا",
+      "or": "أو",
+      "browse": "استعرض الملفات",
+      "supportedFormats": "الصيغ المدعومة: .xlsx, .xls, .csv",
+      "maxRows": "الحد الأقصى 1000 صف لكل عملية استيراد"
+    },
+    "preview": {
+      "title": "معاينة البيانات",
+      "summary": "{{valid}} صف صالح، {{invalid}} صف يحتوي على أخطاء",
+      "importBtn": "استيراد {{count}} صف",
+      "changeFile": "تغيير الملف",
+      "columns": {
+        "row": "#",
+        "status": "الحالة",
+        "firstName": "الاسم الأول",
+        "lastName": "الاسم الثاني",
+        "phone": "الهاتف",
+        "email": "البريد الإلكتروني",
+        "petName": "اسم الأليف",
+        "species": "النوع",
+        "gender": "الجنس",
+        "breed": "السلالة",
+        "error": "الخطأ"
+      }
+    },
+    "results": {
+      "title": "نتائج الاستيراد",
+      "summary": "تم استيراد {{imported}} عميل جديد، وإضافة {{petAdded}} أليف لعملاء موجودين، وفشل {{errors}}",
+      "importAnother": "استيراد ملف آخر",
+      "columns": {
+        "row": "#",
+        "status": "الحالة",
+        "ownerName": "اسم العميل",
+        "customerCode": "كود العميل",
+        "petName": "اسم الأليف",
+        "petCode": "كود الأليف",
+        "error": "سبب الخطأ"
+      }
+    },
+    "status": {
+      "valid": "صالح",
+      "invalid": "خطأ",
+      "imported": "تم الاستيراد",
+      "petAdded": "أضيف أليف",
+      "error": "فشل"
+    },
+    "errors": {
+      "firstNameRequired": "الاسم الأول مطلوب",
+      "lastNameRequired": "الاسم الثاني مطلوب",
+      "phoneRequired": "رقم الهاتف مطلوب",
+      "petNameRequired": "اسم الأليف مطلوب",
+      "speciesRequired": "نوع الأليف مطلوب",
+      "speciesInvalid": "نوع الأليف غير صحيح: {{value}}",
+      "genderRequired": "جنس الأليف مطلوب",
+      "genderInvalid": "جنس الأليف يجب أن يكون MALE أو FEMALE",
+      "birthDateInvalid": "تاريخ الميلاد غير صحيح، يجب أن يكون بصيغة YYYY-MM-DD",
+      "birthDateFuture": "تاريخ الميلاد لا يمكن أن يكون في المستقبل",
+      "weightInvalid": "الوزن يجب أن يكون رقمًا موجبًا",
+      "noValidRows": "لا توجد صفوف صالحة للاستيراد",
+      "parseError": "خطأ في قراءة الملف. تأكد من صحة صيغة الملف",
+      "tooManyRows": "عدد الصفوف يتجاوز الحد الأقصى (1000 صف)",
+      "importFailed": "فشل الاستيراد. يرجى المحاولة مرة أخرى"
+    },
+    "importing": "جاري الاستيراد...",
+    "noFileSelected": "لم يتم اختيار ملف",
+    "speciesNote": "الأنواع المدعومة: DOG, CAT, BIRD, RABBIT, HAMSTER, GUINEA_PIG, TURTLE, FISH, HORSE, GOAT, SHEEP, COW, CAMEL, DONKEY, MONKEY, FERRET, HEDGEHOG, SNAKE, LIZARD, FROG, CHICKEN, DUCK, PIG, ALPACA, OTHER"
+  }
+}

@@ -34,6 +34,7 @@ import formRoutes from './routes/formRoutes';
 import clinicSettingsRoutes from './routes/clinicSettingsRoutes';
 import publicFormRoutes from './routes/publicFormRoutes';
 import boardingRoutes from './routes/boardingRoutes';
+import importRoutes from './routes/importRoutes';
 
 // Jobs
 import { reminderScheduler } from './jobs/reminderScheduler';
@@ -87,6 +88,7 @@ app.use('/api/forms', formRoutes);
 app.use('/api/clinic-settings', clinicSettingsRoutes);
 app.use('/api/public/forms', publicFormRoutes);
 app.use('/api/boarding', boardingRoutes);
+app.use('/api/import', importRoutes);
 
 // 404 Handler
 app.use(notFound);

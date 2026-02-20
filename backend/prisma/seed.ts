@@ -85,6 +85,14 @@ const permissions = [
   { name: 'screens.boardingAndIcu.read', description: 'Boarding & ICU - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.boardingAndIcu.full', description: 'Boarding & ICU - Full Control', category: 'screens', action: 'full' },
 
+  // Import Data (parent module)
+  { name: 'screens.importData.read', description: 'Import Data - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.importData.full', description: 'Import Data - Full Control', category: 'screens', action: 'full' },
+
+  // Import Clients & Pets
+  { name: 'screens.importClients.read', description: 'Import Clients & Pets - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.importClients.full', description: 'Import Clients & Pets - Full Control', category: 'screens', action: 'full' },
+
   // API-level permissions for reminders
   { name: 'reminders.read', description: 'Reminders - Read', category: 'reminders', action: 'read' },
   { name: 'reminders.write', description: 'Reminders - Write', category: 'reminders', action: 'write' },
@@ -153,6 +161,8 @@ const rolePermissions: Record<string, string[]> = {
     'screens.visitTypes.full',
     'screens.formsAndCertificates.full',
     'screens.boardingAndIcu.full',
+    'screens.importData.full',
+    'screens.importClients.full',
     // API-level permissions
     'reminders.read',
     'reminders.write',
@@ -214,6 +224,9 @@ const rolePermissions: Record<string, string[]> = {
     'screens.clinicSetup.read',
     'screens.shiftsManagement.read',
     'screens.visitTypes.read',
+    // Import Data - Full Control
+    'screens.importData.full',
+    'screens.importClients.full',
     // API-level permissions
     'users.read',
     'appointments.read',

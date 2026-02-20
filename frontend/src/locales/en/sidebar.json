@@ -24,6 +24,8 @@
     "visitTypes": "Visit Types",
     "formsAndCertificates": "Forms & Certificates",
     "boardingAndIcu": "Boarding & ICU",
+    "importData": "Import",
+    "importClients": "Clients & Pets",
     "myProfile": "My Profile",
     "logout": "Logout"
   }

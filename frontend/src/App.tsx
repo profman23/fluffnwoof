@@ -42,6 +42,7 @@ import { FormSignPage } from './pages/portal/FormSignPage';
 import { PetDetailPage } from './pages/portal/PetDetailPage';
 import { AppointmentDetailPage } from './pages/portal/AppointmentDetailPage';
 import { PublicFormSign } from './pages/PublicFormSign';
+import ImportClientsPage from './pages/ImportClientsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -259,6 +260,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <BoardingIcuPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* Import Routes */}
+          <Route
+            path="/import/clients-pets"
+            element={
+              <ProtectedRoute>
+                <ImportClientsPage />
               </ProtectedRoute>
             }
           />

@@ -1,0 +1,84 @@
+{
+  "clientsPets": {
+    "title": "Import Clients & Pets",
+    "description": "Download the template, fill in client and pet data, then upload the file to import",
+    "steps": {
+      "step1Title": "Step 1: Download Template",
+      "step1Desc": "Download the ready-made Excel file with required columns and an example row",
+      "step2Title": "Step 2: Fill in Data",
+      "step2Desc": "Enter client and pet data starting from row 3 (ignore the example row)",
+      "step3Title": "Step 3: Upload File",
+      "step3Desc": "Upload the filled file and review data in the preview table before importing"
+    },
+    "downloadTemplate": "Download Template",
+    "templateNote": "Required columns: First Name, Last Name, Phone, Pet Name, Species, Gender",
+    "uploadSection": {
+      "title": "Upload Data File",
+      "dragDrop": "Drag and drop your file here",
+      "or": "or",
+      "browse": "Browse Files",
+      "supportedFormats": "Supported formats: .xlsx, .xls, .csv",
+      "maxRows": "Maximum 1000 rows per import"
+    },
+    "preview": {
+      "title": "Data Preview",
+      "summary": "{{valid}} valid rows, {{invalid}} rows with errors",
+      "importBtn": "Import {{count}} Rows",
+      "changeFile": "Change File",
+      "columns": {
+        "row": "#",
+        "status": "Status",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "phone": "Phone",
+        "email": "Email",
+        "petName": "Pet Name",
+        "species": "Species",
+        "gender": "Gender",
+        "breed": "Breed",
+        "error": "Error"
+      }
+    },
+    "results": {
+      "title": "Import Results",
+      "summary": "Imported {{imported}} new clients, added {{petAdded}} pets to existing clients, {{errors}} failed",
+      "importAnother": "Import Another File",
+      "columns": {
+        "row": "#",
+        "status": "Status",
+        "ownerName": "Client Name",
+        "customerCode": "Client Code",
+        "petName": "Pet Name",
+        "petCode": "Pet Code",
+        "error": "Error Reason"
+      }
+    },
+    "status": {
+      "valid": "Valid",
+      "invalid": "Error",
+      "imported": "Imported",
+      "petAdded": "Pet Added",
+      "error": "Failed"
+    },
+    "errors": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "phoneRequired": "Phone number is required",
+      "petNameRequired": "Pet name is required",
+      "speciesRequired": "Pet species is required",
+      "speciesInvalid": "Invalid species: {{value}}",
+      "genderRequired": "Pet gender is required",
+      "genderInvalid": "Gender must be MALE or FEMALE",
+      "birthDateInvalid": "Invalid birth date format, must be YYYY-MM-DD",
+      "birthDateFuture": "Birth date cannot be in the future",
+      "weightInvalid": "Weight must be a positive number",
+      "noValidRows": "No valid rows to import",
+      "parseError": "Error reading file. Please check the file format",
+      "tooManyRows": "Row count exceeds maximum limit (1000 rows)",
+      "importFailed": "Import failed. Please try again"
+    },
+    "importing": "Importing...",
+    "noFileSelected": "No file selected",
+    "speciesNote": "Supported species: DOG, CAT, BIRD, RABBIT, HAMSTER, GUINEA_PIG, TURTLE, FISH, HORSE, GOAT, SHEEP, COW, CAMEL, DONKEY, MONKEY, FERRET, HEDGEHOG, SNAKE, LIZARD, FROG, CHICKEN, DUCK, PIG, ALPACA, OTHER"
+  }
+}
