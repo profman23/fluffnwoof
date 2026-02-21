@@ -18,7 +18,7 @@
       "or": "or",
       "browse": "Browse Files",
       "supportedFormats": "Supported formats: .xlsx, .xls, .csv",
-      "maxRows": "Maximum 1000 rows per import"
+      "maxRows": "Maximum 5000 rows per import"
     },
     "preview": {
       "title": "Data Preview",
@@ -58,6 +58,7 @@
       "invalid": "Error",
       "imported": "Imported",
       "petAdded": "Pet Added",
+      "skipped": "Duplicate Skipped",
       "error": "Failed"
     },
     "errors": {
@@ -74,7 +75,7 @@
       "weightInvalid": "Weight must be a positive number",
       "noValidRows": "No valid rows to import",
       "parseError": "Error reading file. Please check the file format",
-      "tooManyRows": "Row count exceeds maximum limit (1000 rows)",
+      "tooManyRows": "Row count exceeds maximum limit (5000 rows)",
       "importFailed": "Import failed. Please try again"
     },
     "importing": "Importing...",

@@ -1,6 +1,6 @@
 import api from './client';
 
-export type ImportRowStatus = 'imported' | 'pet_added' | 'error';
+export type ImportRowStatus = 'imported' | 'pet_added' | 'skipped' | 'error';
 
 export interface ImportOwnerInput {
   firstName: string;
@@ -38,6 +38,7 @@ export interface ImportSummary {
   total: number;
   imported: number;
   petAdded: number;
+  skipped: number;
   errors: number;
   results: ImportRowResult[];
   skippedValidation: number;

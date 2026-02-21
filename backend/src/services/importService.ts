@@ -24,7 +24,7 @@ export interface ImportRow {
   pet: ImportPetInput;
 }
 
-export type ImportRowStatus = 'imported' | 'pet_added' | 'error';
+export type ImportRowStatus = 'imported' | 'pet_added' | 'skipped' | 'error';
 
 export interface ImportRowResult {
   row: number;
@@ -40,6 +40,7 @@ export interface ImportSummary {
   total: number;
   imported: number;
   petAdded: number;
+  skipped: number;
   errors: number;
   results: ImportRowResult[];
 }
@@ -93,30 +94,51 @@ export const importService = {
         });
 
         if (existingOwner) {
-          // Add pet to existing owner
-          const petCode = await generatePetCode();
-          const pet = await prisma.pet.create({
-            data: {
+          // Check if this pet already exists under this owner (same name + species)
+          const existingPet = await prisma.pet.findFirst({
+            where: {
+              ownerId: existingOwner.id,
               name: petData.name.trim(),
               species: petData.species,
-              gender: petData.gender,
-              breed: petData.breed?.trim() || null,
-              birthDate: parsedBirthDate,
-              color: petData.color?.trim() || null,
-              weight: petData.weight || null,
-              petCode,
-              ownerId: existingOwner.id,
             },
           });
 
-          results.push({
-            row: rowNumber,
-            status: 'pet_added',
-            ownerName: `${existingOwner.firstName} ${existingOwner.lastName}`,
-            customerCode: existingOwner.customerCode,
-            petName: pet.name,
-            petCode: pet.petCode,
-          });
+          if (existingPet) {
+            // Skip — duplicate pet for same owner
+            results.push({
+              row: rowNumber,
+              status: 'skipped',
+              ownerName: `${existingOwner.firstName} ${existingOwner.lastName}`,
+              customerCode: existingOwner.customerCode,
+              petName: existingPet.name,
+              petCode: existingPet.petCode,
+            });
+          } else {
+            // Add pet to existing owner
+            const petCode = await generatePetCode();
+            const pet = await prisma.pet.create({
+              data: {
+                name: petData.name.trim(),
+                species: petData.species,
+                gender: petData.gender,
+                breed: petData.breed?.trim() || null,
+                birthDate: parsedBirthDate,
+                color: petData.color?.trim() || null,
+                weight: petData.weight || null,
+                petCode,
+                ownerId: existingOwner.id,
+              },
+            });
+
+            results.push({
+              row: rowNumber,
+              status: 'pet_added',
+              ownerName: `${existingOwner.firstName} ${existingOwner.lastName}`,
+              customerCode: existingOwner.customerCode,
+              petName: pet.name,
+              petCode: pet.petCode,
+            });
+          }
         } else {
           // Create owner + pet atomically in a transaction
           const customerCode = await generateCustomerCode();
@@ -170,12 +192,14 @@ export const importService = {
 
     const imported = results.filter((r) => r.status === 'imported').length;
     const petAdded = results.filter((r) => r.status === 'pet_added').length;
+    const skipped = results.filter((r) => r.status === 'skipped').length;
     const errors = results.filter((r) => r.status === 'error').length;
 
     return {
       total: rows.length,
       imported,
       petAdded,
+      skipped,
       errors,
       results,
     };

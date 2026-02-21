@@ -214,7 +214,7 @@ export const ImportClientsPage: React.FC = () => {
             return;
           }
 
-          if (dataRows.length > 1000) {
+          if (dataRows.length > 5000) {
             setParseError(t('errors.tooManyRows'));
             return;
           }
@@ -498,13 +498,13 @@ export const ImportClientsPage: React.FC = () => {
         {pageState === 'results' && importResults && (
           <div className="space-y-4">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <Card className="p-5 text-center">
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
                   {importResults.imported}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  ✅ {t('clientsPets.results.columns.status')} — {t('clientsPets.status.imported')}
+                  ✅ {t('clientsPets.status.imported')}
                 </div>
               </Card>
               <Card className="p-5 text-center">
@@ -513,6 +513,14 @@ export const ImportClientsPage: React.FC = () => {
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   🐾 {t('clientsPets.status.petAdded')}
+                </div>
+              </Card>
+              <Card className="p-5 text-center">
+                <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-1">
+                  {importResults.skipped || 0}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  ⏭️ {t('clientsPets.status.skipped')}
                 </div>
               </Card>
               <Card className="p-5 text-center">
@@ -557,6 +565,8 @@ export const ImportClientsPage: React.FC = () => {
                             ? 'bg-green-50 dark:bg-green-900/10'
                             : result.status === 'pet_added'
                             ? 'bg-blue-50 dark:bg-blue-900/10'
+                            : result.status === 'skipped'
+                            ? 'bg-yellow-50 dark:bg-yellow-900/10'
                             : 'bg-red-50 dark:bg-red-900/10'
                         }
                       >
@@ -567,6 +577,9 @@ export const ImportClientsPage: React.FC = () => {
                           )}
                           {result.status === 'pet_added' && (
                             <span className="badge-info px-2 py-0.5 rounded-full text-xs">🐾 {t('clientsPets.status.petAdded')}</span>
+                          )}
+                          {result.status === 'skipped' && (
+                            <span className="badge-warning px-2 py-0.5 rounded-full text-xs">⏭️ {t('clientsPets.status.skipped')}</span>
                           )}
                           {result.status === 'error' && (
                             <span className="badge-danger px-2 py-0.5 rounded-full text-xs">❌ {t('clientsPets.status.error')}</span>

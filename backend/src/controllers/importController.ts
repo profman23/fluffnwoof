@@ -50,8 +50,8 @@ export const importController = {
         throw new AppError('No rows provided', 400, 'NO_ROWS');
       }
 
-      if (rows.length > 1000) {
-        throw new AppError('Maximum 1000 rows per import', 400, 'TOO_MANY_ROWS');
+      if (rows.length > 5000) {
+        throw new AppError('Maximum 5000 rows per import', 400, 'TOO_MANY_ROWS');
       }
 
       const { valid, errors: validationErrors } = validateRows(rows);
@@ -64,7 +64,7 @@ export const importController = {
 
       res.status(200).json({
         success: true,
-        message: `تم الاستيراد: ${summary.imported} عميل جديد، ${summary.petAdded} أليف مضاف، ${summary.errors} فشل`,
+        message: `تم الاستيراد: ${summary.imported} عميل جديد، ${summary.petAdded} أليف مضاف، ${summary.skipped} مكرر، ${summary.errors} فشل`,
         data: {
           ...summary,
           skippedValidation: validationErrors.length,

@@ -8,7 +8,9 @@
  * - 0xxxxxxxxx    → 0xxxxxxxxx (no change)
  */
 export const normalizePhone = (phone: string): string => {
-  let n = phone.trim().replace(/[\s\-()]/g, '');
+  if (!phone) return '';
+  let n = String(phone).trim().replace(/[\s\-()]/g, '');
+  if (!n) return '';
   // Strip +966 prefix (with or without leading 0 after it)
   if (n.startsWith('+966')) n = n.slice(4);
   else if (n.startsWith('966') && n.length > 10) n = n.slice(3);
