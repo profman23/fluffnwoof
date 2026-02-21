@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
 
 // Generate next customer code (C00000001, C00000002, etc.)
 async function generateCustomerCode(): Promise<string> {
@@ -28,9 +29,11 @@ export const ownerService = {
     nationalId?: string;
     notes?: string;
   }) {
-    // Check if phone number already exists
-    const existingOwner = await prisma.owner.findUnique({
-      where: { phone: data.phone },
+    data.phone = normalizePhone(data.phone);
+
+    // Check if phone number already exists (search all format variants)
+    const existingOwner = await prisma.owner.findFirst({
+      where: { phone: { in: getPhoneVariants(data.phone) } },
     });
 
     if (existingOwner) {
@@ -130,11 +133,16 @@ export const ownerService = {
       notes?: string;
     }
   ) {
-    // Check if phone number already exists for another owner
+    // Normalize phone if provided
+    if (data.phone) {
+      data.phone = normalizePhone(data.phone);
+    }
+
+    // Check if phone number already exists for another owner (search all format variants)
     if (data.phone) {
       const existingOwner = await prisma.owner.findFirst({
         where: {
-          phone: data.phone,
+          phone: { in: getPhoneVariants(data.phone) },
           NOT: { id },
         },
       });

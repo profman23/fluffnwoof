@@ -77,12 +77,13 @@ const LoginForm: React.FC = () => {
   const toast = useToast();
   const { isDark } = usePortalTheme();
 
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showVideoIntro, setShowVideoIntro] = useState(true);
+  const [phoneStatus, setPhoneStatus] = useState<'idle' | 'checking' | 'NOT_FOUND' | 'REGISTERED' | 'CLAIMABLE'>('idle');
 
   const from = (location.state as any)?.from?.pathname || '/portal/dashboard';
 
@@ -93,6 +94,33 @@ const LoginForm: React.FC = () => {
     document.documentElement.lang = currentLang;
   }, [i18n.language]);
 
+  const handlePhoneBlur = async () => {
+    const cleanPhone = phone.trim();
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setPhoneStatus('idle');
+      return;
+    }
+
+    setPhoneStatus('checking');
+    try {
+      const result = await customerPortalApi.checkPhone(cleanPhone);
+      setPhoneStatus(result.status);
+
+      if (result.status === 'CLAIMABLE') {
+        setError(t('login.accountExistsNoPassword'));
+        setErrorCode('NO_PASSWORD');
+      } else if (result.status === 'NOT_FOUND') {
+        setError(t('login.phoneNotRegistered'));
+        setErrorCode('NOT_FOUND');
+      } else {
+        setError('');
+        setErrorCode(null);
+      }
+    } catch {
+      setPhoneStatus('idle');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -100,16 +128,23 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await customerPortalApi.login({ email, password });
+      const response = await customerPortalApi.login({ phone, password });
       setAuth(response.owner, response.token);
       toast.success(t('login.success'));
       navigate(from, { replace: true });
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || t('errors.generic');
       const code = err.response?.data?.code || err.response?.data?.errorCode;
-
       setErrorCode(code || null);
-      setError(errorMessage);
+
+      // Map error codes to translation keys instead of using raw backend messages
+      const errorMessages: Record<string, string> = {
+        NO_PASSWORD: t('login.accountExistsNoPassword'),
+        NOT_VERIFIED: t('login.accountExistsNoPassword'),
+        NOT_FOUND: t('login.phoneNotRegistered'),
+        INVALID_CREDENTIALS: t('login.invalidCredentials'),
+        ACCOUNT_DISABLED: t('login.accountDisabled'),
+      };
+      setError(code && errorMessages[code] ? errorMessages[code] : t('errors.generic'));
     } finally {
       setLoading(false);
     }
@@ -131,20 +166,28 @@ const LoginForm: React.FC = () => {
       subtitle={t('welcome')}
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {/* Email Input */}
+        {/* Phone Input */}
         <motion.div
           initial={fadeInUpSimple.initial}
           animate={fadeInUpSimple.animate}
           transition={{ ...fadeInUpSimple.transition, delay: 0.2 }}
         >
           <Input
-            type="email"
-            label={t('login.email')}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="example@email.com"
+            type="tel"
+            label={t('login.phone')}
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              if (phoneStatus !== 'idle') {
+                setPhoneStatus('idle');
+                setError('');
+                setErrorCode(null);
+              }
+            }}
+            onBlur={handlePhoneBlur}
+            placeholder="05xxxxxxxx"
             required
-            autoComplete="email"
+            autoComplete="tel"
             dir="ltr"
             size="lg"
           />
@@ -174,7 +217,7 @@ const LoginForm: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`p-4 rounded-xl border ${
-              errorCode === 'NO_PASSWORD' || errorCode === 'NOT_VERIFIED'
+              errorCode === 'NO_PASSWORD' || errorCode === 'NOT_VERIFIED' || errorCode === 'NOT_FOUND'
                 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
                 : errorCode === 'ACCOUNT_DISABLED'
                 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
@@ -199,6 +242,11 @@ const LoginForm: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                   </svg>
                 )}
+                {errorCode === 'NOT_FOUND' && (
+                  <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
                 {(!errorCode || errorCode === 'INVALID_CREDENTIALS') && (
                   <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -207,7 +255,7 @@ const LoginForm: React.FC = () => {
               </div>
               <div className="flex-1">
                 <p className={`text-sm ${
-                  errorCode === 'NO_PASSWORD' || errorCode === 'NOT_VERIFIED'
+                  errorCode === 'NO_PASSWORD' || errorCode === 'NOT_VERIFIED' || errorCode === 'NOT_FOUND'
                     ? 'text-amber-700 dark:text-amber-400'
                     : 'text-red-600 dark:text-red-400'
                 }`}>
@@ -215,15 +263,26 @@ const LoginForm: React.FC = () => {
                 </p>
                 {/* Contextual help links */}
                 {errorCode === 'NO_PASSWORD' && (
-                  <Link
-                    to="/portal/forgot"
-                    className="text-sm text-mint-600 dark:text-mint-400 hover:underline mt-2 inline-flex items-center gap-1"
-                  >
-                    {t('login.setPasswordHint')}
-                    <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <Link
+                      to="/portal/forgot"
+                      className="text-sm text-mint-600 dark:text-mint-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      {t('login.setPasswordHint')}
+                      <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                    <Link
+                      to="/portal/register"
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      {t('login.registerAccountHint')}
+                      <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
                 )}
                 {errorCode === 'NOT_VERIFIED' && (
                   <Link
@@ -231,6 +290,17 @@ const LoginForm: React.FC = () => {
                     className="text-sm text-mint-600 dark:text-mint-400 hover:underline mt-2 inline-flex items-center gap-1"
                   >
                     {t('login.completeRegistrationHint')}
+                    <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                )}
+                {errorCode === 'NOT_FOUND' && (
+                  <Link
+                    to="/portal/register"
+                    className="text-sm text-mint-600 dark:text-mint-400 hover:underline mt-2 inline-flex items-center gap-1"
+                  >
+                    {t('login.registerAccountHint')}
                     <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>

@@ -24,9 +24,14 @@ import '../../../styles/brandPattern.css';
 // ============================================
 
 export const PortalLayout: React.FC = () => {
-  const { isAuthenticated, isLoading } = useCustomerAuthStore();
+  const { isAuthenticated, isLoading, initializeAuth } = useCustomerAuthStore();
   const { i18n } = useTranslation();
   const location = useLocation();
+
+  // Initialize customer auth from localStorage
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   // Initialize language from portal-language localStorage (default to Arabic)
   useEffect(() => {

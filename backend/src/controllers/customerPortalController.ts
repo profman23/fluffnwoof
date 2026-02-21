@@ -25,23 +25,18 @@ const differenceInHours = (dateLeft: Date, dateRight: Date): number => {
 // =====================================
 
 /**
- * POST /api/portal/check-email
- * Check email status for registration flow
+ * POST /api/portal/check-phone
+ * Check phone status for registration flow
  */
-export const checkEmail = async (req: Request, res: Response, next: NextFunction) => {
+export const checkPhone = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body;
+    const { phone } = req.body;
 
-    if (!email) {
-      throw new AppError('البريد الإلكتروني مطلوب', 400, 'EMAIL_REQUIRED', 'Email is required');
+    if (!phone) {
+      throw new AppError('رقم الهاتف مطلوب', 400, 'PHONE_REQUIRED', 'Phone is required');
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new AppError('البريد الإلكتروني غير صالح', 400, 'INVALID_EMAIL', 'Invalid email format');
-    }
-
-    const result = await customerAuthService.checkEmailStatus(email);
+    const result = await customerAuthService.checkPhoneStatus(phone);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -49,52 +44,18 @@ export const checkEmail = async (req: Request, res: Response, next: NextFunction
 };
 
 /**
- * POST /api/portal/claim-account
- * Claim account for staff-created owners - sends OTP
- */
-export const claimAccount = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      throw new AppError('البريد الإلكتروني مطلوب', 400, 'EMAIL_REQUIRED', 'Email is required');
-    }
-
-    const result = await customerAuthService.claimAccount(email);
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * POST /api/portal/register
- * Register new customer
+ * Register new customer (phone-first)
  */
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { firstName, lastName, email, phone, address, nationalId, preferredLang } = req.body;
+    const { phone, preferredLang } = req.body;
 
-    // Validate required fields
-    if (!firstName || !lastName || !email || !phone) {
-      throw new AppError('جميع الحقول المطلوبة يجب ملؤها', 400, 'REQUIRED_FIELDS', 'All required fields must be filled');
+    if (!phone) {
+      throw new AppError('رقم الهاتف مطلوب', 400, 'PHONE_REQUIRED', 'Phone number is required');
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new AppError('البريد الإلكتروني غير صالح', 400, 'INVALID_EMAIL', 'Invalid email format');
-    }
-
-    const result = await customerAuthService.register({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      nationalId,
-      preferredLang,
-    });
+    const result = await customerAuthService.register({ phone, preferredLang });
 
     res.status(201).json(result);
   } catch (error) {
@@ -104,18 +65,18 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
 /**
  * POST /api/portal/verify-otp
- * Verify OTP code
+ * Verify OTP code (phone-based)
  */
 export const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, code, type } = req.body;
+    const { phone, code, type } = req.body;
 
-    if (!email || !code || !type) {
+    if (!phone || !code || !type) {
       throw new AppError('البيانات المطلوبة غير مكتملة', 400);
     }
 
     const otpType = type === 'registration' ? OtpType.REGISTRATION : OtpType.PASSWORD_RESET;
-    const result = await customerAuthService.verifyOtp(email, code, otpType);
+    const result = await customerAuthService.verifyOtp(phone, code, otpType);
 
     res.json(result);
   } catch (error) {
@@ -125,18 +86,18 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
 
 /**
  * POST /api/portal/resend-otp
- * Resend OTP code
+ * Resend OTP code via SMS
  */
 export const resendOtp = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, type } = req.body;
+    const { phone, type } = req.body;
 
-    if (!email || !type) {
+    if (!phone || !type) {
       throw new AppError('البيانات المطلوبة غير مكتملة', 400);
     }
 
     const otpType = type === 'registration' ? OtpType.REGISTRATION : OtpType.PASSWORD_RESET;
-    const result = await customerAuthService.resendOtp(email, otpType);
+    const result = await customerAuthService.resendOtp(phone, otpType);
 
     res.json(result);
   } catch (error) {
@@ -150,18 +111,17 @@ export const resendOtp = async (req: Request, res: Response, next: NextFunction)
  */
 export const completeRegistration = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { ownerId, password } = req.body;
+    const { ownerId, password, firstName, lastName, email } = req.body;
 
-    if (!ownerId || !password) {
-      throw new AppError('البيانات المطلوبة غير مكتملة', 400);
+    if (!ownerId || !password || !firstName || !lastName) {
+      throw new AppError('البيانات المطلوبة غير مكتملة', 400, 'REQUIRED_FIELDS', 'Required fields are missing');
     }
 
-    // Validate password
     if (password.length < 8) {
-      throw new AppError('كلمة المرور يجب أن تكون 8 أحرف على الأقل', 400);
+      throw new AppError('كلمة المرور يجب أن تكون 8 أحرف على الأقل', 400, 'PASSWORD_TOO_SHORT', 'Password must be at least 8 characters');
     }
 
-    const result = await customerAuthService.completeRegistration(ownerId, password);
+    const result = await customerAuthService.completeRegistration(ownerId, password, firstName, lastName, email);
 
     res.json(result);
   } catch (error) {
@@ -171,17 +131,17 @@ export const completeRegistration = async (req: Request, res: Response, next: Ne
 
 /**
  * POST /api/portal/login
- * Login customer
+ * Login customer (phone + password)
  */
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const { phone, password } = req.body;
 
-    if (!email || !password) {
-      throw new AppError('البريد الإلكتروني وكلمة المرور مطلوبان', 400, 'VALIDATION_ERROR', 'Email and password are required');
+    if (!phone || !password) {
+      throw new AppError('رقم الهاتف وكلمة المرور مطلوبان', 400, 'VALIDATION_ERROR', 'Phone and password are required');
     }
 
-    const result = await customerAuthService.login(email, password);
+    const result = await customerAuthService.login(phone, password);
 
     res.json(result);
   } catch (error) {
@@ -191,17 +151,17 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 /**
  * POST /api/portal/forgot-password
- * Request password reset
+ * Request password reset via SMS OTP
  */
 export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body;
+    const { phone } = req.body;
 
-    if (!email) {
-      throw new AppError('البريد الإلكتروني مطلوب', 400);
+    if (!phone) {
+      throw new AppError('رقم الهاتف مطلوب', 400, 'PHONE_REQUIRED', 'Phone number is required');
     }
 
-    const result = await customerAuthService.forgotPassword(email);
+    const result = await customerAuthService.forgotPassword(phone);
 
     res.json(result);
   } catch (error) {
@@ -215,9 +175,9 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
  */
 export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, newPassword } = req.body;
+    const { phone, newPassword } = req.body;
 
-    if (!email || !newPassword) {
+    if (!phone || !newPassword) {
       throw new AppError('البيانات المطلوبة غير مكتملة', 400);
     }
 
@@ -225,7 +185,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
       throw new AppError('كلمة المرور يجب أن تكون 8 أحرف على الأقل', 400);
     }
 
-    const result = await customerAuthService.resetPassword(email, newPassword);
+    const result = await customerAuthService.resetPassword(phone, newPassword);
 
     res.json(result);
   } catch (error) {
@@ -1296,8 +1256,7 @@ export const signForm = async (req: Request, res: Response, next: NextFunction) 
 
 export default {
   // Auth
-  checkEmail,
-  claimAccount,
+  checkPhone,
   register,
   verifyOtp,
   resendOtp,

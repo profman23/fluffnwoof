@@ -2,8 +2,9 @@ import { prisma } from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { OtpType } from '@prisma/client';
-import { sendOtpEmail } from './emailService';
+import { sendOtpSms } from './smsService';
 import { AppError } from '../middlewares/errorHandler';
+import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = '7d';
@@ -12,20 +13,29 @@ const MAX_OTP_ATTEMPTS = 3;
 const BCRYPT_ROUNDS = 10;
 
 interface RegisterInput {
-  firstName: string;
-  lastName: string;
-  email: string;
   phone: string;
-  address?: string;
-  nationalId?: string;
   preferredLang?: string;
 }
 
 interface CustomerTokenPayload {
   id: string;
-  email: string;
+  phone: string;
   type: 'customer';
 }
+
+/**
+ * Check if email is a placeholder (generated during import)
+ */
+const isPlaceholderEmail = (email: string | null | undefined): boolean => {
+  if (!email) return true;
+  return email.endsWith('@import.local') || email.startsWith('noemail_');
+};
+
+/**
+ * Check if name is a placeholder (set before details step is completed)
+ */
+const isPlaceholderName = (name: string | null | undefined): boolean =>
+  !name || name === 'pending';
 
 /**
  * Generate 6-digit OTP code
@@ -37,10 +47,10 @@ const generateOtpCode = (): string => {
 /**
  * Generate customer JWT token
  */
-const generateToken = (owner: { id: string; email: string }): string => {
+const generateToken = (owner: { id: string; phone: string }): string => {
   const payload: CustomerTokenPayload = {
     id: owner.id,
-    email: owner.email!,
+    phone: owner.phone,
     type: 'customer',
   };
 
@@ -67,57 +77,144 @@ const generateCustomerCode = async (): Promise<string> => {
 };
 
 /**
- * Register new customer (Step 1: Create owner and send OTP)
+ * Find owner by phone using all possible format variants.
+ * If multiple owners match (due to past format inconsistencies), merges them:
+ *   - Keeps the one with pets/data (primary), deletes the placeholder duplicate
+ *   - Transfers portal auth data (password, verification) to the primary
+ * Auto-normalizes the stored phone to standard 0xxxxxxxxx format.
  */
-export const register = async (input: RegisterInput) => {
-  const { firstName, lastName, email, phone, address, nationalId, preferredLang = 'ar' } = input;
+const findOwnerByPhone = async (rawPhone: string) => {
+  const phone = normalizePhone(rawPhone);
+  const variants = getPhoneVariants(rawPhone);
 
-  // Check if email already exists and is verified
-  const existingByEmail = await prisma.owner.findFirst({
-    where: { email, isVerified: true },
+  const owners = await prisma.owner.findMany({
+    where: { phone: { in: variants } },
+    include: { pets: { select: { id: true } } },
   });
-  if (existingByEmail) {
-    throw new AppError('البريد الإلكتروني مسجل بالفعل', 409, 'EMAIL_EXISTS', 'Email is already registered');
+
+  if (owners.length === 0) return null;
+
+  let primary = owners[0];
+
+  if (owners.length > 1) {
+    // Pick primary: prefer the one with pets, then the one with a password
+    primary = owners.reduce((best, curr) => {
+      if (curr.pets.length > best.pets.length) return curr;
+      if (curr.pets.length === best.pets.length && curr.passwordHash && !best.passwordHash) return curr;
+      return best;
+    });
+
+    // Merge portal auth data from duplicates into primary
+    for (const dup of owners) {
+      if (dup.id === primary.id) continue;
+
+      // Transfer password/verification if primary doesn't have them
+      if (!primary.passwordHash && dup.passwordHash) {
+        primary.passwordHash = dup.passwordHash;
+        primary.isVerified = dup.isVerified;
+        primary.verifiedAt = dup.verifiedAt;
+      }
+
+      // Move any pets from duplicate to primary
+      await prisma.pet.updateMany({
+        where: { ownerId: dup.id },
+        data: { ownerId: primary.id },
+      });
+
+      // Move OTPs
+      await prisma.ownerOtp.updateMany({
+        where: { ownerId: dup.id },
+        data: { ownerId: primary.id, phone },
+      });
+
+      // Delete duplicate
+      await prisma.owner.delete({ where: { id: dup.id } });
+    }
+
+    // Update primary with merged data + normalized phone
+    await prisma.owner.update({
+      where: { id: primary.id },
+      data: {
+        phone,
+        passwordHash: primary.passwordHash,
+        isVerified: primary.isVerified,
+        verifiedAt: primary.verifiedAt,
+        portalEnabled: primary.portalEnabled || true,
+      },
+    });
+    primary.phone = phone;
+  } else if (primary.phone !== phone) {
+    // Single owner, just normalize the phone
+    await prisma.owner.update({
+      where: { id: primary.id },
+      data: { phone },
+    });
+    primary.phone = phone;
   }
 
-  // Check if phone already exists
-  const existingByPhone = await prisma.owner.findFirst({
-    where: { phone },
-  });
+  return primary;
+};
+
+/**
+ * Check phone status for registration flow
+ * Returns: NOT_FOUND | REGISTERED | CLAIMABLE
+ */
+export const checkPhoneStatus = async (rawPhone: string): Promise<{
+  status: 'NOT_FOUND' | 'REGISTERED' | 'CLAIMABLE';
+  ownerId?: string;
+}> => {
+  const owner = await findOwnerByPhone(rawPhone) as any;
+
+  if (!owner) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  // Has passwordHash + isVerified = fully registered via portal
+  if (owner.passwordHash && owner.isVerified) {
+    return { status: 'REGISTERED' };
+  }
+
+  // Exists but no password or not verified = staff-created or incomplete registration
+  return { status: 'CLAIMABLE', ownerId: owner.id };
+};
+
+/**
+ * Register new customer (Step 1: Create/find owner and send OTP via SMS)
+ */
+export const register = async (input: RegisterInput) => {
+  const { phone: rawPhone, preferredLang = 'ar' } = input;
+  const phone = normalizePhone(rawPhone);
+
+  // Check if phone already exists (search all format variants)
+  const existingByPhone = await findOwnerByPhone(rawPhone);
 
   let owner;
 
   if (existingByPhone) {
-    // Owner exists with this phone
+    // Already fully registered → reject
     if (existingByPhone.isVerified && existingByPhone.passwordHash) {
-      throw new AppError('رقم الهاتف مسجل بالفعل', 409, 'PHONE_EXISTS', 'Phone number is already registered');
+      throw new AppError('رقم الهاتف مسجل بالفعل. يرجى تسجيل الدخول', 409, 'PHONE_EXISTS', 'Phone number is already registered. Please login');
     }
 
-    // Update existing unverified owner
+    // Exists but not verified (staff-created or incomplete) → just update lang + portal flag
     owner = await prisma.owner.update({
       where: { id: existingByPhone.id },
       data: {
-        firstName,
-        lastName,
-        email,
-        address,
-        nationalId,
         preferredLang,
+        portalEnabled: true,
       },
     });
   } else {
-    // Create new owner
+    // Create new owner with placeholder name (will be updated in completeRegistration)
     const customerCode = await generateCustomerCode();
 
     owner = await prisma.owner.create({
       data: {
         customerCode,
-        firstName,
-        lastName,
-        email,
+        firstName: 'pending',
+        lastName: 'pending',
         phone,
-        address,
-        nationalId,
+        email: `noemail_${phone}@import.local`,
         preferredLang,
         isVerified: false,
         portalEnabled: true,
@@ -129,16 +226,16 @@ export const register = async (input: RegisterInput) => {
   const otpCode = generateOtpCode();
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-  // Delete any existing OTPs for this email
+  // Delete any existing OTPs for this phone
   await prisma.ownerOtp.deleteMany({
-    where: { email, type: OtpType.REGISTRATION },
+    where: { phone, type: OtpType.REGISTRATION },
   });
 
   // Create new OTP
   await prisma.ownerOtp.create({
     data: {
       ownerId: owner.id,
-      email,
+      phone,
       code: otpCode,
       type: OtpType.REGISTRATION,
       expiresAt,
@@ -146,30 +243,30 @@ export const register = async (input: RegisterInput) => {
     },
   });
 
-  // Send OTP email
-  await sendOtpEmail({
-    to: email,
-    recipientName: `${firstName} ${lastName}`,
-    otpCode,
-    type: 'REGISTRATION',
-    expiryMinutes: OTP_EXPIRY_MINUTES,
-  });
+  // Send OTP via SMS
+  await sendOtpSms(phone, otpCode, preferredLang as 'ar' | 'en');
 
   return {
     success: true,
-    message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
+    message: 'تم إرسال رمز التحقق إلى رقم جوالك',
     ownerId: owner.id,
-    email,
+    phone,
+    existingData: existingByPhone ? {
+      firstName: isPlaceholderName(existingByPhone.firstName) ? '' : existingByPhone.firstName,
+      lastName: isPlaceholderName(existingByPhone.lastName) ? '' : existingByPhone.lastName,
+      email: isPlaceholderEmail(existingByPhone.email) ? '' : (existingByPhone.email ?? ''),
+    } : null,
   };
 };
 
 /**
- * Verify OTP code
+ * Verify OTP code (phone-based)
  */
-export const verifyOtp = async (email: string, code: string, type: OtpType) => {
+export const verifyOtp = async (rawPhone: string, code: string, type: OtpType) => {
+  const phone = normalizePhone(rawPhone);
   const otp = await prisma.ownerOtp.findFirst({
     where: {
-      email,
+      phone,
       type,
       usedAt: null,
     },
@@ -189,9 +286,6 @@ export const verifyOtp = async (email: string, code: string, type: OtpType) => {
   if (otp.attempts >= MAX_OTP_ATTEMPTS) {
     throw new AppError('تم تجاوز الحد الأقصى للمحاولات', 400, 'MAX_ATTEMPTS', 'Maximum attempts exceeded');
   }
-
-  // Verify code - debug logging
-  console.log('[OTP Debug] Stored code:', otp.code, '| Entered code:', code, '| Match:', otp.code === code);
 
   if (otp.code !== code) {
     // Increment attempts
@@ -223,15 +317,14 @@ export const verifyOtp = async (email: string, code: string, type: OtpType) => {
 };
 
 /**
- * Resend OTP code
+ * Resend OTP code via SMS
  */
-export const resendOtp = async (email: string, type: OtpType) => {
-  const owner = await prisma.owner.findFirst({
-    where: { email },
-  });
+export const resendOtp = async (rawPhone: string, type: OtpType) => {
+  const phone = normalizePhone(rawPhone);
+  const owner = await findOwnerByPhone(rawPhone);
 
   if (!owner) {
-    throw new AppError('البريد الإلكتروني غير مسجل', 404, 'EMAIL_NOT_FOUND', 'Email is not registered');
+    throw new AppError('رقم الهاتف غير مسجل', 404, 'PHONE_NOT_FOUND', 'Phone number is not registered');
   }
 
   // Check if already verified (for registration)
@@ -245,14 +338,14 @@ export const resendOtp = async (email: string, type: OtpType) => {
 
   // Delete existing OTPs
   await prisma.ownerOtp.deleteMany({
-    where: { email, type },
+    where: { phone, type },
   });
 
   // Create new OTP
   await prisma.ownerOtp.create({
     data: {
       ownerId: owner.id,
-      email,
+      phone,
       code: otpCode,
       type,
       expiresAt,
@@ -260,14 +353,8 @@ export const resendOtp = async (email: string, type: OtpType) => {
     },
   });
 
-  // Send OTP email
-  await sendOtpEmail({
-    to: email,
-    recipientName: `${owner.firstName} ${owner.lastName}`,
-    otpCode,
-    type: type === OtpType.REGISTRATION ? 'REGISTRATION' : 'PASSWORD_RESET',
-    expiryMinutes: OTP_EXPIRY_MINUTES,
-  });
+  // Send OTP via SMS
+  await sendOtpSms(phone, otpCode, owner.preferredLang as 'ar' | 'en');
 
   return {
     success: true,
@@ -276,9 +363,15 @@ export const resendOtp = async (email: string, type: OtpType) => {
 };
 
 /**
- * Complete registration (set password after OTP verification)
+ * Complete registration: update email (if real) + set password + verify account
  */
-export const completeRegistration = async (ownerId: string, password: string) => {
+export const completeRegistration = async (
+  ownerId: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  email?: string
+) => {
   const owner = await prisma.owner.findUnique({
     where: { id: ownerId },
   });
@@ -294,13 +387,29 @@ export const completeRegistration = async (ownerId: string, password: string) =>
   // Hash password
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-  // Update owner
+  // Prepare email update: only if provided and not placeholder
+  let emailUpdate: { email: string } | object = {};
+  if (email && !isPlaceholderEmail(email)) {
+    // Check email not used by another owner
+    const emailConflict = await prisma.owner.findFirst({
+      where: { email, id: { not: ownerId } },
+    });
+    if (!emailConflict) {
+      emailUpdate = { email };
+    }
+  }
+
+  // Update owner with name + password + verification
   const updatedOwner = await prisma.owner.update({
     where: { id: ownerId },
     data: {
+      firstName,
+      lastName,
       passwordHash,
       isVerified: true,
       verifiedAt: new Date(),
+      portalEnabled: true,
+      ...emailUpdate,
     },
   });
 
@@ -314,7 +423,7 @@ export const completeRegistration = async (ownerId: string, password: string) =>
       id: updatedOwner.id,
       firstName: updatedOwner.firstName,
       lastName: updatedOwner.lastName,
-      email: updatedOwner.email,
+      email: isPlaceholderEmail(updatedOwner.email) ? null : updatedOwner.email,
       phone: updatedOwner.phone,
       customerCode: updatedOwner.customerCode,
       preferredLang: updatedOwner.preferredLang,
@@ -323,18 +432,17 @@ export const completeRegistration = async (ownerId: string, password: string) =>
 };
 
 /**
- * Login customer
+ * Login customer (phone + password)
  */
-export const login = async (email: string, password: string) => {
-  const owner = await prisma.owner.findFirst({
-    where: { email },
-  });
+export const login = async (rawPhone: string, password: string) => {
+  const phone = normalizePhone(rawPhone);
+  const owner = await findOwnerByPhone(rawPhone);
 
   if (!owner) {
-    throw new AppError('البريد الإلكتروني أو كلمة المرور غير صحيحة', 401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+    throw new AppError('رقم الهاتف أو كلمة المرور غير صحيحة', 401, 'INVALID_CREDENTIALS', 'Invalid phone or password');
   }
 
-  // Staff-created owner without password - needs to set password first
+  // No password set yet
   if (!owner.passwordHash) {
     throw new AppError(
       'حسابك مسجل ولكن لم يتم تعيين كلمة مرور. اضغط على "نسيت كلمة المرور" لإنشاء كلمة مرور',
@@ -355,7 +463,7 @@ export const login = async (email: string, password: string) => {
   // Verify password
   const isValidPassword = await bcrypt.compare(password, owner.passwordHash);
   if (!isValidPassword) {
-    throw new AppError('البريد الإلكتروني أو كلمة المرور غير صحيحة', 401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+    throw new AppError('رقم الهاتف أو كلمة المرور غير صحيحة', 401, 'INVALID_CREDENTIALS', 'Invalid phone or password');
   }
 
   // Update last login
@@ -374,7 +482,7 @@ export const login = async (email: string, password: string) => {
       id: owner.id,
       firstName: owner.firstName,
       lastName: owner.lastName,
-      email: owner.email,
+      email: isPlaceholderEmail(owner.email) ? null : owner.email,
       phone: owner.phone,
       customerCode: owner.customerCode,
       preferredLang: owner.preferredLang,
@@ -383,20 +491,17 @@ export const login = async (email: string, password: string) => {
 };
 
 /**
- * Request password reset (forgot password)
- * Works for both verified users AND staff-created owners (no password yet)
+ * Forgot password: send OTP via SMS
  */
-export const forgotPassword = async (email: string) => {
-  // Find owner by email (regardless of verification status)
-  const owner = await prisma.owner.findFirst({
-    where: { email },
-  });
+export const forgotPassword = async (rawPhone: string) => {
+  const phone = normalizePhone(rawPhone);
+  const owner = await findOwnerByPhone(rawPhone);
 
   if (!owner) {
-    // Don't reveal if email exists or not for security
+    // Don't reveal if phone exists for security
     return {
       success: true,
-      message: 'إذا كان البريد الإلكتروني مسجلاً، ستصلك رسالة تحتوي على رمز إعادة التعيين',
+      message: 'إذا كان رقم الهاتف مسجلاً، ستصلك رسالة تحتوي على رمز إعادة التعيين',
     };
   }
 
@@ -406,14 +511,14 @@ export const forgotPassword = async (email: string) => {
 
   // Delete existing password reset OTPs
   await prisma.ownerOtp.deleteMany({
-    where: { email, type: OtpType.PASSWORD_RESET },
+    where: { phone, type: OtpType.PASSWORD_RESET },
   });
 
   // Create new OTP
   await prisma.ownerOtp.create({
     data: {
       ownerId: owner.id,
-      email,
+      phone,
       code: otpCode,
       type: OtpType.PASSWORD_RESET,
       expiresAt,
@@ -421,30 +526,21 @@ export const forgotPassword = async (email: string) => {
     },
   });
 
-  // Send OTP email
-  await sendOtpEmail({
-    to: email,
-    recipientName: `${owner.firstName} ${owner.lastName}`,
-    otpCode,
-    type: 'PASSWORD_RESET',
-    expiryMinutes: OTP_EXPIRY_MINUTES,
-  });
+  // Send OTP via SMS
+  await sendOtpSms(phone, otpCode, owner.preferredLang as 'ar' | 'en');
 
   return {
     success: true,
-    message: 'تم إرسال رمز إعادة التعيين إلى بريدك الإلكتروني',
+    message: 'تم إرسال رمز إعادة التعيين إلى رقم جوالك',
   };
 };
 
 /**
  * Reset password (after OTP verification)
- * Works for both verified users AND staff-created owners
- * Returns token for auto-login after password reset
  */
-export const resetPassword = async (email: string, newPassword: string) => {
-  const owner = await prisma.owner.findFirst({
-    where: { email },
-  });
+export const resetPassword = async (rawPhone: string, newPassword: string) => {
+  const phone = normalizePhone(rawPhone);
+  const owner = await findOwnerByPhone(rawPhone);
 
   if (!owner) {
     throw new AppError('العميل غير موجود', 404, 'CUSTOMER_NOT_FOUND', 'Customer not found');
@@ -453,7 +549,7 @@ export const resetPassword = async (email: string, newPassword: string) => {
   // Hash new password
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
-  // Update owner - also set isVerified to true (for staff-created owners)
+  // Update owner
   const updatedOwner = await prisma.owner.update({
     where: { id: owner.id },
     data: {
@@ -475,7 +571,7 @@ export const resetPassword = async (email: string, newPassword: string) => {
       customerCode: updatedOwner.customerCode,
       firstName: updatedOwner.firstName,
       lastName: updatedOwner.lastName,
-      email: updatedOwner.email,
+      email: isPlaceholderEmail(updatedOwner.email) ? null : updatedOwner.email,
       phone: updatedOwner.phone,
       preferredLang: updatedOwner.preferredLang,
     },
@@ -505,7 +601,7 @@ export const getProfile = async (ownerId: string) => {
     customerCode: owner.customerCode,
     firstName: owner.firstName,
     lastName: owner.lastName,
-    email: owner.email,
+    email: isPlaceholderEmail(owner.email) ? null : owner.email,
     phone: owner.phone,
     address: owner.address,
     preferredLang: owner.preferredLang,
@@ -540,7 +636,7 @@ export const updateProfile = async (ownerId: string, data: {
     id: owner.id,
     firstName: owner.firstName,
     lastName: owner.lastName,
-    email: owner.email,
+    email: isPlaceholderEmail(owner.email) ? null : owner.email,
     phone: owner.phone,
     address: owner.address,
     preferredLang: owner.preferredLang,
@@ -564,87 +660,6 @@ export const verifyToken = (token: string): CustomerTokenPayload => {
   }
 };
 
-/**
- * Check email status for registration flow
- * Returns: NOT_FOUND | REGISTERED | CLAIMABLE
- */
-export const checkEmailStatus = async (email: string): Promise<{
-  status: 'NOT_FOUND' | 'REGISTERED' | 'CLAIMABLE';
-  ownerId?: string;
-}> => {
-  const owner = await prisma.owner.findFirst({
-    where: { email },
-    select: { id: true, passwordHash: true, isVerified: true },
-  });
-
-  if (!owner) {
-    return { status: 'NOT_FOUND' };
-  }
-
-  // Has passwordHash = fully registered via portal
-  if (owner.passwordHash) {
-    return { status: 'REGISTERED' };
-  }
-
-  // Exists but no password = staff-created owner (can claim account)
-  return { status: 'CLAIMABLE', ownerId: owner.id };
-};
-
-/**
- * Claim account for staff-created owners
- * Sends OTP to verify email ownership before allowing password setup
- */
-export const claimAccount = async (email: string) => {
-  const owner = await prisma.owner.findFirst({
-    where: { email },
-  });
-
-  if (!owner) {
-    throw new AppError('البريد الإلكتروني غير مسجل', 404, 'EMAIL_NOT_FOUND', 'Email is not registered');
-  }
-
-  if (owner.passwordHash) {
-    throw new AppError('الحساب مفعل بالفعل. يرجى تسجيل الدخول', 400, 'ALREADY_VERIFIED', 'Account is already verified. Please login');
-  }
-
-  // Generate and save OTP
-  const otpCode = generateOtpCode();
-  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-
-  // Delete any existing OTPs for this email
-  await prisma.ownerOtp.deleteMany({
-    where: { email, type: OtpType.REGISTRATION },
-  });
-
-  // Create new OTP
-  await prisma.ownerOtp.create({
-    data: {
-      ownerId: owner.id,
-      email,
-      code: otpCode,
-      type: OtpType.REGISTRATION,
-      expiresAt,
-      attempts: 0,
-    },
-  });
-
-  // Send OTP email
-  await sendOtpEmail({
-    to: email,
-    recipientName: `${owner.firstName} ${owner.lastName}`,
-    otpCode,
-    type: 'REGISTRATION',
-    expiryMinutes: OTP_EXPIRY_MINUTES,
-  });
-
-  return {
-    success: true,
-    message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
-    ownerId: owner.id,
-    email,
-  };
-};
-
 export default {
   register,
   verifyOtp,
@@ -656,6 +671,5 @@ export default {
   getProfile,
   updateProfile,
   verifyToken,
-  checkEmailStatus,
-  claimAccount,
+  checkPhoneStatus,
 };

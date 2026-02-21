@@ -1,20 +1,19 @@
 /**
- * Customer Register Page - Redesigned
- * Multi-step registration with smart email handling
+ * Customer Register Page - Phone-First
+ * Multi-step: phone → OTP (SMS) → name + password
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCustomerAuthStore } from '../../store/customerAuthStore';
-import { customerPortalApi, CheckEmailResponse } from '../../api/customerPortal';
+import { customerPortalApi } from '../../api/customerPortal';
 import { PortalThemeProvider } from '../../context/PortalThemeContext';
 import { ToastProvider, useToast } from '../../components/portal/ui/Toast';
 import { AuthLayout } from '../../components/portal/layout/AuthLayout';
 import { Input } from '../../components/portal/ui/Input';
 import { Button } from '../../components/portal/ui/Button';
-import { Card } from '../../components/portal/ui/Card';
 import { OtpInput } from '../../components/portal/OtpInput';
 import { fadeInUpSimple } from '../../styles/portal/animations';
 
@@ -22,8 +21,7 @@ import { fadeInUpSimple } from '../../styles/portal/animations';
 // TYPES
 // ============================================
 
-type Step = 'info' | 'otp' | 'password';
-type EmailStatus = 'NOT_FOUND' | 'REGISTERED' | 'CLAIMABLE' | null;
+type Step = 'phone' | 'otp' | 'details';
 
 // ============================================
 // ICONS
@@ -35,21 +33,21 @@ const CheckIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const PhoneIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 15h3" />
+  </svg>
+);
+
+const MessageIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+  </svg>
+);
+
 const UserIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-  </svg>
-);
-
-const MailIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-  </svg>
-);
-
-const LockIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
   </svg>
 );
 
@@ -64,9 +62,9 @@ interface StepIndicatorProps {
 
 const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => {
   const stepIcons = {
-    info: UserIcon,
-    otp: MailIcon,
-    password: LockIcon,
+    phone: PhoneIcon,
+    otp: MessageIcon,
+    details: UserIcon,
   };
 
   return (
@@ -125,101 +123,66 @@ const RegisterForm: React.FC = () => {
   const { setAuth } = useCustomerAuthStore();
   const toast = useToast();
 
-  const [step, setStep] = useState<Step>('info');
+  const [step, setStep] = useState<Step>('phone');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1: Info
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  // Step 1: Phone
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-
-  // Email status for smart handling
-  const [emailStatus, setEmailStatus] = useState<EmailStatus>(null);
-  const [emailLoading, setEmailLoading] = useState(false);
 
   // Step 2: OTP
   const [ownerId, setOwnerId] = useState('');
   const [otp, setOtp] = useState('');
-
-  // Step 3: Password
+  // Step 3: Details
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const steps: Step[] = ['info', 'otp', 'password'];
+  const steps: Step[] = ['phone', 'otp', 'details'];
 
   // Set document direction
   useEffect(() => {
-    const currentLang = i18n.language;
-    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = currentLang;
+    document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
-  // Debounced email check
-  const checkEmailStatus = useCallback(async (emailToCheck: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailToCheck)) {
-      setEmailStatus(null);
-      return;
-    }
-
-    setEmailLoading(true);
-    try {
-      const result: CheckEmailResponse = await customerPortalApi.checkEmail(emailToCheck);
-      setEmailStatus(result.status);
-    } catch {
-      setEmailStatus(null);
-    } finally {
-      setEmailLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!email.trim()) {
-      setEmailStatus(null);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      checkEmailStatus(email);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [email, checkEmailStatus]);
-
-  const handleClaimAccount = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const result = await customerPortalApi.claimAccount(email);
-      setOwnerId(result.ownerId);
-      toast.success(t('register.otpSent'));
-      setStep('otp');
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('errors.generic'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInfoSubmit = async (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const cleanPhone = phone.trim();
+    if (!cleanPhone) {
+      setError(t('errors.required'));
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Check phone status first
+      const result = await customerPortalApi.checkPhone(cleanPhone);
+
+      if (result.status === 'REGISTERED') {
+        setError(t('register.phoneAlreadyRegistered'));
+        return;
+      }
+
+      // NOT_FOUND or CLAIMABLE → register (sends OTP via SMS)
       const response = await customerPortalApi.register({
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
+        phone: cleanPhone,
         preferredLang: i18n.language,
       });
       setOwnerId(response.ownerId);
+
+      // Pre-fill existing owner data for CLAIMABLE accounts
+      if (response.existingData) {
+        if (response.existingData.firstName) setFirstName(response.existingData.firstName);
+        if (response.existingData.lastName) setLastName(response.existingData.lastName);
+        if (response.existingData.email) setEmail(response.existingData.email);
+      }
+
       toast.success(t('register.otpSent'));
       setStep('otp');
     } catch (err: any) {
@@ -236,12 +199,12 @@ const RegisterForm: React.FC = () => {
 
     try {
       await customerPortalApi.verifyOtp({
-        email,
+        phone: phone.trim(),
         code: otp,
         type: 'registration',
       });
       toast.success(t('register.otpVerified'));
-      setStep('password');
+      setStep('details');
     } catch (err: any) {
       setError(err.response?.data?.message || t('errors.generic'));
     } finally {
@@ -254,7 +217,7 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await customerPortalApi.resendOtp(email, 'registration');
+      await customerPortalApi.resendOtp(phone.trim(), 'registration');
       toast.success(t('register.otpResent'));
     } catch (err: any) {
       setError(err.response?.data?.message || t('errors.generic'));
@@ -263,9 +226,14 @@ const RegisterForm: React.FC = () => {
     }
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!firstName.trim() || !lastName.trim()) {
+      setError(t('errors.required'));
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError(t('register.passwordMismatch'));
@@ -283,6 +251,9 @@ const RegisterForm: React.FC = () => {
       const response = await customerPortalApi.completeRegistration({
         ownerId,
         password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim() || undefined,
       });
       setAuth(response.owner, response.token);
       toast.success(t('register.success'));
@@ -294,105 +265,11 @@ const RegisterForm: React.FC = () => {
     }
   };
 
-  const renderEmailStatusMessage = () => {
-    if (emailLoading) {
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 p-3 rounded-xl bg-gray-100 dark:bg-gray-800"
-        >
-          <div className="w-4 h-4 border-2 border-gray-300 border-t-mint-500 rounded-full animate-spin" />
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {t('register.checkingEmail')}
-          </span>
-        </motion.div>
-      );
-    }
-
-    if (emailStatus === 'REGISTERED') {
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card variant="outlined" className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  {t('register.emailAlreadyRegistered')}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link to="/portal/login">
-                    <Button variant="primary" size="sm">
-                      {t('register.loginHere')}
-                    </Button>
-                  </Link>
-                  <Link to="/portal/forgot">
-                    <Button variant="outline" size="sm">
-                      {t('login.forgotPassword')}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      );
-    }
-
-    if (emailStatus === 'CLAIMABLE') {
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card variant="outlined" className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center flex-shrink-0">
-                <UserIcon className="w-4 h-4 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                  {t('register.accountExistsCanClaim')}
-                </p>
-                <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                  {t('register.claimAccountDescription')}
-                </p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="mt-3 bg-green-600 hover:bg-green-700"
-                  onClick={handleClaimAccount}
-                  loading={loading}
-                >
-                  {t('register.claimAccount')}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      );
-    }
-
-    return null;
-  };
-
-  const canSubmitForm = emailStatus === 'NOT_FOUND' || emailStatus === null;
-
   const getStepTitle = () => {
     switch (step) {
-      case 'info':
-        return t('register.step1');
-      case 'otp':
-        return t('register.step2');
-      case 'password':
-        return t('register.step3');
+      case 'phone': return t('register.step1');
+      case 'otp': return t('register.step2');
+      case 'details': return t('register.step3');
     }
   };
 
@@ -400,7 +277,7 @@ const RegisterForm: React.FC = () => {
     <AuthLayout
       title={t('register.title')}
       subtitle={getStepTitle()}
-      showBackToLogin={step !== 'info'}
+      showBackToLogin={step !== 'phone'}
     >
       <StepIndicator currentStep={step} steps={steps} />
 
@@ -408,6 +285,7 @@ const RegisterForm: React.FC = () => {
       <AnimatePresence mode="wait">
         {error && (
           <motion.div
+            key={error}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -419,74 +297,40 @@ const RegisterForm: React.FC = () => {
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
-        {/* Step 1: Personal Info */}
-        {step === 'info' && (
+        {/* Step 1: Phone */}
+        {step === 'phone' && (
           <motion.form
-            key="info"
+            key="phone"
             initial={fadeInUpSimple.initial}
             animate={fadeInUpSimple.animate}
             exit={{ opacity: 0, x: -20 }}
-            onSubmit={handleInfoSubmit}
+            onSubmit={handlePhoneSubmit}
             className="space-y-4"
           >
             <Input
-              type="email"
-              label={t('register.email')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="example@email.com"
+              type="tel"
+              label={t('register.phone')}
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setError('');
+              }}
+              placeholder="05xxxxxxxx"
               required
               dir="ltr"
               size="lg"
+              autoComplete="tel"
             />
 
-            {email.trim() && renderEmailStatusMessage()}
-
-            {(emailStatus === 'NOT_FOUND' || !emailStatus) && !emailLoading && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label={t('register.firstName')}
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                  <Input
-                    label={t('register.lastName')}
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <Input
-                  type="tel"
-                  label={t('register.phone')}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  dir="ltr"
-                />
-
-                <Input
-                  label={t('register.address')}
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  hint={t('register.addressOptional')}
-                />
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="xl"
-                  fullWidth
-                  loading={loading}
-                  disabled={!canSubmitForm}
-                >
-                  {t('register.sendOtp')}
-                </Button>
-              </>
-            )}
+            <Button
+              type="submit"
+              variant="primary"
+              size="xl"
+              fullWidth
+              loading={loading}
+            >
+              {t('register.sendOtp')}
+            </Button>
           </motion.form>
         )}
 
@@ -502,13 +346,13 @@ const RegisterForm: React.FC = () => {
           >
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-mint-100 dark:bg-mint-900/30 flex items-center justify-center">
-                <MailIcon className="w-8 h-8 text-mint-600" />
+                <MessageIcon className="w-8 h-8 text-mint-600" />
               </div>
               <p className="text-gray-600 dark:text-gray-400 mb-2">
                 {t('register.enterOtp')}
               </p>
               <p className="text-sm text-mint-600 dark:text-mint-400 font-medium" dir="ltr">
-                {email}
+                {phone}
               </p>
             </div>
 
@@ -541,24 +385,49 @@ const RegisterForm: React.FC = () => {
           </motion.form>
         )}
 
-        {/* Step 3: Password */}
-        {step === 'password' && (
+        {/* Step 3: Details + Password */}
+        {step === 'details' && (
           <motion.form
-            key="password"
+            key="details"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            onSubmit={handlePasswordSubmit}
+            onSubmit={handleDetailsSubmit}
             className="space-y-4"
           >
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <div className="text-center mb-4">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                 <CheckIcon className="w-8 h-8 text-green-600" />
               </div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {t('register.almostDone')}
               </p>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label={t('register.firstName')}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+              <Input
+                label={t('register.lastName')}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+
+            <Input
+              type="email"
+              label={t('register.email')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@email.com"
+              hint={t('register.emailOptional')}
+              dir="ltr"
+            />
 
             <Input
               type="password"
@@ -593,7 +462,7 @@ const RegisterForm: React.FC = () => {
       </AnimatePresence>
 
       {/* Login Link */}
-      {step === 'info' && (
+      {step === 'phone' && (
         <motion.div
           initial={fadeInUpSimple.initial}
           animate={fadeInUpSimple.animate}

@@ -1,7 +1,6 @@
 /**
  * Portal Forgot Password Page
- * Multi-step: Email → OTP → New Password
- * Uses AuthLayout + PortalThemeProvider for dark mode support
+ * Multi-step: Phone → OTP (SMS) → New Password
  */
 
 import React, { useState } from 'react';
@@ -17,17 +16,17 @@ import { Button } from '../../components/portal/ui/Button';
 import { OtpInput } from '../../components/portal/OtpInput';
 import { fadeInUpSimple } from '../../styles/portal/animations';
 
-type Step = 'email' | 'otp' | 'password';
+type Step = 'phone' | 'otp' | 'password';
 
 // ============================================
 // STEP ICONS
 // ============================================
 
-const EmailIcon: React.FC = () => (
+const PhoneIcon: React.FC = () => (
   <div className="flex items-center justify-center">
     <div className="w-20 h-20 rounded-full bg-mint-100 dark:bg-mint-900/30 flex items-center justify-center">
       <svg className="w-10 h-10 text-mint-600 dark:text-mint-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 15h3" />
       </svg>
     </div>
   </div>
@@ -62,23 +61,23 @@ const ForgotPasswordForm: React.FC = () => {
   const navigate = useNavigate();
   const { setAuth } = useCustomerAuthStore();
 
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('phone');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await customerPortalApi.forgotPassword(email);
+      await customerPortalApi.forgotPassword(phone.trim());
       setStep('otp');
     } catch (err: any) {
       setError(err.response?.data?.message || t('errors.generic'));
@@ -94,7 +93,7 @@ const ForgotPasswordForm: React.FC = () => {
 
     try {
       await customerPortalApi.verifyOtp({
-        email,
+        phone: phone.trim(),
         code: otp,
         type: 'password_reset',
       });
@@ -123,7 +122,7 @@ const ForgotPasswordForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await customerPortalApi.resetPassword(email, password);
+      const response = await customerPortalApi.resetPassword(phone.trim(), password);
 
       // Auto-login with returned token
       if (response.token && response.owner) {
@@ -140,9 +139,8 @@ const ForgotPasswordForm: React.FC = () => {
     }
   };
 
-  // Step icon and subtitle
-  const stepIcon = step === 'email' ? <EmailIcon /> : step === 'otp' ? <OtpIcon /> : <PasswordIcon />;
-  const stepSubtitle = step === 'email'
+  const stepIcon = step === 'phone' ? <PhoneIcon /> : step === 'otp' ? <OtpIcon /> : <PasswordIcon />;
+  const stepSubtitle = step === 'phone'
     ? t('forgotPassword.description')
     : step === 'otp'
     ? t('register.enterOtp')
@@ -177,22 +175,22 @@ const ForgotPasswordForm: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Step 1: Email */}
-        {step === 'email' && (
-          <form onSubmit={handleEmailSubmit} className="space-y-5">
+        {/* Step 1: Phone */}
+        {step === 'phone' && (
+          <form onSubmit={handlePhoneSubmit} className="space-y-5">
             <motion.div
               initial={fadeInUpSimple.initial}
               animate={fadeInUpSimple.animate}
               transition={{ ...fadeInUpSimple.transition, delay: 0.2 }}
             >
               <Input
-                type="email"
-                label={t('login.email')}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
+                type="tel"
+                label={t('login.phone')}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="05xxxxxxxx"
                 required
-                autoComplete="email"
+                autoComplete="tel"
                 dir="ltr"
                 size="lg"
               />
@@ -218,6 +216,11 @@ const ForgotPasswordForm: React.FC = () => {
         {/* Step 2: OTP */}
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} className="space-y-5">
+            <div className="text-center mb-2">
+              <p className="text-sm text-mint-600 dark:text-mint-400 font-medium" dir="ltr">
+                {phone}
+              </p>
+            </div>
             <motion.div
               initial={fadeInUpSimple.initial}
               animate={fadeInUpSimple.animate}

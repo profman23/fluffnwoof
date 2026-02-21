@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { Species, Gender } from '@prisma/client';
+import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
 
 export interface ImportOwnerInput {
   firstName: string;
@@ -83,9 +84,12 @@ export const importService = {
           ? new Date(`${String(petData.birthDate).split('T')[0]}T00:00:00.000Z`)
           : null;
 
-        // Check if owner with this phone already exists
-        const existingOwner = await prisma.owner.findUnique({
-          where: { phone: ownerData.phone },
+        // Normalize phone before lookup/storage
+        ownerData.phone = normalizePhone(ownerData.phone);
+
+        // Check if owner with this phone already exists (search all format variants)
+        const existingOwner = await prisma.owner.findFirst({
+          where: { phone: { in: getPhoneVariants(ownerData.phone) } },
         });
 
         if (existingOwner) {
@@ -124,7 +128,7 @@ export const importService = {
                 firstName: ownerData.firstName.trim(),
                 lastName: ownerData.lastName.trim(),
                 phone: ownerData.phone.trim(),
-                email: ownerData.email?.trim() || null,
+                email: ownerData.email?.trim() || `noemail_${ownerData.phone.trim()}@import.local`,
                 customerCode,
               },
             });

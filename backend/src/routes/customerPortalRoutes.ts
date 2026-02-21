@@ -49,20 +49,19 @@ router.use(portalApiLimiter);
 // Public Auth Endpoints (no authentication required)
 // =====================================
 
-// Email check (for smart registration flow)
-router.post('/check-email', emailCheckLimiter, customerPortalController.checkEmail);
-router.post('/claim-account', registrationLimiter, customerPortalController.claimAccount);
+// Phone check (for smart registration flow)
+router.post('/check-phone', emailCheckLimiter, customerPortalController.checkPhone);
 
-// Registration flow
+// Registration flow (phone-first)
 router.post('/register', registrationLimiter, customerPortalController.register);
 router.post('/verify-otp', otpLimiter, customerPortalController.verifyOtp);
 router.post('/resend-otp', otpLimiter, customerPortalController.resendOtp);
 router.post('/complete-registration', customerPortalController.completeRegistration);
 
-// Login
+// Login (phone + password)
 router.post('/login', loginLimiter, customerPortalController.login);
 
-// Password reset flow
+// Password reset flow (phone-based SMS OTP)
 router.post('/forgot-password', passwordResetLimiter, customerPortalController.forgotPassword);
 router.post('/reset-password', customerPortalController.resetPassword);
 

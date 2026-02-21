@@ -3,6 +3,7 @@ import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { Species, Gender } from '@prisma/client';
 import { reminderService } from './reminderService';
+import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
 
 // Generate next pet code (P00000001, P00000002, etc.)
 async function generatePetCode(): Promise<string> {
@@ -62,15 +63,16 @@ export const petService = {
     };
   }) {
     const { owner: ownerData, pet: petData } = data;
+    ownerData.phone = normalizePhone(ownerData.phone);
     const { birthDate, ...restPetData } = petData;
 
     const parsedBirthDate = birthDate
       ? new Date(`${String(birthDate).split('T')[0]}T00:00:00.000Z`)
       : undefined;
 
-    // Check phone uniqueness before transaction
-    const existingOwner = await prisma.owner.findUnique({
-      where: { phone: ownerData.phone },
+    // Check phone uniqueness before transaction (search all format variants)
+    const existingOwner = await prisma.owner.findFirst({
+      where: { phone: { in: getPhoneVariants(ownerData.phone) } },
     });
     if (existingOwner) {
       throw new AppError('Phone number already exists', 400, 'PHONE_EXISTS');

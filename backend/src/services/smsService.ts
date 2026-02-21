@@ -183,6 +183,15 @@ export const getLogs = async (params: {
   };
 };
 
+// Send OTP SMS for portal authentication
+export const sendOtpSms = async (phone: string, otpCode: string, lang: 'ar' | 'en' = 'ar'): Promise<void> => {
+  const message = lang === 'ar'
+    ? `رمز التحقق الخاص بك في Fluff N' Woof: ${otpCode}\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.`
+    : `Your Fluff N' Woof verification code: ${otpCode}\nValid for 10 minutes. Do not share it.`;
+
+  await sendSms({ phone, message });
+};
+
 // Get message status from Madar
 export const getMessageStatus = async (messageId: string) => {
   try {

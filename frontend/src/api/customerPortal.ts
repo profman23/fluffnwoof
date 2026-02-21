@@ -59,12 +59,17 @@ portalClient.interceptors.response.use(
     }
 
     // Handle unauthorized (401) - logout and redirect
+    // BUT skip redirect for auth pages (login, register, forgot) where 401 is expected
     if (error.response?.status === 401) {
-      localStorage.removeItem('customerToken');
-      localStorage.removeItem('customer');
-      // Redirect to portal login, not staff login
-      if (window.location.pathname.startsWith('/portal')) {
-        window.location.href = '/portal/login';
+      const authPages = ['/portal/login', '/portal/register', '/portal/forgot'];
+      const isAuthPage = authPages.some(p => window.location.pathname.startsWith(p));
+
+      if (!isAuthPage) {
+        localStorage.removeItem('customerToken');
+        localStorage.removeItem('customer');
+        if (window.location.pathname.startsWith('/portal')) {
+          window.location.href = '/portal/login';
+        }
       }
     }
 
@@ -87,17 +92,12 @@ portalClient.interceptors.response.use(
 // =====================================
 
 export interface RegisterInput {
-  firstName: string;
-  lastName: string;
-  email: string;
   phone: string;
-  address?: string;
-  nationalId?: string;
   preferredLang?: string;
 }
 
 export interface VerifyOtpInput {
-  email: string;
+  phone: string;
   code: string;
   type: 'registration' | 'password_reset';
 }
@@ -105,11 +105,31 @@ export interface VerifyOtpInput {
 export interface CompleteRegistrationInput {
   ownerId: string;
   password: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
 }
 
 export interface LoginInput {
-  email: string;
+  phone: string;
   password: string;
+}
+
+export interface CheckPhoneResponse {
+  status: 'NOT_FOUND' | 'REGISTERED' | 'CLAIMABLE';
+  ownerId?: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  ownerId: string;
+  phone: string;
+  existingData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
 }
 
 export interface CustomerProfile {
@@ -319,26 +339,16 @@ export interface PortalFormDetail extends PortalForm {
   };
 }
 
-export interface CheckEmailResponse {
-  status: 'NOT_FOUND' | 'REGISTERED' | 'CLAIMABLE';
-  ownerId?: string;
-}
-
 // Auth endpoints
 export const customerPortalApi = {
-  // Email check (for smart registration flow)
-  checkEmail: async (email: string): Promise<CheckEmailResponse> => {
-    const response = await portalClient.post('/check-email', { email });
+  // Phone check (for smart registration flow)
+  checkPhone: async (phone: string): Promise<CheckPhoneResponse> => {
+    const response = await portalClient.post('/check-phone', { phone });
     return response.data.data;
   },
 
-  claimAccount: async (email: string) => {
-    const response = await portalClient.post('/claim-account', { email });
-    return response.data;
-  },
-
   // Registration
-  register: async (data: RegisterInput) => {
+  register: async (data: RegisterInput): Promise<RegisterResponse> => {
     const response = await portalClient.post('/register', data);
     return response.data;
   },
@@ -348,8 +358,8 @@ export const customerPortalApi = {
     return response.data;
   },
 
-  resendOtp: async (email: string, type: 'registration' | 'password_reset') => {
-    const response = await portalClient.post('/resend-otp', { email, type });
+  resendOtp: async (phone: string, type: 'registration' | 'password_reset') => {
+    const response = await portalClient.post('/resend-otp', { phone, type });
     return response.data;
   },
 
@@ -365,13 +375,13 @@ export const customerPortalApi = {
   },
 
   // Password reset
-  forgotPassword: async (email: string) => {
-    const response = await portalClient.post('/forgot-password', { email });
+  forgotPassword: async (phone: string) => {
+    const response = await portalClient.post('/forgot-password', { phone });
     return response.data;
   },
 
-  resetPassword: async (email: string, newPassword: string) => {
-    const response = await portalClient.post('/reset-password', { email, newPassword });
+  resetPassword: async (phone: string, newPassword: string) => {
+    const response = await portalClient.post('/reset-password', { phone, newPassword });
     return response.data;
   },
 
