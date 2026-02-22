@@ -174,10 +174,21 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error creating boarding config:', error);
+
+    // Handle Prisma unique constraint violation
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        error: 'A configuration with this type and species already exists',
+        errorAr: 'يوجد إعداد مسبق لهذا النوع والفصيلة',
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: 'Failed to create boarding configuration',
       errorAr: 'فشل في إنشاء إعدادات الإقامة',
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 };
