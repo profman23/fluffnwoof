@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { Species, Gender } from '@prisma/client';
 import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
+import { nextCustomerCode, nextPetCode } from '../utils/codeGenerator';
 
 export interface ImportOwnerInput {
   firstName: string;
@@ -45,25 +46,7 @@ export interface ImportSummary {
   results: ImportRowResult[];
 }
 
-async function generateCustomerCode(): Promise<string> {
-  const lastOwner = await prisma.owner.findFirst({
-    orderBy: { customerCode: 'desc' },
-    select: { customerCode: true },
-  });
-  if (!lastOwner?.customerCode) return 'C00000001';
-  const next = parseInt(lastOwner.customerCode.substring(1), 10) + 1;
-  return `C${next.toString().padStart(8, '0')}`;
-}
-
-async function generatePetCode(): Promise<string> {
-  const lastPet = await prisma.pet.findFirst({
-    orderBy: { petCode: 'desc' },
-    select: { petCode: true },
-  });
-  if (!lastPet?.petCode) return 'P00000001';
-  const next = parseInt(lastPet.petCode.substring(1), 10) + 1;
-  return `P${next.toString().padStart(8, '0')}`;
-}
+// Code generation moved to utils/codeGenerator.ts (atomic UPSERT)
 
 export const importService = {
   /**
@@ -115,7 +98,7 @@ export const importService = {
             });
           } else {
             // Add pet to existing owner
-            const petCode = await generatePetCode();
+            const petCode = await nextPetCode();
             const pet = await prisma.pet.create({
               data: {
                 name: petData.name.trim(),
@@ -141,8 +124,8 @@ export const importService = {
           }
         } else {
           // Create owner + pet atomically in a transaction
-          const customerCode = await generateCustomerCode();
-          const petCode = await generatePetCode();
+          const customerCode = await nextCustomerCode();
+          const petCode = await nextPetCode();
 
           const { owner, pet } = await prisma.$transaction(async (tx) => {
             const owner = await tx.owner.create({

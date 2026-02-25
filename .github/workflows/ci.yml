@@ -126,11 +126,12 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
 
       - name: Run Tests with Coverage
-        run: cd backend && npm run test:coverage || echo "No tests configured yet"
+        run: cd backend && npm run test:coverage
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
-          JWT_SECRET: test-secret-key-for-ci
+          TEST_DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+          JWT_SECRET: test-secret-key-for-testing
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v3

@@ -5,6 +5,7 @@ import { OtpType } from '@prisma/client';
 import { sendOtpSms } from './smsService';
 import { AppError } from '../middlewares/errorHandler';
 import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
+import { nextCustomerCode } from '../utils/codeGenerator';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = '7d';
@@ -57,24 +58,7 @@ const generateToken = (owner: { id: string; phone: string }): string => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
-/**
- * Generate customer code (C00000001 format)
- */
-const generateCustomerCode = async (): Promise<string> => {
-  const lastOwner = await prisma.owner.findFirst({
-    orderBy: { customerCode: 'desc' },
-  });
-
-  let nextNumber = 1;
-  if (lastOwner?.customerCode) {
-    const match = lastOwner.customerCode.match(/C(\d+)/);
-    if (match) {
-      nextNumber = parseInt(match[1], 10) + 1;
-    }
-  }
-
-  return `C${nextNumber.toString().padStart(8, '0')}`;
-};
+// customerCode generation moved to utils/codeGenerator.ts (atomic UPSERT)
 
 /**
  * Find owner by phone using all possible format variants.
@@ -206,7 +190,7 @@ export const register = async (input: RegisterInput) => {
     });
   } else {
     // Create new owner with placeholder name (will be updated in completeRegistration)
-    const customerCode = await generateCustomerCode();
+    const customerCode = await nextCustomerCode();
 
     owner = await prisma.owner.create({
       data: {

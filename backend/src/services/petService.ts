@@ -4,38 +4,7 @@ import { getPaginationParams, createPaginatedResponse } from '../utils/paginatio
 import { Species, Gender } from '@prisma/client';
 import { reminderService } from './reminderService';
 import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
-
-// Generate next pet code (P00000001, P00000002, etc.)
-async function generatePetCode(): Promise<string> {
-  const lastPet = await prisma.pet.findFirst({
-    orderBy: { petCode: 'desc' },
-    select: { petCode: true },
-  });
-
-  if (!lastPet || !lastPet.petCode) {
-    return 'P00000001';
-  }
-
-  const lastNumber = parseInt(lastPet.petCode.substring(1), 10);
-  const nextNumber = lastNumber + 1;
-  return `P${nextNumber.toString().padStart(8, '0')}`;
-}
-
-// Generate next customer code (C00000001, C00000002, etc.)
-async function generateCustomerCode(): Promise<string> {
-  const lastOwner = await prisma.owner.findFirst({
-    orderBy: { customerCode: 'desc' },
-    select: { customerCode: true },
-  });
-
-  if (!lastOwner || !lastOwner.customerCode) {
-    return 'C00000001';
-  }
-
-  const lastNumber = parseInt(lastOwner.customerCode.substring(1), 10);
-  const nextNumber = lastNumber + 1;
-  return `C${nextNumber.toString().padStart(8, '0')}`;
-}
+import { nextCustomerCode, nextPetCode } from '../utils/codeGenerator';
 
 export const petService = {
   /**
@@ -79,8 +48,8 @@ export const petService = {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const customerCode = await generateCustomerCode();
-      const petCode = await generatePetCode();
+      const customerCode = await nextCustomerCode();
+      const petCode = await nextPetCode();
 
       const owner = await tx.owner.create({
         data: {
@@ -138,7 +107,7 @@ export const petService = {
     sendWelcomeEmail?: boolean;
   }) {
     const { sendWelcomeEmail, birthDate, ...restData } = data;
-    const petCode = await generatePetCode();
+    const petCode = await nextPetCode();
 
     // Convert birthDate string (YYYY-MM-DD) to proper ISO DateTime for Prisma
     const parsedBirthDate = birthDate

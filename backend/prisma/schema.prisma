@@ -932,6 +932,21 @@ model RecordCodeTracker {
 }
 
 // =====================================================
+// Code Tracker - توليد أرقام تسلسلية آمنة (Atomic UPSERT)
+// Used for: customerCode, petCode, invoiceNumber
+// =====================================================
+
+model CodeTracker {
+  id          String   @id @default(uuid())
+  key         String   @unique // 'customer_code' | 'pet_code' | 'invoice_YYYYMMDD'
+  lastNumber  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("code_trackers")
+}
+
+// =====================================================
 // Clinic Form Settings - إعدادات النماذج
 // =====================================================
 

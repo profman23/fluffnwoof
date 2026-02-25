@@ -556,9 +556,15 @@ export const appointmentService = {
   },
 
   async updateStatus(id: string, status: AppointmentStatus) {
+    // Auto-confirm when checking in — if the patient arrived, the appointment is confirmed
+    const data: { status: AppointmentStatus; isConfirmed?: boolean } = { status };
+    if (status === 'CHECK_IN') {
+      data.isConfirmed = true;
+    }
+
     const appointment = await prisma.appointment.update({
       where: { id },
-      data: { status },
+      data,
       include: {
         pet: {
           include: {

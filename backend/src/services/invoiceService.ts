@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { InvoiceStatus, PaymentMethod } from '@prisma/client';
+import { nextInvoiceNumber } from '../utils/codeGenerator';
 
 interface CreateInvoiceInput {
   ownerId: string;
@@ -30,41 +31,10 @@ interface AddPaymentInput {
 
 export const invoiceService = {
   /**
-   * Generate unique invoice number
-   */
-  async generateInvoiceNumber(): Promise<string> {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const prefix = `INV-${year}${month}${day}`;
-
-    // Find the last invoice number for today
-    const lastInvoice = await prisma.invoice.findFirst({
-      where: {
-        invoiceNumber: {
-          startsWith: prefix,
-        },
-      },
-      orderBy: {
-        invoiceNumber: 'desc',
-      },
-    });
-
-    let sequence = 1;
-    if (lastInvoice) {
-      const lastSequence = parseInt(lastInvoice.invoiceNumber.split('-').pop() || '0');
-      sequence = lastSequence + 1;
-    }
-
-    return `${prefix}-${String(sequence).padStart(4, '0')}`;
-  },
-
-  /**
    * Create a new invoice
    */
   async create(data: CreateInvoiceInput) {
-    const invoiceNumber = await this.generateInvoiceNumber();
+    const invoiceNumber = await nextInvoiceNumber();
 
     // Calculate total from items (with discount)
     let totalAmount = 0;

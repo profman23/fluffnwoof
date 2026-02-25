@@ -33,28 +33,32 @@ export default defineConfig({
         'src/tests/**',
         'src/types/**',
       ],
-      // Coverage thresholds - will fail CI if not met
-      // Start with 0 and gradually increase as tests are added
+      // Coverage thresholds - CI fails if coverage drops below these values
+      // Current: ~47% stmts, ~52% branch, ~58% funcs - set floor slightly below
+      // Target: 85% (increase as more unit tests are added)
       thresholds: {
-        lines: 0,
-        functions: 0,
-        branches: 0,
-        statements: 0,
+        lines: 40,
+        functions: 45,
+        branches: 40,
+        statements: 40,
       },
     },
 
-    // Timeouts
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    // Timeouts (60s for load tests with concurrent DB operations)
+    testTimeout: 60000,
+    hookTimeout: 60000,
 
     // Reporter configuration
     reporters: ['default'],
 
-    // Pool configuration for parallel tests
-    pool: 'threads',
+    // Run test files sequentially (required for shared database)
+    fileParallelism: false,
+
+    // Pool configuration for database tests
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        singleThread: true, // Use single thread for database tests
+      forks: {
+        singleFork: true, // Use single fork for database tests
       },
     },
   },

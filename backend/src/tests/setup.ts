@@ -1,25 +1,63 @@
 // ══════════════════════════════════════════════════════════════
 // FluffNwoof Backend - Test Setup
 // Global test configuration and database connection
+// SAFETY: Only connects to TEST database, never Dev/Training/Production
 // ══════════════════════════════════════════════════════════════
 
 import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
+import path from 'path';
 
-// Create test Prisma client
+// Load .env from backend root
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// ═══════════════════════════════════════════════════════════
+// SAFETY CHECK: Prevent tests from running on non-test databases
+// ═══════════════════════════════════════════════════════════
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+
+if (!testDatabaseUrl) {
+  throw new Error(
+    '❌ TEST_DATABASE_URL is not set! Tests require a separate test database.\n' +
+    '   Add TEST_DATABASE_URL to backend/.env pointing to the Neon test branch.'
+  );
+}
+
+// Block known production/training/dev database hosts
+const BLOCKED_HOSTS = [
+  'ep-twilight-union',   // Dev database
+  // Add training and production hosts here if known
+];
+
+for (const host of BLOCKED_HOSTS) {
+  if (testDatabaseUrl.includes(host)) {
+    throw new Error(
+      `❌ SAFETY BLOCK: TEST_DATABASE_URL contains "${host}" which is a non-test database!\n` +
+      '   Tests can ONLY run on the dedicated test branch (ep-solitary-forest).\n' +
+      '   This prevents accidental data deletion from Dev/Training/Production.'
+    );
+  }
+}
+
+// Create test Prisma client pointing to TEST database only
 const prisma = new PrismaClient({
+  datasources: {
+    db: { url: testDatabaseUrl },
+  },
   log: ['error'],
 });
 
 // Mock environment variables for tests
 vi.stubEnv('NODE_ENV', 'test');
 vi.stubEnv('JWT_SECRET', 'test-secret-key-for-testing');
+vi.stubEnv('DATABASE_URL', testDatabaseUrl);
 
 beforeAll(async () => {
   try {
     // Connect to test database
     await prisma.$connect();
-    console.log('📦 Test database connected');
+    console.log('📦 Test database connected (test branch)');
   } catch (error) {
     console.error('❌ Failed to connect to test database:', error);
     throw error;
@@ -49,7 +87,7 @@ afterEach(async () => {
 // Export prisma client for use in tests
 export { prisma };
 
-// Helper function to clean all tables (use with caution)
+// Helper function to clean all tables (ONLY runs on test database due to safety checks above)
 export async function cleanDatabase() {
   const tablenames = await prisma.$queryRaw<
     Array<{ tablename: string }>

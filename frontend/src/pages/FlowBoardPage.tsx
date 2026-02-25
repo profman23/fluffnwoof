@@ -240,7 +240,7 @@ export const FlowBoardPage = () => {
       ].filter((a) => a.id !== activeId);
       newData[targetColumn as keyof FlowBoardData] = [
         ...prev[targetColumn as keyof FlowBoardData],
-        { ...appointment, status: statusMap[targetColumn] },
+        { ...appointment, status: statusMap[targetColumn], ...(targetColumn === 'checkIn' && { isConfirmed: true }) },
       ];
       return newData;
     });

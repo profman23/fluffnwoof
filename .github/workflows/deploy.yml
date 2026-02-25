@@ -55,6 +55,22 @@ jobs:
           echo "🎯 Target environment: ${{ github.event.inputs.environment }}"
           echo "🗄️ Run migrations: ${{ github.event.inputs.run_migrations }}"
 
+      - name: Check Latest CI Status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          echo "Checking CI status for branch: $BRANCH"
+          # Check if the latest CI workflow run passed
+          STATUS=$(gh run list --workflow=ci.yml --branch=$BRANCH --limit=1 --json conclusion -q '.[0].conclusion' 2>/dev/null || echo "unknown")
+          echo "Latest CI status: $STATUS"
+          if [ "$STATUS" != "success" ]; then
+            echo "❌ CI has not passed for this branch. Please ensure CI passes before deploying."
+            echo "   Latest CI conclusion: $STATUS"
+            exit 1
+          fi
+          echo "✅ CI passed - proceeding with deployment"
+
   # ════════════════════════════════════════════════════════════════
   # Deploy to Training
   # ════════════════════════════════════════════════════════════════

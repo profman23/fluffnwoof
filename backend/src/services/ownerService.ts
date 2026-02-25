@@ -2,22 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { normalizePhone, getPhoneVariants } from '../utils/phoneUtils';
-
-// Generate next customer code (C00000001, C00000002, etc.)
-async function generateCustomerCode(): Promise<string> {
-  const lastOwner = await prisma.owner.findFirst({
-    orderBy: { customerCode: 'desc' },
-    select: { customerCode: true },
-  });
-
-  if (!lastOwner || !lastOwner.customerCode) {
-    return 'C00000001';
-  }
-
-  const lastNumber = parseInt(lastOwner.customerCode.substring(1), 10);
-  const nextNumber = lastNumber + 1;
-  return `C${nextNumber.toString().padStart(8, '0')}`;
-}
+import { nextCustomerCode } from '../utils/codeGenerator';
 
 export const ownerService = {
   async create(data: {
@@ -40,7 +25,7 @@ export const ownerService = {
       throw new AppError('Phone number already exists', 400, 'PHONE_EXISTS');
     }
 
-    const customerCode = await generateCustomerCode();
+    const customerCode = await nextCustomerCode();
 
     const owner = await prisma.owner.create({
       data: {

@@ -8,9 +8,102 @@
 
 ## Deployment (CRITICAL)
 - **DO NOT push/deploy without explicit approval**
-- Development: localhost + Neon `development` branch
-- `"deploy"` / `"ارفع training"` → commit & push to `training` branch (Render Training + Neon `training`)
-- `"production"` / `"ارفع production"` → merge `training` to `main` (Render Production + Neon `production`)
+- **Golden Rule: NO code reaches Production without passing Training first**
+
+### Environments
+| Environment | Branch | Database | URL |
+|------------|--------|----------|-----|
+| Dev | localhost | Neon `development` | `localhost:5173` / `localhost:5000` |
+| Training | `training` | Neon `training` | `fluffnwoof-training-frontend.onrender.com` |
+| Production | `main` | Neon `production` | `fluffnwoof-frontend.onrender.com` |
+
+### Deploy Commands
+- `"deploy"` / `"ارفع training"` → commit & push to `training` branch → Render Training auto-deploys
+- `"production"` / `"ارفع production"` → push `main` → Render Production auto-deploys
+- `"ارفع"` without specifying → **ASK**: Training or Production?
+
+### Workflow Rules
+1. **Always develop on Dev first** → test locally
+2. **Always deploy to Training first** → test on Training
+3. **Then deploy to Production** → quick smoke test on Live
+4. **Never skip Training** — even for "small" fixes
+
+### Batching Strategy
+| Change Type | Strategy |
+|-------------|----------|
+| Small bug fixes | Batch 3-5 together → Training → Production |
+| Simple UI tweaks | Batch 2-3 together → Training → Production |
+| New feature (medium/large) | One at a time → Training → Production |
+| Database migration | One at a time → Training → Production |
+
+### Before Production Deploy (Checklist)
+- Same code was tested on Training first
+- No destructive migrations (DROP TABLE/COLUMN) without explicit approval
+- Always ask user for confirmation
+
+## Testing (CRITICAL)
+- **Tests run on a SEPARATE test database** (Neon `test` branch) — NEVER on Dev/Training/Production
+- `setup.ts` has safety checks that block non-test databases
+- **Every new API endpoint or feature MUST include integration tests**
+- **Every bug fix MUST include a regression test** that prevents the bug from returning
+- **External services (SMS, Email, WhatsApp, Cloudinary) MUST be mocked** — never send real messages in tests
+- **Coverage minimum: 40% (CI fails if below)** — target: 85%, increase thresholds as coverage grows
+- Test files go in `backend/src/tests/api/` following existing patterns
+- Run locally: `cd backend && npm run test:run`
+- Run with coverage: `cd backend && npm run test:coverage`
+- CI runs tests automatically on every push, deploy gate checks CI passed
+
+### Test Helpers
+| Helper | Location | Usage |
+|--------|----------|-------|
+| `cleanDatabase()` | `tests/setup.ts` | Truncate all tables (test DB only) |
+| `createTestUser()` | `tests/setup.ts` | Create staff user with TestRole |
+| `generateAdminToken()` | `tests/helpers.ts` | JWT with ADMIN role (bypasses permissions) |
+| `generateUserToken()` | `tests/helpers.ts` | JWT with custom role (subject to permissions) |
+| `generateCustomerToken()` | `tests/helpers.ts` | JWT with `type: 'customer'` for portal auth |
+| `createTestOwnerWithPortal()` | `tests/helpers.ts` | Owner with isVerified + portalEnabled |
+| `createTestVisitType()` | `tests/helpers.ts` | Visit type for appointment tests |
+| `createTestCategory()` | `tests/helpers.ts` | Service product category |
+
+### Mocking External Services
+Use `vi.mock()` at the top of test files (hoisted automatically):
+- SMS: `vi.mock('../../services/smsService', () => ({ ... }))`
+- Email: `vi.mock('../../services/emailService', () => ({ ... }))`
+- WhatsApp: `vi.mock('../../services/whatsappService', () => ({ ... }))`
+- Cloudinary: `vi.mock('../../config/cloudinary', () => ({ ... }))`
+- See `tests/mocks/externalServices.ts` for reusable mock definitions
+
+### Test Coverage (28 files, 243 tests)
+| Module | Test File | Tests |
+|--------|-----------|-------|
+| Auth | `auth.test.ts` | Login, Profile, Auth rejection |
+| Appointments | `appointments.test.ts` | CRUD, Status changes, Auto-confirm |
+| Boarding | `boarding.test.ts` | Config CRUD, Filters, Validation |
+| Owners | `owners.test.ts` | CRUD, Duplicate phone, Validation |
+| Pets | `pets.test.ts` | CRUD, With-owner creation |
+| Invoices | `invoices.test.ts` | CRUD, AddItem, Finalize |
+| Health | `health.test.ts` | Health endpoints |
+| Users | `users.test.ts` | CRUD, Deactivate, Password, Permissions |
+| Roles | `roles.test.ts` | CRUD, Permissions |
+| Medical Records | `medical-records.test.ts` | Full lifecycle, Audit, Close/Reopen |
+| Shifts | `shifts.test.ts` | Schedules, Days off, Breaks, Periods |
+| Visit Types | `visit-types.test.ts` | CRUD, Reorder, Seed, Toggle |
+| Service Products | `service-products.test.ts` | Categories + Products CRUD |
+| Dashboard | `dashboard.test.ts` | Stats, Appointments, Analytics |
+| Profile | `profile.test.ts` | Get/Update profile & preferences |
+| Clinic Settings | `clinic-settings.test.ts` | Form settings, Logo |
+| Reminders | `reminders.test.ts` | Settings, Logs, Stats, Templates |
+| Forms | `forms.test.ts` | Templates CRUD, Pet forms, Sign |
+| Notifications | `notifications.test.ts` | List, Count, Mark read |
+| SMS | `sms.test.ts` | Balance, Logs, Send (mocked) |
+| WhatsApp | `whatsapp.test.ts` | Test, Templates, Send (mocked) |
+| Email | `email.test.ts` | Connection, Send (mocked) |
+| Audit | `audit.test.ts` | Logs, Recent, Statistics |
+| Reports | `reports.test.ts` | Next appointments |
+| Import | `import.test.ts` | Route availability check |
+| Customer Portal | `customer-portal.test.ts` | Auth, Booking data, Profile, Pets, Appointments, Forms |
+| Public Forms | `public-forms.test.ts` | Get form, Sign, Double-sign rejection |
+| Uploads | `uploads.test.ts` | Avatar, Pet photo, Attachments |
 
 ## Tech Stack
 - **Frontend**: React + Vite + TypeScript

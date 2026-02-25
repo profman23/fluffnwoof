@@ -1,6 +1,8 @@
 import rateLimit from 'express-rate-limit';
 import { Request } from 'express';
 
+const isTest = process.env.NODE_ENV === 'test';
+
 /**
  * Rate limiter for email check (used during registration to check if email exists)
  * 30 requests per 5 minutes per IP (more lenient since it's just a DB lookup)
@@ -8,6 +10,7 @@ import { Request } from 'express';
 export const emailCheckLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 30,
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى للطلبات. يرجى المحاولة بعد 5 دقائق.',
@@ -24,6 +27,7 @@ export const emailCheckLimiter = rateLimit({
 export const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى للطلبات. يرجى المحاولة بعد 15 دقيقة.',
@@ -46,6 +50,7 @@ export const otpLimiter = rateLimit({
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى لمحاولات تسجيل الدخول. يرجى المحاولة بعد 15 دقيقة.',
@@ -67,6 +72,7 @@ export const loginLimiter = rateLimit({
 export const registrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى لمحاولات التسجيل. يرجى المحاولة بعد ساعة.',
@@ -83,6 +89,7 @@ export const registrationLimiter = rateLimit({
 export const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3,
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى لمحاولات إعادة تعيين كلمة المرور. يرجى المحاولة بعد ساعة.',
@@ -104,6 +111,7 @@ export const passwordResetLimiter = rateLimit({
 export const bookingLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى للحجوزات. يرجى المحاولة بعد ساعة.',
@@ -126,6 +134,7 @@ export const bookingLimiter = rateLimit({
 export const portalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 500, // Increased from 100 for development
+  skip: () => isTest,
   message: {
     success: false,
     message: 'تم تجاوز الحد الأقصى للطلبات. يرجى المحاولة لاحقاً.',
