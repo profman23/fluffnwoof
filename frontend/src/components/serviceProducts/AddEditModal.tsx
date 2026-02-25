@@ -16,20 +16,13 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
 
   const [formData, setFormData] = useState({
     name: '',
-    categoryId: '',
+    categoryId: categories.length > 0 ? categories[0].id : '',
     priceBeforeTax: '',
     taxRate: '15',
     priceAfterTax: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Auto-select first category (Medical) if available
-  useEffect(() => {
-    if (!item && categories.length > 0 && !formData.categoryId) {
-      setFormData((prev) => ({ ...prev, categoryId: categories[0].id }));
-    }
-  }, [categories, item, formData.categoryId]);
 
   useEffect(() => {
     if (item) {
@@ -42,6 +35,13 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
       });
     }
   }, [item]);
+
+  // Auto-select first category when categories load (for new items only)
+  useEffect(() => {
+    if (!isEdit && categories.length > 0 && !formData.categoryId) {
+      setFormData((prev) => ({ ...prev, categoryId: categories[0].id }));
+    }
+  }, [categories]);
 
   // Calculate price after tax when price before tax or tax rate changes
   useEffect(() => {
@@ -58,16 +58,23 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
     e.preventDefault();
     setError('');
 
-    if (!formData.name || !formData.categoryId || !formData.priceBeforeTax) {
+    if (!formData.name || !formData.priceBeforeTax) {
       setError(t('form.requiredFields'));
       return;
     }
 
     setLoading(true);
     try {
+      // Auto-create "General" category if none exist
+      let categoryId = formData.categoryId;
+      if (!categoryId) {
+        const newCategory = await serviceProductsApi.createCategory('General');
+        categoryId = newCategory.id;
+      }
+
       const data = {
         name: formData.name,
-        categoryId: formData.categoryId,
+        categoryId,
         priceBeforeTax: parseFloat(formData.priceBeforeTax),
         taxRate: parseFloat(formData.taxRate),
         priceAfterTax: parseFloat(formData.priceAfterTax),
