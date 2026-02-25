@@ -58,7 +58,7 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
     e.preventDefault();
     setError('');
 
-    if (!formData.name || !formData.priceBeforeTax) {
+    if (!formData.name || !formData.categoryId || !formData.priceBeforeTax) {
       setError(t('form.requiredFields'));
       return;
     }

@@ -98,7 +98,19 @@ export const importService = {
             });
           } else {
             // Add pet to existing owner
-            const petCode = await nextPetCode();
+            let petCode: string;
+            try {
+              petCode = await nextPetCode();
+            } catch (err) {
+              console.error('[ImportService] nextPetCode failed, using fallback:', err);
+              const lastPet = await prisma.pet.findFirst({
+                where: { petCode: { not: null } },
+                orderBy: { createdAt: 'desc' },
+                select: { petCode: true },
+              });
+              const lastNum = lastPet?.petCode ? parseInt(lastPet.petCode.substring(1)) || 0 : 0;
+              petCode = `P${(lastNum + 1).toString().padStart(8, '0')}`;
+            }
             const pet = await prisma.pet.create({
               data: {
                 name: petData.name.trim(),
@@ -124,8 +136,32 @@ export const importService = {
           }
         } else {
           // Create owner + pet atomically in a transaction
-          const customerCode = await nextCustomerCode();
-          const petCode = await nextPetCode();
+          let customerCode: string;
+          let petCode: string;
+          try {
+            customerCode = await nextCustomerCode();
+          } catch (err) {
+            console.error('[ImportService] nextCustomerCode failed, using fallback:', err);
+            const lastOwner = await prisma.owner.findFirst({
+              where: { customerCode: { not: null } },
+              orderBy: { createdAt: 'desc' },
+              select: { customerCode: true },
+            });
+            const lastNum = lastOwner?.customerCode ? parseInt(lastOwner.customerCode.substring(1)) || 0 : 0;
+            customerCode = `C${(lastNum + 1).toString().padStart(8, '0')}`;
+          }
+          try {
+            petCode = await nextPetCode();
+          } catch (err) {
+            console.error('[ImportService] nextPetCode failed, using fallback:', err);
+            const lastPet = await prisma.pet.findFirst({
+              where: { petCode: { not: null } },
+              orderBy: { createdAt: 'desc' },
+              select: { petCode: true },
+            });
+            const lastNum = lastPet?.petCode ? parseInt(lastPet.petCode.substring(1)) || 0 : 0;
+            petCode = `P${(lastNum + 1).toString().padStart(8, '0')}`;
+          }
 
           const { owner, pet } = await prisma.$transaction(async (tx) => {
             const owner = await tx.owner.create({

@@ -48,8 +48,32 @@ export const petService = {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const customerCode = await nextCustomerCode();
-      const petCode = await nextPetCode();
+      let customerCode: string;
+      let petCode: string;
+      try {
+        customerCode = await nextCustomerCode();
+      } catch (err) {
+        console.error('[PetService] nextCustomerCode failed, using fallback:', err);
+        const lastOwner = await tx.owner.findFirst({
+          where: { customerCode: { not: null } },
+          orderBy: { createdAt: 'desc' },
+          select: { customerCode: true },
+        });
+        const lastNum = lastOwner?.customerCode ? parseInt(lastOwner.customerCode.substring(1)) || 0 : 0;
+        customerCode = `C${(lastNum + 1).toString().padStart(8, '0')}`;
+      }
+      try {
+        petCode = await nextPetCode();
+      } catch (err) {
+        console.error('[PetService] nextPetCode failed, using fallback:', err);
+        const lastPet = await tx.pet.findFirst({
+          where: { petCode: { not: null } },
+          orderBy: { createdAt: 'desc' },
+          select: { petCode: true },
+        });
+        const lastNum = lastPet?.petCode ? parseInt(lastPet.petCode.substring(1)) || 0 : 0;
+        petCode = `P${(lastNum + 1).toString().padStart(8, '0')}`;
+      }
 
       const owner = await tx.owner.create({
         data: {
@@ -107,7 +131,19 @@ export const petService = {
     sendWelcomeEmail?: boolean;
   }) {
     const { sendWelcomeEmail, birthDate, ...restData } = data;
-    const petCode = await nextPetCode();
+    let petCode: string;
+    try {
+      petCode = await nextPetCode();
+    } catch (err) {
+      console.error('[PetService] nextPetCode failed, using fallback:', err);
+      const lastPet = await prisma.pet.findFirst({
+        where: { petCode: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { petCode: true },
+      });
+      const lastNum = lastPet?.petCode ? parseInt(lastPet.petCode.substring(1)) || 0 : 0;
+      petCode = `P${(lastNum + 1).toString().padStart(8, '0')}`;
+    }
 
     // Convert birthDate string (YYYY-MM-DD) to proper ISO DateTime for Prisma
     const parsedBirthDate = birthDate

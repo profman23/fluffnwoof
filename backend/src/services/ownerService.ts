@@ -25,7 +25,19 @@ export const ownerService = {
       throw new AppError('Phone number already exists', 400, 'PHONE_EXISTS');
     }
 
-    const customerCode = await nextCustomerCode();
+    let customerCode: string;
+    try {
+      customerCode = await nextCustomerCode();
+    } catch (err) {
+      console.error('[OwnerService] nextCustomerCode failed, using fallback:', err);
+      const lastOwner = await prisma.owner.findFirst({
+        where: { customerCode: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { customerCode: true },
+      });
+      const lastNum = lastOwner?.customerCode ? parseInt(lastOwner.customerCode.substring(1)) || 0 : 0;
+      customerCode = `C${(lastNum + 1).toString().padStart(8, '0')}`;
+    }
 
     const owner = await prisma.owner.create({
       data: {

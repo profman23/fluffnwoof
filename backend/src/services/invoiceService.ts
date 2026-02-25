@@ -34,7 +34,19 @@ export const invoiceService = {
    * Create a new invoice
    */
   async create(data: CreateInvoiceInput) {
-    const invoiceNumber = await nextInvoiceNumber();
+    let invoiceNumber: string;
+    try {
+      invoiceNumber = await nextInvoiceNumber();
+    } catch (err) {
+      // Fallback if code_trackers table doesn't exist yet
+      console.error('[InvoiceService] nextInvoiceNumber failed, using fallback:', err);
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const count = await prisma.invoice.count({
+        where: { invoiceNumber: { startsWith: `INV-${dateStr}` } },
+      });
+      invoiceNumber = `INV-${dateStr}-${String(count + 1).padStart(4, '0')}`;
+    }
 
     // Calculate total from items (with discount)
     let totalAmount = 0;

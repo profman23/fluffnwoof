@@ -190,7 +190,19 @@ export const register = async (input: RegisterInput) => {
     });
   } else {
     // Create new owner with placeholder name (will be updated in completeRegistration)
-    const customerCode = await nextCustomerCode();
+    let customerCode: string;
+    try {
+      customerCode = await nextCustomerCode();
+    } catch (err) {
+      console.error('[CustomerAuth] nextCustomerCode failed, using fallback:', err);
+      const lastOwner = await prisma.owner.findFirst({
+        where: { customerCode: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { customerCode: true },
+      });
+      const lastNum = lastOwner?.customerCode ? parseInt(lastOwner.customerCode.substring(1)) || 0 : 0;
+      customerCode = `C${(lastNum + 1).toString().padStart(8, '0')}`;
+    }
 
     owner = await prisma.owner.create({
       data: {

@@ -701,7 +701,28 @@ export const PatientRecordModal = ({
     // Update local state immediately for UI responsiveness
     setSelectedItems(newItems);
 
-    // If no items, nothing to save
+    // If all items removed and invoice exists, delete each from database
+    if (newItems.length === 0 && invoice) {
+      setSavingInvoice(true);
+      try {
+        for (const item of selectedItems) {
+          await invoicesApi.removeItem(item.id);
+        }
+        const updatedInvoice = await invoicesApi.getById(invoice.id);
+        if (isMountedRef.current) {
+          setInvoice(updatedInvoice);
+        }
+      } catch (err) {
+        console.error('Failed to remove invoice items:', err);
+      } finally {
+        if (isMountedRef.current) {
+          setSavingInvoice(false);
+        }
+      }
+      return;
+    }
+
+    // If no items and no invoice, nothing to do
     if (newItems.length === 0) return;
 
     // If no invoice exists, create one
@@ -736,9 +757,14 @@ export const PatientRecordModal = ({
         }
       }
     } else if (invoice) {
-      // Invoice exists - check for new items or quantity changes
+      // Invoice exists - check for new, changed, or removed items
       const existingIds = selectedItems.map(item => item.id);
       const newlyAddedItems = newItems.filter(item => !existingIds.includes(item.id));
+
+      // Detect removed items (exist in current state but not in new)
+      const removedItems = selectedItems.filter(
+        existingItem => !newItems.some(newItem => newItem.id === existingItem.id)
+      );
 
       // Check for quantity or discount changes in existing items
       const changedItems = newItems.filter(newItem => {
@@ -749,7 +775,7 @@ export const PatientRecordModal = ({
         );
       });
 
-      if (newlyAddedItems.length > 0 || changedItems.length > 0) {
+      if (newlyAddedItems.length > 0 || changedItems.length > 0 || removedItems.length > 0) {
         setSavingInvoice(true);
         try {
           // Add new items
@@ -768,6 +794,11 @@ export const PatientRecordModal = ({
               quantity: item.quantity,
               discount: item.discount,
             });
+          }
+
+          // Delete removed items from database
+          for (const item of removedItems) {
+            await invoicesApi.removeItem(item.id);
           }
 
           // Refresh invoice to get updated items

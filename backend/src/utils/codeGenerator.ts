@@ -35,6 +35,10 @@ async function atomicNextNumber(trackerKey: string): Promise<number> {
         await new Promise((resolve) => setTimeout(resolve, Math.random() * 50 + 10));
         continue;
       }
+      // Table doesn't exist — log clearly and throw
+      if (error.code === '42P01') {
+        console.error(`[CodeGenerator] code_trackers table not found! Run: npx prisma migrate deploy`);
+      }
       throw error;
     }
   }
