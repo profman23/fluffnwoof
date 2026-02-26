@@ -198,11 +198,12 @@
     "existingAppointments": "المواعيد المحجوزة",
     "newAppointment": "موعد جديد",
     "bookingPartial": "تم حجز {{created}} موعد بنجاح. تم تخطي {{skipped}} موعد بسبب تعارض.",
-    "bookingAllSkipped": "لم يتم إنشاء أي موعد. تم تخطي {{skipped}} موعد بسبب تعارض في المواعيد."
+    "bookingAllSkipped": "لم يتم إنشاء أي موعد. تم تخطي {{skipped}} موعد بسبب تعارض في المواعيد.",
+    "surgeryDentalScaling": "جراحة - تنظيف الأسنان"
   },
   "mandatoryFields": {
     "required": "مطلوب",
-    "mustFillBeforeClose": "يرجى ملء الحقول الإلزامية (الوزن، الحرارة، معدل ضربات القلب) قبل إغلاق السجل"
+    "mustFillBeforeClose": "يرجى ملء الحقول الإلزامية (الوزن، الحرارة، معدل ضربات القلب) وجميع مواعيد المتابعة قبل إغلاق السجل"
   },
   "forms": {
     "title": "النماذج والشهادات",

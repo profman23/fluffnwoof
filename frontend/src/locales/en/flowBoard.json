@@ -198,11 +198,12 @@
     "existingAppointments": "Existing Appointments",
     "newAppointment": "New Appointment",
     "bookingPartial": "{{created}} appointment(s) booked successfully. {{skipped}} skipped due to conflict.",
-    "bookingAllSkipped": "No appointments created. {{skipped}} skipped due to scheduling conflict."
+    "bookingAllSkipped": "No appointments created. {{skipped}} skipped due to scheduling conflict.",
+    "surgeryDentalScaling": "Surgery - Dental Scaling"
   },
   "mandatoryFields": {
     "required": "Required",
-    "mustFillBeforeClose": "Please fill all mandatory fields (Weight, Temperature, Heart Rate) before closing the record"
+    "mustFillBeforeClose": "Please fill all mandatory fields (Weight, Temperature, Heart Rate) and all next appointment dates before closing the record"
   },
   "forms": {
     "title": "Forms & Certificates",

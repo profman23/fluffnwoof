@@ -142,6 +142,8 @@ export const PatientRecordModal = ({
   const [vaccinationTime, setVaccinationTime] = useState('');
   const [dewormingDate, setDewormingDate] = useState('');
   const [dewormingTime, setDewormingTime] = useState('');
+  const [surgeryDate, setSurgeryDate] = useState('');
+  const [surgeryTime, setSurgeryTime] = useState('');
   const [appointmentVetId, setAppointmentVetId] = useState('');
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const [bookingAppointment, setBookingAppointment] = useState(false);
@@ -155,6 +157,7 @@ export const PatientRecordModal = ({
   const [checkupBookedSlots, setCheckupBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
   const [vaccinationBookedSlots, setVaccinationBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
   const [dewormingBookedSlots, setDewormingBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
+  const [surgeryBookedSlots, setSurgeryBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
 
   // Invoice/Payment state
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -190,14 +193,54 @@ export const PatientRecordModal = ({
   const [attachments, setAttachments] = useState<MedicalAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
 
+  // Get booked appointments by type for this pet
+  const bookedAppointmentsByType = useMemo(() => {
+    const result: {
+      checkup: Appointment[];
+      vaccination: Appointment[];
+      deworming: Appointment[];
+      surgery: Appointment[];
+    } = {
+      checkup: [],
+      vaccination: [],
+      deworming: [],
+      surgery: [],
+    };
+
+    petUpcomingAppointments.forEach((appt) => {
+      const notes = appt.notes?.toLowerCase() || '';
+      if (notes.includes('routine') || notes.includes('check-up') || notes.includes('فحص دوري')) {
+        result.checkup.push(appt);
+      }
+      if (notes.includes('vaccination') || notes.includes('تطعيم')) {
+        result.vaccination.push(appt);
+      }
+      if (notes.includes('deworming') || notes.includes('ديدان') || notes.includes('flea') || notes.includes('براغيث')) {
+        result.deworming.push(appt);
+      }
+      if (notes.includes('surgery') || notes.includes('dental') || notes.includes('جراحة') || notes.includes('تنظيف الأسنان')) {
+        result.surgery.push(appt);
+      }
+    });
+
+    return result;
+  }, [petUpcomingAppointments]);
+
   // Mandatory fields validation
   const mandatoryFieldsValid = useMemo(() => {
+    // Check if each appointment type has a date set OR is already booked
+    const hasCheckup = checkupDate.length > 0 || bookedAppointmentsByType.checkup.length > 0;
+    const hasVaccination = vaccinationDate.length > 0 || bookedAppointmentsByType.vaccination.length > 0;
+    const hasDeworming = dewormingDate.length > 0 || bookedAppointmentsByType.deworming.length > 0;
+    const hasSurgery = surgeryDate.length > 0 || bookedAppointmentsByType.surgery.length > 0;
+
     return (
       formData.weight !== undefined && formData.weight !== null && formData.weight > 0 &&
       formData.temperature !== undefined && formData.temperature !== null && formData.temperature > 0 &&
-      formData.heartRate !== undefined && formData.heartRate !== null && formData.heartRate > 0
+      formData.heartRate !== undefined && formData.heartRate !== null && formData.heartRate > 0 &&
+      hasCheckup && hasVaccination && hasDeworming && hasSurgery
     );
-  }, [formData.weight, formData.temperature, formData.heartRate]);
+  }, [formData.weight, formData.temperature, formData.heartRate, checkupDate, vaccinationDate, dewormingDate, surgeryDate, bookedAppointmentsByType]);
 
   // Check if record is empty (no data added) - for standalone records
   const isRecordEmpty = useMemo(() => {
@@ -458,6 +501,29 @@ export const PatientRecordModal = ({
     fetchBookedSlots();
   }, [appointmentVetId, dewormingDate, slotsRefreshKey]);
 
+  // Fetch booked slots when surgery date or vet changes (or after booking)
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!appointmentVetId || !surgeryDate) {
+        setSurgeryBookedSlots([]);
+        setSurgeryTime('');
+        return;
+      }
+      try {
+        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, surgeryDate);
+        if (isMountedRef.current) {
+          setSurgeryBookedSlots(booked);
+          if (slotsRefreshKey === 0) {
+            setSurgeryTime('');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch surgery booked slots:', err);
+      }
+    };
+    fetchBookedSlots();
+  }, [appointmentVetId, surgeryDate, slotsRefreshKey]);
+
   // Fetch appointments scheduled from this medical record
   useEffect(() => {
     const fetchScheduledAppointments = async () => {
@@ -539,37 +605,9 @@ export const PatientRecordModal = ({
     if (checkupDate && checkupTime) count++;
     if (vaccinationDate && vaccinationTime) count++;
     if (dewormingDate && dewormingTime) count++;
+    if (surgeryDate && surgeryTime) count++;
     return count;
-  }, [checkupDate, checkupTime, vaccinationDate, vaccinationTime, dewormingDate, dewormingTime]);
-
-  // Get booked appointments by type for this pet
-  const bookedAppointmentsByType = useMemo(() => {
-    const result: {
-      checkup: Appointment[];
-      vaccination: Appointment[];
-      deworming: Appointment[];
-    } = {
-      checkup: [],
-      vaccination: [],
-      deworming: [],
-    };
-
-    petUpcomingAppointments.forEach((appt) => {
-      const notes = appt.notes?.toLowerCase() || '';
-      if (notes.includes('routine') || notes.includes('check-up') || notes.includes('فحص دوري')) {
-        result.checkup.push(appt);
-      }
-      if (notes.includes('vaccination') || notes.includes('تطعيم')) {
-        result.vaccination.push(appt);
-      }
-      if (notes.includes('deworming') || notes.includes('ديدان') || notes.includes('flea') || notes.includes('براغيث')) {
-        result.deworming.push(appt);
-      }
-    });
-
-    return result;
-  }, [petUpcomingAppointments]);
-
+  }, [checkupDate, checkupTime, vaccinationDate, vaccinationTime, dewormingDate, dewormingTime, surgeryDate, surgeryTime]);
 
   // Handle booking next appointments (multiple) - Uses batch API for reliability
   const handleBookNextAppointments = async () => {
@@ -609,6 +647,15 @@ export const PatientRecordModal = ({
           time: dewormingTime,
           visitType: VisitType.GENERAL_CHECKUP,
           notes: tFlow('nextAppointment.dewormingFlea'),
+        });
+      }
+
+      if (surgeryDate && surgeryTime) {
+        appointmentsToBook.push({
+          date: surgeryDate,
+          time: surgeryTime,
+          visitType: VisitType.SURGERY,
+          notes: tFlow('nextAppointment.surgeryDentalScaling'),
         });
       }
 
@@ -658,6 +705,8 @@ export const PatientRecordModal = ({
             setVaccinationTime('');
             setDewormingDate('');
             setDewormingTime('');
+            setSurgeryDate('');
+            setSurgeryTime('');
             setAppointmentNotes('');
             setAppointmentVetId(effectiveAppointment?.vet?.id || '');
           }
@@ -1525,8 +1574,8 @@ export const PatientRecordModal = ({
                           type="number"
                           min="0"
                           max="10"
-                          value={formData.painScore || ''}
-                          onChange={(e) => handleFieldChange('painScore', e.target.value ? parseInt(e.target.value) : undefined)}
+                          value={formData.painScore !== undefined && formData.painScore !== null ? formData.painScore : ''}
+                          onChange={(e) => handleFieldChange('painScore', e.target.value !== '' ? parseInt(e.target.value) : undefined)}
                           disabled={isReadOnly || record?.isClosed}
                           className="w-full px-2 py-1.5 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] text-sm"
                         />
@@ -1982,6 +2031,76 @@ export const PatientRecordModal = ({
                               {bookedAppointmentsByType.deworming.length > 0 && (
                                 <p className="mt-2 text-xs text-purple-600 dark:text-purple-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.dewormingFlea')}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Surgery - Dental Scaling */}
+                            <div className="p-3 rounded-lg border bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-red-700 dark:text-red-400">
+                                  {tFlow('nextAppointment.surgeryDentalScaling')}
+                                </label>
+                              </div>
+                              {/* Show existing booked appointments */}
+                              {bookedAppointmentsByType.surgery.length > 0 && (
+                                <div className="mb-3 space-y-2">
+                                  {bookedAppointmentsByType.surgery.map((appt) => (
+                                    <div key={appt.id} className="flex items-center justify-between p-2 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-orange-500">🟠</span>
+                                        <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                                          {tFlow('nextAppointment.booked')}: {new Date(appt.appointmentDate).toLocaleDateString()} - {appt.appointmentTime}
+                                        </span>
+                                        {appt.vet && (
+                                          <span className="text-xs text-orange-600 dark:text-orange-400">
+                                            ({appt.vet.firstName} {appt.vet.lastName})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Add new appointment form */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <input
+                                    type="date"
+                                    value={surgeryDate}
+                                    min={getTomorrowDate()}
+                                    onChange={(e) => setSurgeryDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-red-200 dark:border-red-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={surgeryTime}
+                                    onChange={(e) => setSurgeryTime(e.target.value)}
+                                    disabled={!surgeryDate || !appointmentVetId}
+                                    className="w-full px-3 py-2 border border-red-200 dark:border-red-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">{t('nextAppointment.time')}</option>
+                                    {surgeryDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.SURGERY], surgeryDate)
+                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.SURGERY], surgeryBookedSlots))
+                                      .map(slot => (
+                                        <option key={slot} value={slot}>{slot}</option>
+                                      ))}
+                                  </select>
+                                </div>
+                                {(surgeryDate || surgeryTime) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setSurgeryDate(''); setSurgeryTime(''); }}
+                                    className="p-1 text-red-400 hover:text-red-600"
+                                  >
+                                    <XMarkIcon className="w-5 h-5" />
+                                  </button>
+                                )}
+                              </div>
+                              {bookedAppointmentsByType.surgery.length > 0 && (
+                                <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                                  {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.surgeryDentalScaling')}
                                 </p>
                               )}
                             </div>

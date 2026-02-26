@@ -490,6 +490,13 @@ export const medicalRecordService = {
    * Uses sequential record code generation with proper concurrency handling
    */
   async closeRecord(id: string, userId: string) {
+    // 0. التحقق من وجود المستخدم
+    const closer = await prisma.user.findUnique({ where: { id: userId } });
+    if (!closer) {
+      console.error(`closeRecord failed: user ${userId} not found in users table`);
+      throw new AppError(`User not found: ${userId}`, 400);
+    }
+
     // 1. أولاً: التحقق من السجل قبل توليد الرقم
     const existing = await prisma.medicalRecord.findUnique({
       where: { id },

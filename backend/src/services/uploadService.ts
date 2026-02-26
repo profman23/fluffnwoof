@@ -181,6 +181,13 @@ export const uploadMedicalAttachment = async (
     throw new Error('Medical record not found');
   }
 
+  // Verify uploader exists
+  const uploader = await prisma.user.findUnique({ where: { id: uploaderId } });
+  if (!uploader) {
+    console.error(`Attachment upload failed: user ${uploaderId} not found in users table`);
+    throw new Error(`User not found: ${uploaderId}`);
+  }
+
   // File is already uploaded to Cloudinary via multer-storage-cloudinary
   const result = file as unknown as { path: string; filename: string; size?: number };
 
