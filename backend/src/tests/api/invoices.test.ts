@@ -33,15 +33,15 @@ describe('Invoices API', () => {
   });
 
   describe('POST /api/invoices', () => {
-    it('should create a new invoice', async () => {
+    it('should create a new invoice with tax fields', async () => {
       const res = await request(app)
         .post('/api/invoices')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ownerId: testOwnerId,
           items: [
-            { description: 'General Checkup', quantity: 1, unitPrice: 200 },
-            { description: 'Vaccination', quantity: 1, unitPrice: 150, discount: 10 },
+            { description: 'General Checkup', quantity: 1, unitPrice: 230, priceBeforeTax: 200, taxRate: 15 },
+            { description: 'Vaccination', quantity: 1, unitPrice: 172.5, priceBeforeTax: 150, taxRate: 15, discount: 10 },
           ],
         })
         .expect(201);
@@ -52,7 +52,72 @@ describe('Invoices API', () => {
       expect(res.body.status).toBe('PENDING');
       expect(res.body.isFinalized).toBe(false);
       expect(res.body.items.length).toBe(2);
+
+      // Verify tax fields are stored
+      const item1 = res.body.items.find((i: { description: string }) => i.description === 'General Checkup');
+      expect(item1.priceBeforeTax).toBe(200);
+      expect(item1.taxRate).toBe(15);
+
       createdInvoiceId = res.body.id;
+    });
+
+    it('should calculate discount before tax correctly', async () => {
+      // Price: 100, Tax: 15%, Discount: 10%
+      // Expected: (100 * 0.90) * 1.15 = 103.50
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          ownerId: testOwnerId,
+          items: [
+            { description: 'Test Discount Before Tax', quantity: 1, unitPrice: 115, priceBeforeTax: 100, taxRate: 15, discount: 10 },
+          ],
+        })
+        .expect(201);
+
+      const item = res.body.items[0];
+      expect(item.priceBeforeTax).toBe(100);
+      expect(item.taxRate).toBe(15);
+      expect(item.discount).toBe(10);
+      // (100 * 0.90) * 1.15 = 103.50
+      expect(item.totalPrice).toBeCloseTo(103.50, 2);
+      expect(res.body.totalAmount).toBeCloseTo(103.50, 2);
+    });
+
+    it('should calculate no-discount item correctly', async () => {
+      // Price: 200, Tax: 15%, Discount: 0%
+      // Expected: 200 * 1.15 = 230.00
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          ownerId: testOwnerId,
+          items: [
+            { description: 'No Discount Item', quantity: 1, unitPrice: 230, priceBeforeTax: 200, taxRate: 15, discount: 0 },
+          ],
+        })
+        .expect(201);
+
+      const item = res.body.items[0];
+      expect(item.totalPrice).toBeCloseTo(230.00, 2);
+    });
+
+    it('should handle quantity with discount before tax', async () => {
+      // Price: 50, Tax: 15%, Discount: 20%, Qty: 3
+      // Expected: 3 * (50 * 0.80) * 1.15 = 3 * 46 = 138.00
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          ownerId: testOwnerId,
+          items: [
+            { description: 'Qty Test', quantity: 3, unitPrice: 57.5, priceBeforeTax: 50, taxRate: 15, discount: 20 },
+          ],
+        })
+        .expect(201);
+
+      const item = res.body.items[0];
+      expect(item.totalPrice).toBeCloseTo(138.00, 2);
     });
 
     it('should create invoice without items', async () => {
@@ -66,6 +131,26 @@ describe('Invoices API', () => {
       expect(res.body.items.length).toBe(0);
     });
 
+    it('should fallback when priceBeforeTax not provided (backward compat)', async () => {
+      // When priceBeforeTax is not sent, it falls back to unitPrice
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          ownerId: testOwnerId,
+          items: [
+            { description: 'Legacy Item', quantity: 1, unitPrice: 100 },
+          ],
+        })
+        .expect(201);
+
+      const item = res.body.items[0];
+      expect(item.priceBeforeTax).toBe(100);
+      expect(item.taxRate).toBe(15);
+      // 100 * 1.15 = 115
+      expect(item.totalPrice).toBeCloseTo(115.00, 2);
+    });
+
     it('should reject without auth (401)', async () => {
       await request(app)
         .post('/api/invoices')
@@ -75,7 +160,7 @@ describe('Invoices API', () => {
   });
 
   describe('GET /api/invoices/:id', () => {
-    it('should return invoice by id', async () => {
+    it('should return invoice by id with tax fields', async () => {
       const res = await request(app)
         .get(`/api/invoices/${createdInvoiceId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -85,6 +170,9 @@ describe('Invoices API', () => {
       expect(res.body.id).toBe(createdInvoiceId);
       expect(res.body).toHaveProperty('items');
       expect(res.body).toHaveProperty('payments');
+      // Verify tax fields are returned
+      expect(res.body.items[0]).toHaveProperty('priceBeforeTax');
+      expect(res.body.items[0]).toHaveProperty('taxRate');
     });
 
     it('should reject without auth (401)', async () => {
@@ -95,21 +183,25 @@ describe('Invoices API', () => {
   });
 
   describe('POST /api/invoices/:id/items', () => {
-    it('should add item to existing invoice', async () => {
+    it('should add item with tax fields to existing invoice', async () => {
       const res = await request(app)
         .post(`/api/invoices/${createdInvoiceId}/items`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           description: 'X-Ray',
           quantity: 1,
-          unitPrice: 300,
+          unitPrice: 345,
+          priceBeforeTax: 300,
+          taxRate: 15,
         })
         .expect(201);
 
-      // addItem returns the created item
       expect(res.body).toHaveProperty('id');
-      expect(res.body).toHaveProperty('description');
       expect(res.body.description).toBe('X-Ray');
+      expect(res.body.priceBeforeTax).toBe(300);
+      expect(res.body.taxRate).toBe(15);
+      // 300 * 1.15 = 345
+      expect(res.body.totalPrice).toBeCloseTo(345.00, 2);
     });
   });
 

@@ -10,6 +10,8 @@ export interface SelectedItem {
   name: string;
   quantity: number;
   unitPrice: number;
+  priceBeforeTax: number;
+  taxRate: number;
   discount: number; // Percentage discount (0-100)
   totalPrice: number;
 }
@@ -132,14 +134,18 @@ export const ServiceProductSelector = ({
   }, [showDropdown, searchResults]);
 
   const handleSelectProduct = (product: ServiceProduct) => {
+    const priceBeforeTax = Number(product.priceBeforeTax) || 0;
+    const taxRate = Number(product.taxRate) || 15;
     const unitPrice = Number(product.priceAfterTax) || 0;
     const newItem: SelectedItem = {
       id: product.id,
       name: product.name,
       quantity: 1,
       unitPrice,
+      priceBeforeTax,
+      taxRate,
       discount: 0,
-      totalPrice: unitPrice,
+      totalPrice: priceBeforeTax * (1 + taxRate / 100),
     };
     onItemsChange([...selectedItems, newItem]);
     setSearchQuery('');
@@ -147,18 +153,17 @@ export const ServiceProductSelector = ({
     inputRef.current?.focus();
   };
 
-  // Calculate total price with discount
-  const calculateTotalPrice = (unitPrice: number, quantity: number, discount: number) => {
-    const subtotal = unitPrice * quantity;
-    const discountAmount = (subtotal * discount) / 100;
-    return subtotal - discountAmount;
+  // Calculate total price: discount on priceBeforeTax, then apply tax
+  const calculateTotalPrice = (priceBeforeTax: number, quantity: number, discount: number, taxRate: number) => {
+    const discountedPrice = priceBeforeTax * (1 - discount / 100);
+    return quantity * discountedPrice * (1 + taxRate / 100);
   };
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     const updatedItems = selectedItems.map((item) =>
       item.id === itemId
-        ? { ...item, quantity: newQuantity, totalPrice: calculateTotalPrice(item.unitPrice, newQuantity, item.discount) }
+        ? { ...item, quantity: newQuantity, totalPrice: calculateTotalPrice(item.priceBeforeTax, newQuantity, item.discount, item.taxRate) }
         : item
     );
     onItemsChange(updatedItems);
@@ -169,7 +174,7 @@ export const ServiceProductSelector = ({
     const discount = Math.max(0, Math.min(100, newDiscount));
     const updatedItems = selectedItems.map((item) =>
       item.id === itemId
-        ? { ...item, discount, totalPrice: calculateTotalPrice(item.unitPrice, item.quantity, discount) }
+        ? { ...item, discount, totalPrice: calculateTotalPrice(item.priceBeforeTax, item.quantity, discount, item.taxRate) }
         : item
     );
     onItemsChange(updatedItems);
@@ -244,89 +249,117 @@ export const ServiceProductSelector = ({
 
       {/* Selected Items List */}
       {selectedItems.length > 0 && (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+        <div className="border border-gray-200 dark:border-[var(--app-border-default)] rounded-lg overflow-hidden overflow-x-auto">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col className="w-auto" />
+              <col style={{ width: '70px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '65px' }} />
+              <col style={{ width: '70px' }} />
+              <col style={{ width: '85px' }} />
+              <col style={{ width: '85px' }} />
+              <col style={{ width: '32px' }} />
+            </colgroup>
+            <thead>
+              <tr className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-750 border-b-2 border-slate-200 dark:border-gray-600">
+                <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                   {t('item')}
                 </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-24">
+                <th className="px-1 py-3 text-center text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                   {t('quantity')}
                 </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
+                <th className="px-1 py-3 text-center text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                   {t('price')}
                 </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-20">
+                <th className="px-1 py-3 text-center text-[11px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider bg-green-50/60 dark:bg-green-900/10 border-x border-green-200/60 dark:border-green-800/30">
                   {t('discount')}
                 </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
-                  {t('total')}
+                <th className="px-1 py-3 text-center text-[11px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-wider">
+                  {t('tax')}
                 </th>
-                <th className="px-3 py-2 w-10"></th>
+                <th className="px-1 py-3 text-center text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider border-l border-slate-200/60 dark:border-gray-600/50">
+                  {t('totalBeforeTax')}
+                </th>
+                <th className="px-1 py-3 text-center text-[11px] font-bold text-emerald-600 dark:text-green-400 uppercase tracking-wider bg-emerald-50/40 dark:bg-green-900/10">
+                  {t('totalAfterTax')}
+                </th>
+                <th className="px-1 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {selectedItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-sm text-gray-900">{item.name}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-center gap-1">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {selectedItems.map((item) => {
+                const totalBeforeVat = item.quantity * item.priceBeforeTax * (1 - item.discount / 100);
+                const vatAmount = totalBeforeVat * (item.taxRate / 100);
+                const totalAfterVat = totalBeforeVat + vatAmount;
+                const hasDiscount = item.discount > 0;
+                return (
+                  <tr key={item.id} className={`transition-colors ${hasDiscount ? 'bg-green-50/40 dark:bg-green-900/5 hover:bg-green-50/70' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}>
+                    <td className="px-3 py-2 text-sm text-gray-900 dark:text-[var(--app-text-primary)] truncate" title={item.name}>{item.name}</td>
+                    <td className="px-1 py-2">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          disabled={disabled || item.quantity <= 1}
+                          className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                        >
+                          <MinusIcon className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          disabled={disabled}
+                          className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                        >
+                          <PlusIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-1 py-2 text-sm text-gray-600 dark:text-gray-300 text-center">
+                      {Number(item.priceBeforeTax || 0).toFixed(2)}
+                    </td>
+                    <td className="px-1 py-2 bg-green-50/60 dark:bg-green-900/10 border-x border-green-200/60 dark:border-green-800/30">
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={item.discount || 0}
+                          onChange={(e) => handleDiscountChange(item.id, parseFloat(e.target.value) || 0)}
+                          disabled={disabled}
+                          className="w-10 px-0.5 py-1 text-center text-sm font-medium text-green-700 dark:text-green-400 border border-green-300 dark:border-green-600 rounded bg-white dark:bg-gray-800 focus:ring-1 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                        />
+                        <span className="text-xs text-green-600 dark:text-green-400 ml-0.5 font-medium">%</span>
+                      </div>
+                    </td>
+                    <td className="px-1 py-2 text-sm text-orange-500 dark:text-orange-400 text-center">
+                      {vatAmount.toFixed(2)}
+                    </td>
+                    <td className="px-1 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 text-center border-l border-slate-200/60 dark:border-gray-600/50">
+                      {totalBeforeVat.toFixed(2)}
+                    </td>
+                    <td className="px-1 py-2 text-sm font-bold text-emerald-600 dark:text-green-400 text-center bg-emerald-50/40 dark:bg-green-900/10">
+                      {totalAfterVat.toFixed(2)}
+                    </td>
+                    <td className="px-1 py-2">
                       <button
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        disabled={disabled || item.quantity <= 1}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                      >
-                        <MinusIcon className="w-4 h-4" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                        onClick={() => handleRemoveItem(item.id)}
                         disabled={disabled}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                        className="p-1 text-red-400 hover:text-red-600 disabled:opacity-50"
                       >
-                        <PlusIcon className="w-4 h-4" />
+                        <XMarkIcon className="w-4 h-4" />
                       </button>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-600 text-right">
-                    {Number(item.unitPrice || 0).toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-center">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={item.discount || 0}
-                        onChange={(e) => handleDiscountChange(item.id, parseFloat(e.target.value) || 0)}
-                        disabled={disabled}
-                        className="w-14 px-1 py-1 text-center text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                      />
-                      <span className="text-xs text-gray-500 ml-1">%</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-sm font-medium text-gray-900 text-right">
-                    {Number(item.totalPrice || 0).toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <button
-                      onClick={() => handleRemoveItem(item.id)}
-                      disabled={disabled}
-                      className="p-1 text-red-400 hover:text-red-600 disabled:opacity-50"
-                    >
-                      <XMarkIcon className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
-            <tfoot className="bg-gray-50">
-              <tr>
-                <td colSpan={4} className="px-3 py-2 text-right text-sm font-medium text-gray-700">
+            <tfoot>
+              <tr className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-750 border-t-2 border-slate-200 dark:border-gray-600">
+                <td colSpan={6} className="px-3 py-3 text-right text-sm font-bold text-slate-600 dark:text-gray-300 uppercase tracking-wide">
                   {t('totalAmount')}:
                 </td>
-                <td className="px-3 py-2 text-right text-sm font-bold text-green-600">
+                <td className="px-1 py-3 text-center text-sm font-bold text-emerald-600 dark:text-green-400 bg-emerald-50/40 dark:bg-green-900/10">
                   <span className="inline-flex items-center gap-1">{Number(totalAmount || 0).toFixed(2)} <SarSymbol className="w-3.5 h-3.5" /></span>
                 </td>
                 <td></td>

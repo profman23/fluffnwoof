@@ -340,16 +340,18 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          String   @id @default(uuid())
-  description String
-  quantity    Int      @default(1)
-  unitPrice   Float
-  totalPrice  Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  invoiceId   String
-  discount    Float    @default(0)
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid())
+  description    String
+  quantity       Int      @default(1)
+  unitPrice      Float
+  priceBeforeTax Float?
+  taxRate        Float    @default(15)
+  totalPrice     Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  invoiceId      String
+  discount       Float    @default(0)
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@map("invoice_items")

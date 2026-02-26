@@ -12,6 +12,8 @@ interface CreateInvoiceInput {
     description: string;
     quantity: number;
     unitPrice: number;
+    priceBeforeTax?: number;
+    taxRate?: number;
     discount?: number;
   }[];
 }
@@ -20,7 +22,15 @@ interface AddInvoiceItemInput {
   description: string;
   quantity: number;
   unitPrice: number;
+  priceBeforeTax?: number;
+  taxRate?: number;
   discount?: number;
+}
+
+/** Calculate item total: discount on priceBeforeTax, then apply tax */
+function calculateItemTotal(priceBeforeTax: number, quantity: number, discount: number, taxRate: number): number {
+  const discountedPrice = priceBeforeTax * (1 - discount / 100);
+  return quantity * discountedPrice * (1 + taxRate / 100);
 }
 
 interface AddPaymentInput {
@@ -48,17 +58,20 @@ export const invoiceService = {
       invoiceNumber = `INV-${dateStr}-${String(count + 1).padStart(4, '0')}`;
     }
 
-    // Calculate total from items (with discount)
+    // Calculate total from items (discount before tax)
     let totalAmount = 0;
     const itemsData = data.items?.map((item) => {
       const discount = item.discount || 0;
-      const subtotal = item.quantity * item.unitPrice;
-      const totalPrice = subtotal * (1 - discount / 100);
+      const taxRate = item.taxRate ?? 15;
+      const priceBeforeTax = item.priceBeforeTax ?? item.unitPrice;
+      const totalPrice = calculateItemTotal(priceBeforeTax, item.quantity, discount, taxRate);
       totalAmount += totalPrice;
       return {
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        priceBeforeTax,
+        taxRate,
         discount,
         totalPrice,
       };
@@ -190,8 +203,9 @@ export const invoiceService = {
     }
 
     const discount = data.discount || 0;
-    const subtotal = data.quantity * data.unitPrice;
-    const totalPrice = subtotal * (1 - discount / 100);
+    const taxRate = data.taxRate ?? 15;
+    const priceBeforeTax = data.priceBeforeTax ?? data.unitPrice;
+    const totalPrice = calculateItemTotal(priceBeforeTax, data.quantity, discount, taxRate);
 
     const item = await prisma.invoiceItem.create({
       data: {
@@ -199,6 +213,8 @@ export const invoiceService = {
         description: data.description,
         quantity: data.quantity,
         unitPrice: data.unitPrice,
+        priceBeforeTax,
+        taxRate,
         discount,
         totalPrice,
       },
@@ -225,8 +241,9 @@ export const invoiceService = {
     const quantity = data.quantity ?? item.quantity;
     const unitPrice = data.unitPrice ?? item.unitPrice;
     const discount = data.discount ?? item.discount;
-    const subtotal = quantity * unitPrice;
-    const totalPrice = subtotal * (1 - discount / 100);
+    const taxRate = data.taxRate ?? item.taxRate;
+    const priceBeforeTax = data.priceBeforeTax ?? item.priceBeforeTax ?? unitPrice;
+    const totalPrice = calculateItemTotal(priceBeforeTax, quantity, discount, taxRate);
 
     const updatedItem = await prisma.invoiceItem.update({
       where: { id: itemId },
@@ -234,6 +251,8 @@ export const invoiceService = {
         description: data.description,
         quantity,
         unitPrice,
+        priceBeforeTax,
+        taxRate,
         discount,
         totalPrice,
       },

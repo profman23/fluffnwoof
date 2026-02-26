@@ -384,6 +384,8 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
+              taxRate: item.taxRate ?? 15,
               discount: item.discount || 0,
               totalPrice: item.totalPrice,
             }))
@@ -738,6 +740,8 @@ export const PatientRecordModal = ({
         description: item.name,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        priceBeforeTax: item.priceBeforeTax,
+        taxRate: item.taxRate,
         discount: item.discount,
       })),
     });
@@ -790,6 +794,8 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
+              taxRate: item.taxRate ?? 15,
               discount: item.discount || 0,
               totalPrice: item.totalPrice,
             }))
@@ -833,6 +839,8 @@ export const PatientRecordModal = ({
               description: item.name,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              priceBeforeTax: item.priceBeforeTax,
+              taxRate: item.taxRate,
               discount: item.discount,
             });
           }
@@ -860,6 +868,8 @@ export const PatientRecordModal = ({
                 name: item.description,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
+                priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
+                taxRate: item.taxRate ?? 15,
                 discount: item.discount || 0,
                 totalPrice: item.totalPrice,
               }))
@@ -894,6 +904,8 @@ export const PatientRecordModal = ({
             description: item.name,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            priceBeforeTax: item.priceBeforeTax,
+            taxRate: item.taxRate,
             discount: item.discount,
           })),
         });
@@ -906,6 +918,8 @@ export const PatientRecordModal = ({
               name: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
+              taxRate: item.taxRate ?? 15,
               discount: item.discount || 0,
               totalPrice: item.totalPrice,
             }))
