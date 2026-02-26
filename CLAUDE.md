@@ -41,6 +41,15 @@
 - No destructive migrations (DROP TABLE/COLUMN) without explicit approval
 - Always ask user for confirmation
 
+## Database Migrations (CRITICAL)
+- **NEVER write migration SQL files manually** — always use `prisma migrate dev --name "description"`
+- Prisma generates migrations with correct checksums that `prisma migrate deploy` requires
+- Hand-written SQL files will be rejected by `prisma migrate deploy` on Training/Production
+- **Safety Guard**: `scripts/check-migrations.js` runs before every deploy and blocks destructive SQL (DROP TABLE/COLUMN, TRUNCATE, DELETE FROM) in new migrations
+- To bypass safety guard (rare): set `ALLOW_DESTRUCTIVE_MIGRATION=true` in Render env vars
+- **Dev workflow**: edit `schema.prisma` → run `prisma migrate dev` → commit migration file → deploy
+- **Never use `prisma db push` on Training/Production** — it has no history and no rollback
+
 ## Testing (CRITICAL)
 - **Tests run on a SEPARATE test database** (Neon `test` branch) — NEVER on Dev/Training/Production
 - `setup.ts` has safety checks that block non-test databases

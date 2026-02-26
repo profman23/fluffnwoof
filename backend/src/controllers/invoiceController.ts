@@ -49,6 +49,9 @@ export const invoiceController = {
     try {
       const { appointmentId } = req.params;
       const invoice = await invoiceService.findByAppointmentId(appointmentId);
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found for this appointment' });
+      }
       res.json(invoice);
     } catch (error) {
       next(error);
