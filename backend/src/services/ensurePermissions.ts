@@ -123,48 +123,53 @@ export const ALL_PERMISSIONS = [
  * Idempotent — safe to run every startup. Only creates what's missing.
  */
 export async function ensureScreenPermissions(): Promise<void> {
-  let created = 0;
-  const newPermissionIds: string[] = [];
+  try {
+    let created = 0;
+    const newPermissionIds: string[] = [];
 
-  for (const perm of ALL_PERMISSIONS) {
-    const existing = await prisma.permission.findUnique({
-      where: { name: perm.name },
-    });
+    for (const perm of ALL_PERMISSIONS) {
+      const existing = await prisma.permission.findUnique({
+        where: { name: perm.name },
+      });
 
-    if (!existing) {
-      const newPerm = await prisma.permission.create({ data: perm });
-      created++;
-      // Track *.full permissions for ADMIN auto-link
-      if (perm.action === 'full' || perm.name.endsWith('.full')) {
-        newPermissionIds.push(newPerm.id);
+      if (!existing) {
+        const newPerm = await prisma.permission.create({ data: perm });
+        created++;
+        // Track *.full permissions for ADMIN auto-link
+        if (perm.action === 'full' || perm.name.endsWith('.full')) {
+          newPermissionIds.push(newPerm.id);
+        }
       }
     }
-  }
 
-  // Auto-link new *.full permissions to ADMIN role
-  if (newPermissionIds.length > 0) {
-    const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
-    if (adminRole) {
-      for (const permId of newPermissionIds) {
-        await prisma.rolePermission.upsert({
-          where: {
-            roleId_permissionId: {
+    // Auto-link new *.full permissions to ADMIN role
+    if (newPermissionIds.length > 0) {
+      const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+      if (adminRole) {
+        for (const permId of newPermissionIds) {
+          await prisma.rolePermission.upsert({
+            where: {
+              roleId_permissionId: {
+                roleId: adminRole.id,
+                permissionId: permId,
+              },
+            },
+            update: {},
+            create: {
               roleId: adminRole.id,
               permissionId: permId,
             },
-          },
-          update: {},
-          create: {
-            roleId: adminRole.id,
-            permissionId: permId,
-          },
-        });
+          });
+        }
+        console.log(`🔗 Auto-linked ${newPermissionIds.length} new permissions to ADMIN role`);
       }
-      console.log(`🔗 Auto-linked ${newPermissionIds.length} new permissions to ADMIN role`);
     }
-  }
 
-  if (created > 0) {
-    console.log(`📝 Auto-created ${created} new permissions`);
+    if (created > 0) {
+      console.log(`📝 Auto-created ${created} new permissions`);
+    }
+  } catch (error) {
+    console.error('⚠️ ensureScreenPermissions failed (non-fatal):', error);
+    // Non-fatal — server continues even if permission seeding fails
   }
 }

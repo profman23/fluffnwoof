@@ -37,9 +37,9 @@ export const reportController = {
       });
 
       res.json(result);
-    } catch (error) {
-      console.error('Error fetching sales report:', error);
-      res.status(500).json({ error: 'Failed to fetch sales report' });
+    } catch (error: any) {
+      console.error('Error fetching sales report:', error?.message || error);
+      res.status(500).json({ error: 'Failed to fetch sales report', details: error?.message });
     }
   },
 };
