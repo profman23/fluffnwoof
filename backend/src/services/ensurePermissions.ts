@@ -138,6 +138,21 @@ export async function ensureInvoiceColumns(): Promise<void> {
 }
 
 /**
+ * Ensures service_products table has daftraCode and barcode columns.
+ * Bypasses Prisma migration pipeline — runs raw SQL with IF NOT EXISTS.
+ * Safe to run every startup (idempotent).
+ */
+export async function ensureServiceProductColumns(): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(`ALTER TABLE "service_products" ADD COLUMN IF NOT EXISTS "daftraCode" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "service_products" ADD COLUMN IF NOT EXISTS "barcode" TEXT`);
+    console.log('✅ Service product columns ensured');
+  } catch (error) {
+    console.error('⚠️ ensureServiceProductColumns failed (non-fatal):', error);
+  }
+}
+
+/**
  * Auto-creates missing permissions and links *.full to ADMIN role on server startup.
  * Idempotent — safe to run every startup. Only creates what's missing.
  */
