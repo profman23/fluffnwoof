@@ -125,17 +125,12 @@ export const ALL_PERMISSIONS = [
  */
 export async function ensureInvoiceColumns(): Promise<void> {
   try {
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "priceBeforeTax" DOUBLE PRECISION;
-      ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "taxRate" DOUBLE PRECISION NOT NULL DEFAULT 15;
-      ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "discount" DOUBLE PRECISION NOT NULL DEFAULT 0;
-    `);
+    // Each statement must be a separate call (Prisma doesn't support multi-statement)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "priceBeforeTax" DOUBLE PRECISION`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "taxRate" DOUBLE PRECISION NOT NULL DEFAULT 15`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "discount" DOUBLE PRECISION NOT NULL DEFAULT 0`);
     // Backfill priceBeforeTax from unitPrice where NULL
-    await prisma.$executeRawUnsafe(`
-      UPDATE "invoice_items"
-      SET "priceBeforeTax" = "unitPrice" / (1 + "taxRate" / 100)
-      WHERE "priceBeforeTax" IS NULL;
-    `);
+    await prisma.$executeRawUnsafe(`UPDATE "invoice_items" SET "priceBeforeTax" = "unitPrice" / (1 + "taxRate" / 100) WHERE "priceBeforeTax" IS NULL`);
     console.log('✅ Invoice columns ensured');
   } catch (error) {
     console.error('⚠️ ensureInvoiceColumns failed (non-fatal):', error);
