@@ -6,6 +6,7 @@ import { errorHandler, notFound } from './middlewares/errorHandler';
 import { languageMiddleware } from './middlewares/languageMiddleware';
 import prisma from './config/database';
 import { initializeWebSocket } from './websocket';
+import { ensureScreenPermissions } from './services/ensurePermissions';
 
 // Routes
 import authRoutes from './routes/authRoutes';
@@ -104,6 +105,9 @@ const startServer = async () => {
     // Test database connection
     await prisma.$connect();
     console.log('✅ Database connected successfully');
+
+    // Auto-create missing permissions on startup
+    await ensureScreenPermissions();
 
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on port ${PORT}`);

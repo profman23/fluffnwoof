@@ -1,124 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { ALL_PERMISSIONS } from '../src/services/ensurePermissions';
 
 const prisma = new PrismaClient();
-
-// تعريف صلاحيات الشاشات (Screen-Level Permissions)
-const permissions = [
-  // Dashboard
-  { name: 'screens.dashboard.read', description: 'Dashboard - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.dashboard.full', description: 'Dashboard - Full Control', category: 'screens', action: 'full' },
-
-  // Patients (Owners + Pets combined)
-  { name: 'screens.patients.read', description: 'Patients - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.patients.full', description: 'Patients - Full Control', category: 'screens', action: 'full' },
-
-  // Appointments
-  { name: 'screens.appointments.read', description: 'Appointments - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.appointments.full', description: 'Appointments - Full Control', category: 'screens', action: 'full' },
-
-  // Medical Records
-  { name: 'screens.medical.read', description: 'Medical - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.medical.full', description: 'Medical - Full Control', category: 'screens', action: 'full' },
-
-  // Boarding Management (Kanban board for daily operations)
-  { name: 'screens.boardingManagement.read', description: 'Boarding Management - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.boardingManagement.full', description: 'Boarding Management - Full Control', category: 'screens', action: 'full' },
-
-  // Invoices
-  { name: 'screens.invoices.read', description: 'Invoices - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.invoices.full', description: 'Invoices - Full Control', category: 'screens', action: 'full' },
-
-  // User Management
-  { name: 'screens.userManagement.read', description: 'User Management - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.userManagement.full', description: 'User Management - Full Control', category: 'screens', action: 'full' },
-
-  // Roles & Permissions
-  { name: 'screens.rolesPermissions.read', description: 'Roles & Permissions - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.rolesPermissions.full', description: 'Roles & Permissions - Full Control', category: 'screens', action: 'full' },
-
-  // Audit Log
-  { name: 'screens.audit.read', description: 'Audit Log - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.audit.full', description: 'Audit Log - Full Control', category: 'screens', action: 'full' },
-
-  // Flow Board
-  { name: 'screens.flowBoard.read', description: 'Flow Board - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.flowBoard.full', description: 'Flow Board - Full Control', category: 'screens', action: 'full' },
-
-  // Reports (parent screen)
-  { name: 'screens.reports.read', description: 'Reports - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.reports.full', description: 'Reports - Full Control', category: 'screens', action: 'full' },
-
-  // Upcoming Appointments (child of Reports)
-  { name: 'screens.nextAppointments.read', description: 'Upcoming Appointments - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.nextAppointments.full', description: 'Upcoming Appointments - Full Control', category: 'screens', action: 'full' },
-
-  // Sales Report (child of Reports)
-  { name: 'screens.salesReport.read', description: 'Sales Report - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.salesReport.full', description: 'Sales Report - Full Control', category: 'screens', action: 'full' },
-
-  // Services & Products
-  { name: 'screens.serviceProducts.read', description: 'Services & Products - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.serviceProducts.full', description: 'Services & Products - Full Control', category: 'screens', action: 'full' },
-
-  // CRM Management (parent screen)
-  { name: 'screens.crm.read', description: 'CRM Management - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.crm.full', description: 'CRM Management - Full Control', category: 'screens', action: 'full' },
-
-  // SMS
-  { name: 'screens.sms.read', description: 'SMS - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.sms.full', description: 'SMS - Full Control', category: 'screens', action: 'full' },
-
-  // Reminders
-  { name: 'screens.reminders.read', description: 'Reminders - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.reminders.full', description: 'Reminders - Full Control', category: 'screens', action: 'full' },
-
-  // Clinic Setup (parent screen)
-  { name: 'screens.clinicSetup.read', description: 'Clinic Setup - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.clinicSetup.full', description: 'Clinic Setup - Full Control', category: 'screens', action: 'full' },
-
-  // Shifts Management
-  { name: 'screens.shiftsManagement.read', description: 'Shifts Management - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.shiftsManagement.full', description: 'Shifts Management - Full Control', category: 'screens', action: 'full' },
-
-  // Visit Types
-  { name: 'screens.visitTypes.read', description: 'Visit Types - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.visitTypes.full', description: 'Visit Types - Full Control', category: 'screens', action: 'full' },
-
-  // Forms & Certificates
-  { name: 'screens.formsAndCertificates.read', description: 'Forms & Certificates - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.formsAndCertificates.full', description: 'Forms & Certificates - Full Control', category: 'screens', action: 'full' },
-
-  // Boarding & ICU
-  { name: 'screens.boardingAndIcu.read', description: 'Boarding & ICU - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.boardingAndIcu.full', description: 'Boarding & ICU - Full Control', category: 'screens', action: 'full' },
-
-  // Import Data (parent module)
-  { name: 'screens.importData.read', description: 'Import Data - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.importData.full', description: 'Import Data - Full Control', category: 'screens', action: 'full' },
-
-  // Import Clients & Pets
-  { name: 'screens.importClients.read', description: 'Import Clients & Pets - Read Only', category: 'screens', action: 'read' },
-  { name: 'screens.importClients.full', description: 'Import Clients & Pets - Full Control', category: 'screens', action: 'full' },
-
-  // API-level permissions for reminders
-  { name: 'reminders.read', description: 'Reminders - Read', category: 'reminders', action: 'read' },
-  { name: 'reminders.write', description: 'Reminders - Write', category: 'reminders', action: 'write' },
-
-  // Special Permissions
-  { name: 'patients.hidePhone', description: 'Hide Phone Numbers in Patients', category: 'patients', action: 'hidePhone' },
-
-  // API-level permissions (for backwards compatibility)
-  { name: 'users.read', description: 'Users - Read', category: 'users', action: 'read' },
-  { name: 'users.create', description: 'Users - Create', category: 'users', action: 'create' },
-  { name: 'users.update', description: 'Users - Update', category: 'users', action: 'update' },
-  { name: 'users.deactivate', description: 'Users - Deactivate', category: 'users', action: 'delete' },
-  { name: 'users.managePermissions', description: 'Users - Manage Permissions', category: 'users', action: 'full' },
-  { name: 'appointments.read', description: 'Appointments - Read', category: 'appointments', action: 'read' },
-  { name: 'appointments.create', description: 'Appointments - Create', category: 'appointments', action: 'create' },
-  { name: 'appointments.update', description: 'Appointments - Update', category: 'appointments', action: 'update' },
-  { name: 'appointments.delete', description: 'Appointments - Delete', category: 'appointments', action: 'delete' },
-];
 
 // Define role data
 const roles = [
@@ -267,14 +151,14 @@ async function main() {
 
   // 2. إنشاء جميع الصلاحيات
   console.log('📝 إنشاء الصلاحيات...');
-  for (const perm of permissions) {
+  for (const perm of ALL_PERMISSIONS) {
     await prisma.permission.upsert({
       where: { name: perm.name },
       update: {},
       create: perm,
     });
   }
-  console.log(`✅ تم إنشاء ${permissions.length} صلاحية`);
+  console.log(`✅ تم إنشاء ${ALL_PERMISSIONS.length} صلاحية`);
 
   // 3. ربط الصلاحيات بالأدوار
   console.log('🔗 ربط الصلاحيات بالأدوار...');
