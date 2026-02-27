@@ -119,6 +119,30 @@ export const ALL_PERMISSIONS = [
 ];
 
 /**
+ * Ensures invoice_items table has all required columns.
+ * Bypasses Prisma migration pipeline — runs raw SQL with IF NOT EXISTS.
+ * Safe to run every startup (idempotent).
+ */
+export async function ensureInvoiceColumns(): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "priceBeforeTax" DOUBLE PRECISION;
+      ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "taxRate" DOUBLE PRECISION NOT NULL DEFAULT 15;
+      ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "discount" DOUBLE PRECISION NOT NULL DEFAULT 0;
+    `);
+    // Backfill priceBeforeTax from unitPrice where NULL
+    await prisma.$executeRawUnsafe(`
+      UPDATE "invoice_items"
+      SET "priceBeforeTax" = "unitPrice" / (1 + "taxRate" / 100)
+      WHERE "priceBeforeTax" IS NULL;
+    `);
+    console.log('✅ Invoice columns ensured');
+  } catch (error) {
+    console.error('⚠️ ensureInvoiceColumns failed (non-fatal):', error);
+  }
+}
+
+/**
  * Auto-creates missing permissions and links *.full to ADMIN role on server startup.
  * Idempotent — safe to run every startup. Only creates what's missing.
  */

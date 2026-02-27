@@ -6,7 +6,7 @@ import { errorHandler, notFound } from './middlewares/errorHandler';
 import { languageMiddleware } from './middlewares/languageMiddleware';
 import prisma from './config/database';
 import { initializeWebSocket } from './websocket';
-import { ensureScreenPermissions } from './services/ensurePermissions';
+import { ensureScreenPermissions, ensureInvoiceColumns } from './services/ensurePermissions';
 
 // Routes
 import authRoutes from './routes/authRoutes';
@@ -105,6 +105,9 @@ const startServer = async () => {
     // Test database connection
     await prisma.$connect();
     console.log('✅ Database connected successfully');
+
+    // Ensure invoice_items columns exist (bypasses broken migration chain)
+    await ensureInvoiceColumns();
 
     // Auto-create missing permissions on startup
     await ensureScreenPermissions();
