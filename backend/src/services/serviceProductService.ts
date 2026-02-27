@@ -7,6 +7,8 @@ interface ServiceProductInput {
   priceBeforeTax: number;
   taxRate: number;
   priceAfterTax: number;
+  daftraCode?: string;
+  barcode?: string;
 }
 
 interface CategoryInput {
@@ -19,6 +21,8 @@ interface ImportItem {
   priceBeforeTax: number;
   taxRate: number;
   priceAfterTax: number;
+  daftraCode?: string;
+  barcode?: string;
 }
 
 export const serviceProductService = {
@@ -77,7 +81,11 @@ export const serviceProductService = {
     };
 
     if (search) {
-      where.name = { contains: search, mode: 'insensitive' };
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { daftraCode: { contains: search, mode: 'insensitive' } },
+        { barcode: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     if (categoryId) {
@@ -123,6 +131,8 @@ export const serviceProductService = {
         priceBeforeTax: new Prisma.Decimal(data.priceBeforeTax),
         taxRate: new Prisma.Decimal(data.taxRate),
         priceAfterTax: new Prisma.Decimal(data.priceAfterTax),
+        daftraCode: data.daftraCode,
+        barcode: data.barcode,
       },
       include: {
         category: true,
@@ -146,6 +156,8 @@ export const serviceProductService = {
     if (data.priceAfterTax !== undefined) {
       updateData.priceAfterTax = new Prisma.Decimal(data.priceAfterTax);
     }
+    if (data.daftraCode !== undefined) updateData.daftraCode = data.daftraCode;
+    if (data.barcode !== undefined) updateData.barcode = data.barcode;
 
     return prisma.serviceProduct.update({
       where: { id },
@@ -209,6 +221,8 @@ export const serviceProductService = {
             priceBeforeTax: new Prisma.Decimal(item.priceBeforeTax),
             taxRate: new Prisma.Decimal(item.taxRate),
             priceAfterTax: new Prisma.Decimal(item.priceAfterTax),
+            daftraCode: item.daftraCode,
+            barcode: item.barcode,
           },
         });
 

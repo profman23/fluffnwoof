@@ -20,6 +20,8 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
     priceBeforeTax: '',
     taxRate: '15',
     priceAfterTax: '',
+    daftraCode: '',
+    barcode: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,6 +34,8 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
         priceBeforeTax: String(item.priceBeforeTax),
         taxRate: String(item.taxRate),
         priceAfterTax: String(item.priceAfterTax),
+        daftraCode: item.daftraCode || '',
+        barcode: item.barcode || '',
       });
     }
   }, [item]);
@@ -78,6 +82,8 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
         priceBeforeTax: parseFloat(formData.priceBeforeTax),
         taxRate: parseFloat(formData.taxRate),
         priceAfterTax: parseFloat(formData.priceAfterTax),
+        daftraCode: formData.daftraCode || undefined,
+        barcode: formData.barcode || undefined,
       };
 
       if (isEdit) {
@@ -122,6 +128,38 @@ export const AddEditServiceProductModal = ({ item, categories, onClose }: Props)
             placeholder={t('form.name')}
             required
           />
+        </div>
+
+        {/* Daftra Code & Barcode Row */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">
+              🏷️ {t('form.daftraCode')}
+            </label>
+            <input
+              type="text"
+              value={formData.daftraCode}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, daftraCode: e.target.value }))
+              }
+              className="input"
+              placeholder={t('form.daftraCode')}
+            />
+          </div>
+          <div>
+            <label className="label">
+              📊 {t('form.barcode')}
+            </label>
+            <input
+              type="text"
+              value={formData.barcode}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, barcode: e.target.value }))
+              }
+              className="input"
+              placeholder={t('form.barcode')}
+            />
+          </div>
         </div>
 
         {/* Price Row - Two columns */}

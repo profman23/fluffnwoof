@@ -229,7 +229,11 @@ export const ServiceProductSelector = ({
               >
                 <div>
                   <div className="font-medium text-gray-900 dark:text-[var(--app-text-primary)]">{product.name}</div>
-                  <div className="text-xs text-gray-500">{product.category?.name}</div>
+                  <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
+                    <span>{product.category?.name}</span>
+                    {product.daftraCode && <span className="text-blue-500">#{product.daftraCode}</span>}
+                    {product.barcode && <span className="text-purple-500">{product.barcode}</span>}
+                  </div>
                 </div>
                 <div className="text-sm font-medium text-green-600 flex items-center gap-1">
                   {Number(product.priceAfterTax || 0).toFixed(2)} <SarSymbol className="w-3.5 h-3.5" />

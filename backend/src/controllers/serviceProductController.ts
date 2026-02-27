@@ -202,13 +202,15 @@ export const serviceProductController = {
       const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
       // Skip header row and map data
-      // Columns: A=Name, C=Category, F=PriceBeforeTax, G=TaxRate, H=PriceAfterTax
+      // Columns: A=Name, C=Category, F=PriceBeforeTax, G=TaxRate, H=PriceAfterTax, I=DaftraCode, J=Barcode
       const items = data.slice(1).filter(row => row[0]).map(row => ({
         name: String(row[0] || '').trim(),
         category: String(row[2] || '').trim(),
         priceBeforeTax: parseFloat(row[5]) || 0,
         taxRate: parseFloat(row[6]) || 0,
         priceAfterTax: parseFloat(row[7]) || 0,
+        daftraCode: String(row[8] || '').trim() || undefined,
+        barcode: String(row[9] || '').trim() || undefined,
       }));
 
       if (items.length === 0) {

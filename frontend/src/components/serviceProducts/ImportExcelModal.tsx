@@ -83,6 +83,8 @@ export const ImportExcelModal = ({ onClose }: Props) => {
     ws['F1'] = { t: 's', v: 'Price Before Tax / السعر قبل الضريبة' };
     ws['G1'] = { t: 's', v: 'Tax Rate % / نسبة الضريبة' };
     ws['H1'] = { t: 's', v: 'Price After Tax / السعر بعد الضريبة' };
+    ws['I1'] = { t: 's', v: 'Daftra Code / كود دفترة' };
+    ws['J1'] = { t: 's', v: 'Barcode / الباركود' };
 
     // Sample row 1 (Row 2)
     ws['A2'] = { t: 's', v: 'فحص عام - General Checkup' };
@@ -93,6 +95,8 @@ export const ImportExcelModal = ({ onClose }: Props) => {
     ws['F2'] = { t: 'n', v: 100 };
     ws['G2'] = { t: 'n', v: 15 };
     ws['H2'] = { t: 'n', f: 'F2*(1+G2/100)', v: 115 };
+    ws['I2'] = { t: 's', v: 'DF-001' };
+    ws['J2'] = { t: 's', v: '6281234567890' };
 
     // Sample row 2 (Row 3)
     ws['A3'] = { t: 's', v: 'تطعيم - Vaccination' };
@@ -103,6 +107,8 @@ export const ImportExcelModal = ({ onClose }: Props) => {
     ws['F3'] = { t: 'n', v: 200 };
     ws['G3'] = { t: 'n', v: 0 };
     ws['H3'] = { t: 'n', f: 'F3*(1+G3/100)', v: 200 };
+    ws['I3'] = { t: 's', v: 'DF-002' };
+    ws['J3'] = { t: 's', v: '6281234567891' };
 
     // Add 20 empty rows with formulas ready for user to fill
     for (let row = 4; row <= 23; row++) {
@@ -114,10 +120,12 @@ export const ImportExcelModal = ({ onClose }: Props) => {
       ws[`F${row}`] = { t: 'n', v: 0 };
       ws[`G${row}`] = { t: 'n', v: 15 };
       ws[`H${row}`] = { t: 'n', f: `F${row}*(1+G${row}/100)`, v: 0 };
+      ws[`I${row}`] = { t: 's', v: '' };
+      ws[`J${row}`] = { t: 's', v: '' };
     }
 
     // Set worksheet range
-    ws['!ref'] = 'A1:H23';
+    ws['!ref'] = 'A1:J23';
 
     // Set column widths for better readability
     ws['!cols'] = [
@@ -129,6 +137,8 @@ export const ImportExcelModal = ({ onClose }: Props) => {
       { wch: 35 }, // F - Price Before Tax
       { wch: 25 }, // G - Tax Rate
       { wch: 35 }, // H - Price After Tax
+      { wch: 20 }, // I - Daftra Code
+      { wch: 25 }, // J - Barcode
     ];
 
     // Set row height for header
@@ -160,6 +170,8 @@ export const ImportExcelModal = ({ onClose }: Props) => {
                 <li><span className="font-medium">F:</span> {t('import.colPriceBeforeTax')}</li>
                 <li><span className="font-medium">G:</span> {t('import.colTaxRate')}</li>
                 <li><span className="font-medium">H:</span> {t('import.colPriceAfterTax')}</li>
+                <li><span className="font-medium">I:</span> {t('import.colDaftraCode')}</li>
+                <li><span className="font-medium">J:</span> {t('import.colBarcode')}</li>
               </ul>
             </div>
             <Button

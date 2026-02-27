@@ -16,6 +16,8 @@ export interface ServiceProduct {
   priceBeforeTax: number;
   taxRate: number;
   priceAfterTax: number;
+  daftraCode?: string | null;
+  barcode?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +29,8 @@ export interface ServiceProductInput {
   priceBeforeTax: number;
   taxRate: number;
   priceAfterTax: number;
+  daftraCode?: string;
+  barcode?: string;
 }
 
 export interface PaginatedResult<T> {

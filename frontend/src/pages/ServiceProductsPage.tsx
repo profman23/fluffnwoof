@@ -194,6 +194,20 @@ export const ServiceProductsPage = () => {
       ),
     },
     {
+      id: 'daftraCode',
+      header: t('table.daftraCode'),
+      render: (item) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400">{item.daftraCode || '-'}</span>
+      ),
+    },
+    {
+      id: 'barcode',
+      header: t('table.barcode'),
+      render: (item) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400">{item.barcode || '-'}</span>
+      ),
+    },
+    {
       id: 'category',
       header: t('table.category'),
       render: (item) => (

@@ -91,7 +91,7 @@
   "services": {
     "title": "الخدمات والمنتجات"
   },
-  "searchServiceProduct": "ابحث عن خدمة أو منتج...",
+  "searchServiceProduct": "البحث بالاسم أو الباركود أو كود دفترة...",
   "noProductsFound": "لم يتم العثور على منتجات",
   "item": "الصنف",
   "quantity": "الكمية",

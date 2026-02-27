@@ -84,12 +84,16 @@ describe('Service Products API', () => {
           priceBeforeTax: 100,
           taxRate: 15,
           priceAfterTax: 115,
+          daftraCode: 'DF-TEST-001',
+          barcode: '6281234567890',
         })
         .expect(201);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('id');
       expect(res.body.data.name).toBe('Rabies Vaccine');
+      expect(res.body.data.daftraCode).toBe('DF-TEST-001');
+      expect(res.body.data.barcode).toBe('6281234567890');
       createdProductId = res.body.data.id;
     });
 
@@ -118,20 +122,42 @@ describe('Service Products API', () => {
       const res = await request(app)
         .put(`/api/service-products/${createdProductId}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Updated Rabies Vaccine', priceBeforeTax: 120 })
+        .send({ name: 'Updated Rabies Vaccine', priceBeforeTax: 120, daftraCode: 'DF-UPDATED', barcode: '6281234567899' })
         .expect(200);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.name).toBe('Updated Rabies Vaccine');
+      expect(res.body.data.daftraCode).toBe('DF-UPDATED');
+      expect(res.body.data.barcode).toBe('6281234567899');
     });
 
-    it('GET /api/service-products?search=Rabies should filter by search', async () => {
+    it('GET /api/service-products?search=Rabies should filter by name', async () => {
       const res = await request(app)
         .get('/api/service-products?search=Rabies')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('GET /api/service-products?search=DF-UPDATED should filter by daftraCode', async () => {
+      const res = await request(app)
+        .get('/api/service-products?search=DF-UPDATED')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data[0].daftraCode).toBe('DF-UPDATED');
+    });
+
+    it('GET /api/service-products?search=6281234567899 should filter by barcode', async () => {
+      const res = await request(app)
+        .get('/api/service-products?search=6281234567899')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data[0].barcode).toBe('6281234567899');
     });
 
     it('DELETE /api/service-products/:id should delete product', async () => {

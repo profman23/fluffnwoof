@@ -91,7 +91,7 @@
   "services": {
     "title": "Services & Products"
   },
-  "searchServiceProduct": "Search for service or product...",
+  "searchServiceProduct": "Search by name, barcode, or Daftra code...",
   "noProductsFound": "No products found",
   "item": "Item",
   "quantity": "Qty",
