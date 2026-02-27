@@ -135,7 +135,7 @@ export const ServiceProductSelector = ({
 
   const handleSelectProduct = (product: ServiceProduct) => {
     const priceBeforeTax = Number(product.priceBeforeTax) || 0;
-    const taxRate = Number(product.taxRate) || 15;
+    const taxRate = Number(product.taxRate) ?? 15;
     const unitPrice = Number(product.priceAfterTax) || 0;
     const newItem: SelectedItem = {
       id: product.id,

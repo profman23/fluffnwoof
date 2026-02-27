@@ -142,6 +142,49 @@ export const serviceProductController = {
     }
   },
 
+  bulkDelete: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ids } = req.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'ids must be a non-empty array',
+        });
+      }
+
+      if (ids.length > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete more than 100 items at once',
+        });
+      }
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!ids.every((id: unknown) => typeof id === 'string' && uuidRegex.test(id))) {
+        return res.status(400).json({
+          success: false,
+          message: 'All ids must be valid UUIDs',
+        });
+      }
+
+      const result = await serviceProductService.bulkDelete(ids);
+      res.json({
+        success: true,
+        message: `تم حذف ${result.deletedCount} عنصر بنجاح`,
+        data: result,
+      });
+    } catch (error: any) {
+      if (error.message === 'Some items not found or already deleted') {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      next(error);
+    }
+  },
+
   // Import from Excel
   importFromExcel: async (req: Request, res: Response, next: NextFunction) => {
     try {

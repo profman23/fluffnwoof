@@ -38,6 +38,9 @@ router.delete('/categories/:id', requireScreenModify('serviceProducts'), service
 // Import route
 router.post('/import', requireScreenModify('serviceProducts'), upload.single('file'), serviceProductController.importFromExcel);
 
+// Bulk delete (must be before /:id to avoid route conflict)
+router.post('/bulk-delete', requireScreenModify('serviceProducts'), serviceProductController.bulkDelete);
+
 // Service Products routes
 router.get('/', requireScreenAccess('serviceProducts'), serviceProductController.getAll);
 router.get('/:id', requireScreenAccess('serviceProducts'), serviceProductController.getById);

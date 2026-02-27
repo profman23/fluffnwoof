@@ -56,6 +56,10 @@ export interface DataTableProps<T> {
   // Actions column
   renderActions?: (row: T) => React.ReactNode;
   actionsHeader?: string;
+  // Selection (opt-in)
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
 }
 
 // Sortable header cell component
@@ -125,6 +129,9 @@ export function DataTable<T>({
   rowClassName,
   renderActions,
   actionsHeader,
+  selectable = false,
+  selectedIds,
+  onSelectionChange,
 }: DataTableProps<T>) {
   const { t, i18n } = useTranslation('common');
   const isRtl = i18n.language === 'ar';
@@ -224,7 +231,33 @@ export function DataTable<T>({
   };
 
   const activeColumn = activeId ? columns.find((c) => c.id === activeId) : null;
-  const totalColumns = orderedColumns.length + (showExpandColumn ? 1 : 0) + (renderActions ? 1 : 0);
+  const totalColumns = orderedColumns.length + (showExpandColumn ? 1 : 0) + (renderActions ? 1 : 0) + (selectable ? 1 : 0);
+
+  // Selection helpers
+  const allPageSelected = selectable && data.length > 0 && data.every((row) => selectedIds?.has(getRowKey(row)));
+  const somePageSelected = selectable && data.some((row) => selectedIds?.has(getRowKey(row)));
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange || !selectedIds) return;
+    const newSelected = new Set(selectedIds);
+    if (allPageSelected) {
+      data.forEach((row) => newSelected.delete(getRowKey(row)));
+    } else {
+      data.forEach((row) => newSelected.add(getRowKey(row)));
+    }
+    onSelectionChange(newSelected);
+  };
+
+  const handleSelectRow = (rowId: string) => {
+    if (!onSelectionChange || !selectedIds) return;
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(rowId)) {
+      newSelected.delete(rowId);
+    } else {
+      newSelected.add(rowId);
+    }
+    onSelectionChange(newSelected);
+  };
 
   if (loading) {
     return <LogoLoader />;
@@ -242,6 +275,19 @@ export function DataTable<T>({
           <table className="min-w-full divide-y divide-gray-200 dark:divide-[var(--app-border-default)]">
             <thead className="bg-gray-50 dark:bg-[var(--app-bg-tertiary)]">
               <tr>
+                {/* Selection column */}
+                {selectable && (
+                  <th className="w-10 px-2">
+                    <input
+                      type="checkbox"
+                      checked={allPageSelected}
+                      ref={(el) => { if (el) el.indeterminate = !allPageSelected && somePageSelected; }}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-secondary-300 dark:bg-[var(--app-bg-elevated)]"
+                    />
+                  </th>
+                )}
+
                 {/* Expand column */}
                 {showExpandColumn && (
                   <th className="w-10"></th>
@@ -293,7 +339,7 @@ export function DataTable<T>({
                       <tr
                         className={`hover:bg-gray-50 dark:hover:bg-[var(--app-bg-tertiary)] transition-colors ${
                           onRowClick ? 'cursor-pointer' : ''
-                        } ${isExpanded ? 'bg-primary-50 dark:bg-primary-900/20' : ''} ${getRowClassName(row)}`}
+                        } ${isExpanded ? 'bg-primary-50 dark:bg-primary-900/20' : ''} ${selectable && selectedIds?.has(rowId) ? 'bg-primary-50 dark:bg-primary-900/20' : ''} ${getRowClassName(row)}`}
                         onClick={() => {
                           if (showExpandColumn && onExpandToggle) {
                             onExpandToggle(isExpanded ? null : rowId);
@@ -302,6 +348,18 @@ export function DataTable<T>({
                           }
                         }}
                       >
+                        {/* Selection checkbox */}
+                        {selectable && (
+                          <td className="w-10 px-2" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds?.has(rowId) ?? false}
+                              onChange={() => handleSelectRow(rowId)}
+                              className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-secondary-300 dark:bg-[var(--app-bg-elevated)]"
+                            />
+                          </td>
+                        )}
+
                         {/* Expand indicator */}
                         {showExpandColumn && (
                           <td className="px-2 py-3 text-center">

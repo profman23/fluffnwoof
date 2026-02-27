@@ -4,6 +4,7 @@ import {
   PlusIcon,
   ArrowUpTrayIcon,
   PencilIcon,
+  TrashIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { serviceProductsApi, ServiceProduct, Category } from '../api/serviceProducts';
@@ -14,6 +15,7 @@ import { useScreenPermission } from '../hooks/useScreenPermission';
 import { DataTable, Column } from '../components/common/DataTable';
 import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 import { Button } from '../components/common/Button';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 export const ServiceProductsPage = () => {
   const { t } = useTranslation('serviceProducts');
@@ -37,6 +39,14 @@ export const ServiceProductsPage = () => {
   const [showImport, setShowImport] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [editingItem, setEditingItem] = useState<ServiceProduct | null>(null);
+
+  // Selection & delete
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<ServiceProduct | null>(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Load data
   const loadCategories = async () => {
@@ -73,6 +83,11 @@ export const ServiceProductsPage = () => {
   useEffect(() => {
     loadCategories();
   }, []);
+
+  // Clear selection on page/filter/search change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [pagination.page, search, selectedCategory]);
 
   useEffect(() => {
     loadItems();
@@ -111,6 +126,58 @@ export const ServiceProductsPage = () => {
     setShowCategories(false);
     loadCategories();
   };
+
+  // Delete handlers
+  const handleSingleDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      await serviceProductsApi.bulkDelete([deleteConfirm.id]);
+      setSuccessMessage(t('deleteSuccess'));
+      setDeleteConfirm(null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteConfirm.id);
+        return next;
+      });
+      loadItems();
+    } catch {
+      setErrorMessage(t('deleteError'));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setDeleting(true);
+    try {
+      const result = await serviceProductsApi.bulkDelete(Array.from(selectedIds));
+      setSuccessMessage(t('bulkDeleteSuccess', { count: result.deletedCount }));
+      setBulkDeleteConfirm(false);
+      setSelectedIds(new Set());
+      loadItems();
+    } catch {
+      setErrorMessage(t('bulkDeleteError'));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Auto-dismiss messages
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => setErrorMessage(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
 
   const formatPrice = (price: number | string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -173,6 +240,13 @@ export const ServiceProductsPage = () => {
         title={t('edit')}
       >
         <PencilIcon className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => setDeleteConfirm(item)}
+        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+        title={t('delete')}
+      >
+        <TrashIcon className="w-4 h-4" />
       </button>
     </div>
   );
@@ -241,6 +315,44 @@ export const ServiceProductsPage = () => {
         </form>
       </div>
 
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="alert-success mb-4">
+          {successMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="alert-error mb-4">
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Selection Toolbar */}
+      {canModify && selectedIds.size > 0 && (
+        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-3 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+            {t('selectedCount', { count: selectedIds.size })}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-sm"
+            >
+              {t('clearSelection')}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => setBulkDeleteConfirm(true)}
+              className="flex items-center gap-2 text-sm"
+            >
+              <TrashIcon className="w-4 h-4" />
+              {t('deleteSelected', { count: selectedIds.size })}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* DataTable */}
       <DataTable<ServiceProduct>
         tableId="service-products"
@@ -255,6 +367,9 @@ export const ServiceProductsPage = () => {
         page={pagination.page}
         totalPages={pagination.totalPages}
         onPageChange={handlePageChange}
+        selectable={canModify}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
       />
 
       {/* Total Count */}
@@ -278,6 +393,32 @@ export const ServiceProductsPage = () => {
       {showCategories && (
         <CategoryModal categories={categories} onClose={handleCategoriesClose} />
       )}
+
+      {/* Single Delete Confirmation */}
+      <ConfirmationModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleSingleDelete}
+        title={t('confirmDeleteTitle')}
+        message={t('confirmDelete')}
+        confirmText={t('delete')}
+        cancelText={t('form.cancel')}
+        variant="danger"
+        loading={deleting}
+      />
+
+      {/* Bulk Delete Confirmation */}
+      <ConfirmationModal
+        isOpen={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        title={t('confirmBulkDeleteTitle')}
+        message={t('confirmBulkDelete', { count: selectedIds.size })}
+        confirmText={t('deleteSelected', { count: selectedIds.size })}
+        cancelText={t('form.cancel')}
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 };

@@ -88,6 +88,11 @@ export const serviceProductsApi = {
     await api.delete(`/service-products/${id}`);
   },
 
+  bulkDelete: async (ids: string[]): Promise<{ deletedCount: number }> => {
+    const response = await api.post('/service-products/bulk-delete', { ids });
+    return response.data.data;
+  },
+
   // Import from Excel
   importFromExcel: async (file: File): Promise<{ success: number; failed: number; errors: string[] }> => {
     const formData = new FormData();

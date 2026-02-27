@@ -163,6 +163,23 @@ export const serviceProductService = {
     });
   },
 
+  bulkDelete: async (ids: string[]) => {
+    const count = await prisma.serviceProduct.count({
+      where: { id: { in: ids }, isActive: true },
+    });
+
+    if (count !== ids.length) {
+      throw new Error('Some items not found or already deleted');
+    }
+
+    const result = await prisma.serviceProduct.updateMany({
+      where: { id: { in: ids }, isActive: true },
+      data: { isActive: false },
+    });
+
+    return { deletedCount: result.count };
+  },
+
   // Import from Excel
   importFromExcel: async (items: ImportItem[]) => {
     const results = {

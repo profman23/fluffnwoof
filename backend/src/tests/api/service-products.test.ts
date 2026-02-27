@@ -149,6 +149,88 @@ describe('Service Products API', () => {
   });
 
   // ═══════════════════════════════════════════
+  // Bulk Delete
+  // ═══════════════════════════════════════════
+  describe('Bulk Delete', () => {
+    let bulkProductIds: string[];
+
+    beforeAll(async () => {
+      // Create a category for bulk delete products
+      const catRes = await request(app)
+        .post('/api/service-products/categories')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Bulk Test Category' });
+
+      const catId = catRes.body.data.id;
+      bulkProductIds = [];
+
+      for (let i = 0; i < 3; i++) {
+        const res = await request(app)
+          .post('/api/service-products')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: `Bulk Test Product ${i}`,
+            categoryId: catId,
+            priceBeforeTax: 100,
+            taxRate: 15,
+            priceAfterTax: 115,
+          });
+        bulkProductIds.push(res.body.data.id);
+      }
+    });
+
+    it('POST /api/service-products/bulk-delete should delete multiple products', async () => {
+      const res = await request(app)
+        .post('/api/service-products/bulk-delete')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ids: bulkProductIds })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.deletedCount).toBe(3);
+    });
+
+    it('should reject empty ids array', async () => {
+      await request(app)
+        .post('/api/service-products/bulk-delete')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ids: [] })
+        .expect(400);
+    });
+
+    it('should reject non-array ids', async () => {
+      await request(app)
+        .post('/api/service-products/bulk-delete')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ids: 'not-an-array' })
+        .expect(400);
+    });
+
+    it('should reject invalid UUID format', async () => {
+      await request(app)
+        .post('/api/service-products/bulk-delete')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ids: ['not-a-uuid'] })
+        .expect(400);
+    });
+
+    it('should reject when some ids not found', async () => {
+      await request(app)
+        .post('/api/service-products/bulk-delete')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ids: ['00000000-0000-0000-0000-000000000000'] })
+        .expect(400);
+    });
+
+    it('should reject without auth (401)', async () => {
+      await request(app)
+        .post('/api/service-products/bulk-delete')
+        .send({ ids: ['00000000-0000-0000-0000-000000000000'] })
+        .expect(401);
+    });
+  });
+
+  // ═══════════════════════════════════════════
   // Delete Category
   // ═══════════════════════════════════════════
   describe('Delete Category', () => {
