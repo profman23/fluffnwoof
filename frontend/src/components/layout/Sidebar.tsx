@@ -50,7 +50,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: '📈',
       screen: 'reports',
       children: [
-        { path: '/reports/appointments', key: 'upcoming', icon: '📅', screen: 'reports' },
+        { path: '/reports/appointments', key: 'upcoming', icon: '📅', screen: 'nextAppointments' },
+        { path: '/reports/sales', key: 'sales', icon: '💰', screen: 'salesReport' },
       ],
     },
     {

@@ -25,5 +25,62 @@
     },
     "noData": "لا توجد مواعيد قادمة",
     "total": "إجمالي المواعيد"
+  },
+  "salesReport": {
+    "title": "تقرير المبيعات",
+    "filters": {
+      "title": "الفلاتر",
+      "startDate": "تاريخ البداية",
+      "startTime": "وقت البداية",
+      "endDate": "تاريخ النهاية",
+      "endTime": "وقت النهاية",
+      "status": "حالة الفاتورة",
+      "allStatuses": "جميع الحالات",
+      "apply": "تطبيق",
+      "reset": "إعادة تعيين"
+    },
+    "stats": {
+      "totalSales": "إجمالي المبيعات",
+      "totalPayments": "إجمالي المدفوعات",
+      "outstanding": "المستحق",
+      "invoiceCount": "الفواتير",
+      "paymentBreakdown": "طرق الدفع"
+    },
+    "table": {
+      "invoiceNumber": "رقم الفاتورة",
+      "date": "التاريخ",
+      "customer": "العميل",
+      "phone": "الهاتف",
+      "items": "الأصناف",
+      "total": "الإجمالي",
+      "paid": "المدفوع",
+      "balance": "الرصيد",
+      "status": "الحالة"
+    },
+    "itemDetails": {
+      "description": "الوصف",
+      "qty": "الكمية",
+      "price": "السعر",
+      "tax": "الضريبة %",
+      "discount": "الخصم %",
+      "total": "الإجمالي"
+    },
+    "status": {
+      "PENDING": "معلقة",
+      "PAID": "مدفوعة",
+      "PARTIALLY_PAID": "مدفوعة جزئياً",
+      "OVERDUE": "متأخرة"
+    },
+    "paymentMethods": {
+      "CASH": "نقدي",
+      "CARD": "بطاقة",
+      "MADA": "مدى",
+      "TABBY": "تابي",
+      "TAMARA": "تمارا",
+      "BANK_TRANSFER": "تحويل بنكي",
+      "OTHER": "أخرى"
+    },
+    "noData": "لا توجد بيانات مبيعات للفترة المحددة",
+    "total": "إجمالي الفواتير"
   }
 }

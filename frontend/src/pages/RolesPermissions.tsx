@@ -24,7 +24,7 @@ const SCREEN_GROUPS: ScreenItem[] = [
   { name: 'userManagement' },
   { name: 'rolesPermissions' },
   { name: 'serviceProducts' },
-  { name: 'reports' },
+  { name: 'reports', children: ['nextAppointments', 'salesReport'] },
   { name: 'crm', children: ['sms', 'reminders'] },
   { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes', 'formsAndCertificates', 'boardingAndIcu'] },
   { name: 'importData', children: ['importClients'] },
@@ -52,7 +52,7 @@ export const RolesPermissions: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['crm', 'clinicSetup']));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['reports', 'crm', 'clinicSetup']));
 
   const isRtl = i18n.language === 'ar';
 

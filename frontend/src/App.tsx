@@ -15,6 +15,7 @@ import { FlowBoardPage } from './pages/FlowBoardPage';
 import { BoardingManagement } from './pages/BoardingManagement';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NextAppointmentsReport } from './pages/reports/NextAppointmentsReport';
+import { SalesReport } from './pages/reports/SalesReport';
 import { ServiceProductsPage } from './pages/ServiceProductsPage';
 import { MyProfile } from './pages/MyProfile';
 import { SmsPage } from './pages/SmsPage';
@@ -190,6 +191,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NextAppointmentsReport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/sales"
+            element={
+              <ProtectedRoute>
+                <SalesReport />
               </ProtectedRoute>
             }
           />

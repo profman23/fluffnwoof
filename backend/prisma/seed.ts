@@ -45,9 +45,17 @@ const permissions = [
   { name: 'screens.flowBoard.read', description: 'Flow Board - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.flowBoard.full', description: 'Flow Board - Full Control', category: 'screens', action: 'full' },
 
-  // Reports
+  // Reports (parent screen)
   { name: 'screens.reports.read', description: 'Reports - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.reports.full', description: 'Reports - Full Control', category: 'screens', action: 'full' },
+
+  // Upcoming Appointments (child of Reports)
+  { name: 'screens.nextAppointments.read', description: 'Upcoming Appointments - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.nextAppointments.full', description: 'Upcoming Appointments - Full Control', category: 'screens', action: 'full' },
+
+  // Sales Report (child of Reports)
+  { name: 'screens.salesReport.read', description: 'Sales Report - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.salesReport.full', description: 'Sales Report - Full Control', category: 'screens', action: 'full' },
 
   // Services & Products
   { name: 'screens.serviceProducts.read', description: 'Services & Products - Read Only', category: 'screens', action: 'read' },
@@ -152,6 +160,8 @@ const rolePermissions: Record<string, string[]> = {
     'screens.audit.full',
     'screens.flowBoard.full',
     'screens.reports.full',
+    'screens.nextAppointments.full',
+    'screens.salesReport.full',
     'screens.serviceProducts.full',
     'screens.crm.full',
     'screens.sms.full',
@@ -193,6 +203,8 @@ const rolePermissions: Record<string, string[]> = {
     'screens.flowBoard.full',
     // Reports - Read Only
     'screens.reports.read',
+    'screens.nextAppointments.read',
+    'screens.salesReport.read',
     // Clinic Setup - Read Only (for viewing schedules)
     'screens.clinicSetup.read',
     'screens.shiftsManagement.read',
@@ -220,6 +232,8 @@ const rolePermissions: Record<string, string[]> = {
     'screens.flowBoard.full',
     // Reports - Read Only
     'screens.reports.read',
+    'screens.nextAppointments.read',
+    'screens.salesReport.read',
     // Clinic Setup - Read Only (for booking)
     'screens.clinicSetup.read',
     'screens.shiftsManagement.read',

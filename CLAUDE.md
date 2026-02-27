@@ -22,6 +22,12 @@
 - `"production"` / `"ارفع production"` → push `main` → Render Production auto-deploys
 - `"ارفع"` without specifying → **ASK**: Training or Production?
 
+### Git Push Safety (CRITICAL)
+- **Training deploy**: `git push origin main:training` — pushes to training branch ONLY, does NOT touch main
+- **NEVER run `git push origin main`** unless explicitly deploying to Production with user approval
+- `main` branch = Production on Render → any push to `origin/main` = **live Production deploy**
+- When deploying Training only: commit locally on main, then `git push origin main:training` (local commit stays unpushed on main until Production is approved)
+
 ### Workflow Rules
 1. **Always develop on Dev first** → test locally
 2. **Always deploy to Training first** → test on Training

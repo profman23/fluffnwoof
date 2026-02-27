@@ -7,6 +7,9 @@ const router = express.Router();
 router.use(authenticate);
 
 // Get upcoming appointments report
-router.get('/next-appointments', requireScreenAccess('reports'), reportController.getNextAppointments);
+router.get('/next-appointments', requireScreenAccess('nextAppointments'), reportController.getNextAppointments);
+
+// Get sales report
+router.get('/sales', requireScreenAccess('salesReport'), reportController.getSalesReport);
 
 export default router;
