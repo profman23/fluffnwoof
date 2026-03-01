@@ -203,7 +203,15 @@
     "newAppointment": "موعد جديد",
     "bookingPartial": "تم حجز {{created}} موعد بنجاح. تم تخطي {{skipped}} موعد بسبب تعارض.",
     "bookingAllSkipped": "لم يتم إنشاء أي موعد. تم تخطي {{skipped}} موعد بسبب تعارض في المواعيد.",
-    "surgeryDentalScaling": "جراحة - تنظيف الأسنان"
+    "surgeryDentalScaling": "جراحة - تنظيف الأسنان",
+    "visitType": "نوع الزيارة",
+    "unavailable": {
+      "dayOff": "الطبيب في إجازة في هذا اليوم",
+      "weekendOff": "الطبيب لا يعمل في عطلة نهاية الأسبوع",
+      "noSchedule": "لا يوجد جدول محدد لهذا الطبيب",
+      "fullyBooked": "محجوز بالكامل في هذا اليوم"
+    },
+    "willBook": "سيتم حجز {{count}} موعد"
   },
   "mandatoryFields": {
     "required": "مطلوب",

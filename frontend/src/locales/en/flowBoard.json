@@ -203,7 +203,15 @@
     "newAppointment": "New Appointment",
     "bookingPartial": "{{created}} appointment(s) booked successfully. {{skipped}} skipped due to conflict.",
     "bookingAllSkipped": "No appointments created. {{skipped}} skipped due to scheduling conflict.",
-    "surgeryDentalScaling": "Surgery - Dental Scaling"
+    "surgeryDentalScaling": "Surgery - Dental Scaling",
+    "visitType": "Visit Type",
+    "unavailable": {
+      "dayOff": "Vet has a day off on this date",
+      "weekendOff": "Vet does not work on weekends",
+      "noSchedule": "No schedule set for this vet",
+      "fullyBooked": "Fully booked on this date"
+    },
+    "willBook": "{{count}} appointment(s) will be booked"
   },
   "mandatoryFields": {
     "required": "Required",

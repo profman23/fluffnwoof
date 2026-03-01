@@ -179,6 +179,8 @@ export const appointmentService = {
     return await prisma.$transaction(async (tx) => {
       const created: any[] = [];
       const skipped: Array<{ visitType?: string; appointmentTime: string; appointmentDate: Date; reason: string }> = [];
+      // Track IDs created within this batch to exclude from conflict checks
+      const batchCreatedIds: string[] = [];
 
       for (const data of appointments) {
         // التحقق من تعارض المواعيد داخل الـ transaction
@@ -194,7 +196,7 @@ export const appointmentService = {
         const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // جلب كل مواعيد الدكتور في نفس اليوم
+        // جلب مواعيد الدكتور في نفس اليوم (باستثناء المواعيد اللي اتعملت في نفس الـ batch)
         const existingAppointments = await tx.appointment.findMany({
           where: {
             vetId: data.vetId,
@@ -203,6 +205,7 @@ export const appointmentService = {
               lte: endOfDay,
             },
             status: { not: 'CANCELLED' },
+            ...(batchCreatedIds.length > 0 ? { id: { notIn: batchCreatedIds } } : {}),
           },
           select: {
             appointmentTime: true,
@@ -210,7 +213,7 @@ export const appointmentService = {
           },
         });
 
-        // التحقق من التعارض
+        // التحقق من التعارض مع المواعيد الموجودة مسبقاً فقط
         let conflictTime: string | null = null;
         for (const appt of existingAppointments) {
           const [existHour, existMin] = appt.appointmentTime.split(':').map(Number);
@@ -264,6 +267,7 @@ export const appointmentService = {
         });
 
         created.push(appointment);
+        batchCreatedIds.push(appointment.id);
       }
 
       return { created, skipped };

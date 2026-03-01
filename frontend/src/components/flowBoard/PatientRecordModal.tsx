@@ -13,7 +13,8 @@ import { FileAttachment } from '../common/FileAttachment';
 import { PetFormsSection } from '../forms/PetFormsSection';
 import { uploadApi } from '../../api/upload';
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
-import { VISIT_TYPE_DURATION, generateTimeSlots, isSlotBooked, getTomorrowDate } from '../../utils/appointmentUtils';
+import { isSlotBooked, getTomorrowDate } from '../../utils/appointmentUtils';
+import { shiftsApi } from '../../api/shifts';
 import { ServiceProductSelector, SelectedItem } from './ServiceProductSelector';
 import { PaymentSection, PaymentEntry } from './PaymentSection';
 import { ConfirmationModal } from '../common/ConfirmationModal';
@@ -134,16 +135,20 @@ export const PatientRecordModal = ({
     return null;
   }, [appointment, record]);
 
-  // Next Appointment state - 3 independent dates and times
+  // Next Appointment state - 4 independent rows with date, visit type, and time
   const [showNextAppointment, setShowNextAppointment] = useState(false);
   const [checkupDate, setCheckupDate] = useState('');
   const [checkupTime, setCheckupTime] = useState('');
+  const [checkupVisitType, setCheckupVisitType] = useState('');
   const [vaccinationDate, setVaccinationDate] = useState('');
   const [vaccinationTime, setVaccinationTime] = useState('');
+  const [vaccinationVisitType, setVaccinationVisitType] = useState('');
   const [dewormingDate, setDewormingDate] = useState('');
   const [dewormingTime, setDewormingTime] = useState('');
+  const [dewormingVisitType, setDewormingVisitType] = useState('');
   const [surgeryDate, setSurgeryDate] = useState('');
   const [surgeryTime, setSurgeryTime] = useState('');
+  const [surgeryVisitType, setSurgeryVisitType] = useState('');
   const [appointmentVetId, setAppointmentVetId] = useState('');
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const [bookingAppointment, setBookingAppointment] = useState(false);
@@ -151,13 +156,8 @@ export const PatientRecordModal = ({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingWarning, setBookingWarning] = useState<string | null>(null);
   const [staff, setStaff] = useState<User[]>([]);
-  // Refresh key to force re-fetch of booked slots after booking
+  // Refresh key to force re-fetch of available slots after booking
   const [slotsRefreshKey, setSlotsRefreshKey] = useState(0);
-  // Booked appointments for each date (to show available time slots)
-  const [checkupBookedSlots, setCheckupBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
-  const [vaccinationBookedSlots, setVaccinationBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
-  const [dewormingBookedSlots, setDewormingBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
-  const [surgeryBookedSlots, setSurgeryBookedSlots] = useState<{ appointmentTime: string; duration: number }[]>([]);
 
   // Invoice/Payment state
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -226,13 +226,34 @@ export const PatientRecordModal = ({
     return result;
   }, [petUpcomingAppointments]);
 
+  // Collect locally-selected slots from other rows (for cross-row filtering)
+  const getLocallySelectedSlots = useCallback(
+    (excludeType: 'checkup' | 'vaccination' | 'deworming' | 'surgery', forDate: string): { appointmentTime: string; duration: number }[] => {
+      const slots: { appointmentTime: string; duration: number }[] = [];
+      const SLOT_INTERVAL = 5; // Only block the exact same 5-min slot, not the full visit duration
+      const rows = [
+        { type: 'checkup' as const, date: checkupDate, time: checkupTime, duration: SLOT_INTERVAL },
+        { type: 'vaccination' as const, date: vaccinationDate, time: vaccinationTime, duration: SLOT_INTERVAL },
+        { type: 'deworming' as const, date: dewormingDate, time: dewormingTime, duration: SLOT_INTERVAL },
+        { type: 'surgery' as const, date: surgeryDate, time: surgeryTime, duration: SLOT_INTERVAL },
+      ];
+      for (const row of rows) {
+        if (row.type !== excludeType && row.date === forDate && row.time) {
+          slots.push({ appointmentTime: row.time, duration: row.duration });
+        }
+      }
+      return slots;
+    },
+    [checkupDate, checkupTime, vaccinationDate, vaccinationTime, dewormingDate, dewormingTime, surgeryDate, surgeryTime]
+  );
+
   // Mandatory fields validation
   const mandatoryFieldsValid = useMemo(() => {
-    // Check if each appointment type has a date set OR is already booked
-    const hasCheckup = checkupDate.length > 0 || bookedAppointmentsByType.checkup.length > 0;
-    const hasVaccination = vaccinationDate.length > 0 || bookedAppointmentsByType.vaccination.length > 0;
-    const hasDeworming = dewormingDate.length > 0 || bookedAppointmentsByType.deworming.length > 0;
-    const hasSurgery = surgeryDate.length > 0 || bookedAppointmentsByType.surgery.length > 0;
+    // Check if each appointment type has a date + visit type set OR is already booked
+    const hasCheckup = (checkupDate.length > 0 && checkupVisitType.length > 0) || bookedAppointmentsByType.checkup.length > 0;
+    const hasVaccination = (vaccinationDate.length > 0 && vaccinationVisitType.length > 0) || bookedAppointmentsByType.vaccination.length > 0;
+    const hasDeworming = (dewormingDate.length > 0 && dewormingVisitType.length > 0) || bookedAppointmentsByType.deworming.length > 0;
+    const hasSurgery = (surgeryDate.length > 0 && surgeryVisitType.length > 0) || bookedAppointmentsByType.surgery.length > 0;
 
     return (
       formData.weight !== undefined && formData.weight !== null && formData.weight > 0 &&
@@ -240,7 +261,7 @@ export const PatientRecordModal = ({
       formData.heartRate !== undefined && formData.heartRate !== null && formData.heartRate > 0 &&
       hasCheckup && hasVaccination && hasDeworming && hasSurgery
     );
-  }, [formData.weight, formData.temperature, formData.heartRate, checkupDate, vaccinationDate, dewormingDate, surgeryDate, bookedAppointmentsByType]);
+  }, [formData.weight, formData.temperature, formData.heartRate, checkupDate, checkupVisitType, vaccinationDate, vaccinationVisitType, dewormingDate, dewormingVisitType, surgeryDate, surgeryVisitType, bookedAppointmentsByType]);
 
   // Check if record is empty (no data added) - for standalone records
   const isRecordEmpty = useMemo(() => {
@@ -433,98 +454,44 @@ export const PatientRecordModal = ({
     }
   }, [showNextAppointment, effectiveAppointment?.vet?.id, appointmentVetId]);
 
-  // Fetch booked slots when checkup date or vet changes (or after booking)
-  useEffect(() => {
-    const fetchBookedSlots = async () => {
-      if (!appointmentVetId || !checkupDate) {
-        setCheckupBookedSlots([]);
-        setCheckupTime('');
-        return;
-      }
-      try {
-        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, checkupDate);
-        if (isMountedRef.current) {
-          setCheckupBookedSlots(booked);
-          // Only reset time if slotsRefreshKey is 0 (initial load, not after booking refresh)
-          if (slotsRefreshKey === 0) {
-            setCheckupTime('');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch checkup booked slots:', err);
-      }
-    };
-    fetchBookedSlots();
-  }, [appointmentVetId, checkupDate, slotsRefreshKey]);
+  // Helper to get duration from visit type code
+  const getVisitTypeDuration = useCallback((code: string): number => {
+    const vt = visitTypes.find(v => v.code === code);
+    return vt?.duration || 30;
+  }, [visitTypes]);
 
-  // Fetch booked slots when vaccination date or vet changes (or after booking)
-  useEffect(() => {
-    const fetchBookedSlots = async () => {
-      if (!appointmentVetId || !vaccinationDate) {
-        setVaccinationBookedSlots([]);
-        setVaccinationTime('');
-        return;
-      }
-      try {
-        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, vaccinationDate);
-        if (isMountedRef.current) {
-          setVaccinationBookedSlots(booked);
-          if (slotsRefreshKey === 0) {
-            setVaccinationTime('');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch vaccination booked slots:', err);
-      }
-    };
-    fetchBookedSlots();
-  }, [appointmentVetId, vaccinationDate, slotsRefreshKey]);
+  // Fetch available slots from backend API (same as Add Appointment modal)
+  const checkupDuration = checkupVisitType ? getVisitTypeDuration(checkupVisitType) : 30;
+  const { data: checkupAvailability } = useQuery({
+    queryKey: ['next-appt-avail', 'checkup', appointmentVetId, checkupDate, checkupDuration, slotsRefreshKey],
+    queryFn: () => shiftsApi.getAvailabilityV2(appointmentVetId, checkupDate, checkupDuration),
+    enabled: !!appointmentVetId && !!checkupDate && !!checkupVisitType && showNextAppointment,
+    staleTime: 1000 * 10,
+  });
 
-  // Fetch booked slots when deworming date or vet changes (or after booking)
-  useEffect(() => {
-    const fetchBookedSlots = async () => {
-      if (!appointmentVetId || !dewormingDate) {
-        setDewormingBookedSlots([]);
-        setDewormingTime('');
-        return;
-      }
-      try {
-        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, dewormingDate);
-        if (isMountedRef.current) {
-          setDewormingBookedSlots(booked);
-          if (slotsRefreshKey === 0) {
-            setDewormingTime('');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch deworming booked slots:', err);
-      }
-    };
-    fetchBookedSlots();
-  }, [appointmentVetId, dewormingDate, slotsRefreshKey]);
+  const vaccinationDuration = vaccinationVisitType ? getVisitTypeDuration(vaccinationVisitType) : 30;
+  const { data: vaccinationAvailability } = useQuery({
+    queryKey: ['next-appt-avail', 'vaccination', appointmentVetId, vaccinationDate, vaccinationDuration, slotsRefreshKey],
+    queryFn: () => shiftsApi.getAvailabilityV2(appointmentVetId, vaccinationDate, vaccinationDuration),
+    enabled: !!appointmentVetId && !!vaccinationDate && !!vaccinationVisitType && showNextAppointment,
+    staleTime: 1000 * 10,
+  });
 
-  // Fetch booked slots when surgery date or vet changes (or after booking)
-  useEffect(() => {
-    const fetchBookedSlots = async () => {
-      if (!appointmentVetId || !surgeryDate) {
-        setSurgeryBookedSlots([]);
-        setSurgeryTime('');
-        return;
-      }
-      try {
-        const booked = await flowBoardApi.getVetAppointments(appointmentVetId, surgeryDate);
-        if (isMountedRef.current) {
-          setSurgeryBookedSlots(booked);
-          if (slotsRefreshKey === 0) {
-            setSurgeryTime('');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch surgery booked slots:', err);
-      }
-    };
-    fetchBookedSlots();
-  }, [appointmentVetId, surgeryDate, slotsRefreshKey]);
+  const dewormingDuration = dewormingVisitType ? getVisitTypeDuration(dewormingVisitType) : 30;
+  const { data: dewormingAvailability } = useQuery({
+    queryKey: ['next-appt-avail', 'deworming', appointmentVetId, dewormingDate, dewormingDuration, slotsRefreshKey],
+    queryFn: () => shiftsApi.getAvailabilityV2(appointmentVetId, dewormingDate, dewormingDuration),
+    enabled: !!appointmentVetId && !!dewormingDate && !!dewormingVisitType && showNextAppointment,
+    staleTime: 1000 * 10,
+  });
+
+  const surgeryDuration = surgeryVisitType ? getVisitTypeDuration(surgeryVisitType) : 30;
+  const { data: surgeryAvailability } = useQuery({
+    queryKey: ['next-appt-avail', 'surgery', appointmentVetId, surgeryDate, surgeryDuration, slotsRefreshKey],
+    queryFn: () => shiftsApi.getAvailabilityV2(appointmentVetId, surgeryDate, surgeryDuration),
+    enabled: !!appointmentVetId && !!surgeryDate && !!surgeryVisitType && showNextAppointment,
+    staleTime: 1000 * 10,
+  });
 
   // Fetch appointments scheduled from this medical record
   useEffect(() => {
@@ -604,12 +571,12 @@ export const PatientRecordModal = ({
   // Count how many appointments will be booked (requires both date AND time)
   const appointmentsToBookCount = useMemo(() => {
     let count = 0;
-    if (checkupDate && checkupTime) count++;
-    if (vaccinationDate && vaccinationTime) count++;
-    if (dewormingDate && dewormingTime) count++;
-    if (surgeryDate && surgeryTime) count++;
+    if (checkupDate && checkupTime && checkupVisitType) count++;
+    if (vaccinationDate && vaccinationTime && vaccinationVisitType) count++;
+    if (dewormingDate && dewormingTime && dewormingVisitType) count++;
+    if (surgeryDate && surgeryTime && surgeryVisitType) count++;
     return count;
-  }, [checkupDate, checkupTime, vaccinationDate, vaccinationTime, dewormingDate, dewormingTime, surgeryDate, surgeryTime]);
+  }, [checkupDate, checkupTime, checkupVisitType, vaccinationDate, vaccinationTime, vaccinationVisitType, dewormingDate, dewormingTime, dewormingVisitType, surgeryDate, surgeryTime, surgeryVisitType]);
 
   // Handle booking next appointments (multiple) - Uses batch API for reliability
   const handleBookNextAppointments = async () => {
@@ -623,41 +590,49 @@ export const PatientRecordModal = ({
     setBookingError(null);
 
     try {
-      const appointmentsToBook: { date: string; time: string; visitType: VisitType; notes: string }[] = [];
+      const appointmentsToBook: { date: string; time: string; visitType: string; duration: number; label: string }[] = [];
 
-      if (checkupDate && checkupTime) {
+      if (checkupDate && checkupTime && checkupVisitType) {
+        const vtConfig = visitTypes.find(vt => vt.code === checkupVisitType);
         appointmentsToBook.push({
           date: checkupDate,
           time: checkupTime,
-          visitType: VisitType.GENERAL_CHECKUP,
-          notes: tFlow('nextAppointment.routineCheckup'),
+          visitType: checkupVisitType,
+          duration: vtConfig?.duration || 30,
+          label: tFlow('nextAppointment.routineCheckup'),
         });
       }
 
-      if (vaccinationDate && vaccinationTime) {
+      if (vaccinationDate && vaccinationTime && vaccinationVisitType) {
+        const vtConfig = visitTypes.find(vt => vt.code === vaccinationVisitType);
         appointmentsToBook.push({
           date: vaccinationDate,
           time: vaccinationTime,
-          visitType: VisitType.VACCINATION,
-          notes: tFlow('nextAppointment.nextVaccination'),
+          visitType: vaccinationVisitType,
+          duration: vtConfig?.duration || 30,
+          label: tFlow('nextAppointment.nextVaccination'),
         });
       }
 
-      if (dewormingDate && dewormingTime) {
+      if (dewormingDate && dewormingTime && dewormingVisitType) {
+        const vtConfig = visitTypes.find(vt => vt.code === dewormingVisitType);
         appointmentsToBook.push({
           date: dewormingDate,
           time: dewormingTime,
-          visitType: VisitType.GENERAL_CHECKUP,
-          notes: tFlow('nextAppointment.dewormingFlea'),
+          visitType: dewormingVisitType,
+          duration: vtConfig?.duration || 30,
+          label: tFlow('nextAppointment.dewormingFlea'),
         });
       }
 
-      if (surgeryDate && surgeryTime) {
+      if (surgeryDate && surgeryTime && surgeryVisitType) {
+        const vtConfig = visitTypes.find(vt => vt.code === surgeryVisitType);
         appointmentsToBook.push({
           date: surgeryDate,
           time: surgeryTime,
-          visitType: VisitType.SURGERY,
-          notes: tFlow('nextAppointment.surgeryDentalScaling'),
+          visitType: surgeryVisitType,
+          duration: vtConfig?.duration || 30,
+          label: tFlow('nextAppointment.surgeryDentalScaling'),
         });
       }
 
@@ -667,9 +642,9 @@ export const PatientRecordModal = ({
         vetId: appointmentVetId,
         appointmentDate: appt.date,
         appointmentTime: appt.time,
-        visitType: appt.visitType,
-        duration: VISIT_TYPE_DURATION[appt.visitType],
-        notes: appt.notes + (appointmentNotes ? ` - ${appointmentNotes}` : ''),
+        visitType: appt.visitType as VisitType,
+        duration: appt.duration,
+        notes: appt.label + (appointmentNotes ? ` - ${appointmentNotes}` : ''),
         scheduledFromRecordId: recordId,
       }));
 
@@ -700,15 +675,19 @@ export const PatientRecordModal = ({
             setShowNextAppointment(false);
             setBookingSuccess(false);
             setBookingWarning(null);
-            // Reset all appointment dates and times
+            // Reset all appointment dates, visit types, and times
             setCheckupDate('');
             setCheckupTime('');
+            setCheckupVisitType('');
             setVaccinationDate('');
             setVaccinationTime('');
+            setVaccinationVisitType('');
             setDewormingDate('');
             setDewormingTime('');
+            setDewormingVisitType('');
             setSurgeryDate('');
             setSurgeryTime('');
+            setSurgeryVisitType('');
             setAppointmentNotes('');
             setAppointmentVetId(effectiveAppointment?.vet?.id || '');
           }
@@ -1873,35 +1852,53 @@ export const PatientRecordModal = ({
                                     type="date"
                                     value={checkupDate}
                                     min={getTomorrowDate()}
-                                    onChange={(e) => setCheckupDate(e.target.value)}
+                                    onChange={(e) => { setCheckupDate(e.target.value); setCheckupTime(''); }}
                                     className="w-full px-3 py-2 border border-sky-200 dark:border-sky-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                                   />
                                 </div>
                                 <div className="flex-1">
                                   <select
-                                    value={checkupTime}
-                                    onChange={(e) => setCheckupTime(e.target.value)}
+                                    value={checkupVisitType}
+                                    onChange={(e) => { setCheckupVisitType(e.target.value); setCheckupTime(''); }}
                                     disabled={!checkupDate || !appointmentVetId}
                                     className="w-full px-3 py-2 border border-sky-200 dark:border-sky-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
+                                    <option value="">{tFlow('nextAppointment.visitType')}</option>
+                                    {visitTypes.filter(vt => vt.isActive).map(vt => (
+                                      <option key={vt.code} value={vt.code}>{isRTL ? vt.nameAr : vt.nameEn}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={checkupTime}
+                                    onChange={(e) => setCheckupTime(e.target.value)}
+                                    disabled={!checkupDate || !appointmentVetId || !checkupVisitType}
+                                    className="w-full px-3 py-2 border border-sky-200 dark:border-sky-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
+                                  >
                                     <option value="">{t('nextAppointment.time')}</option>
-                                    {checkupDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], checkupDate)
-                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], checkupBookedSlots))
+                                    {checkupAvailability?.slots
+                                      ?.filter(slot => slot === checkupTime || !isSlotBooked(slot, checkupDuration, getLocallySelectedSlots('checkup', checkupDate)))
                                       .map(slot => (
                                         <option key={slot} value={slot}>{slot}</option>
                                       ))}
                                   </select>
                                 </div>
-                                {(checkupDate || checkupTime) && (
+                                {(checkupDate || checkupTime || checkupVisitType) && (
                                   <button
                                     type="button"
-                                    onClick={() => { setCheckupDate(''); setCheckupTime(''); }}
+                                    onClick={() => { setCheckupDate(''); setCheckupTime(''); setCheckupVisitType(''); }}
                                     className="p-1 text-sky-400 hover:text-sky-600"
                                   >
                                     <XMarkIcon className="w-5 h-5" />
                                   </button>
                                 )}
                               </div>
+                              {checkupAvailability?.unavailableReason && !checkupAvailability.slots?.length && checkupDate && checkupVisitType && (
+                                <p className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                                  {tFlow(`nextAppointment.unavailable.${checkupAvailability.unavailableReason}`)}
+                                </p>
+                              )}
                               {bookedAppointmentsByType.checkup.length > 0 && (
                                 <p className="mt-2 text-xs text-sky-600 dark:text-sky-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.routineCheckup')}
@@ -1943,35 +1940,53 @@ export const PatientRecordModal = ({
                                     type="date"
                                     value={vaccinationDate}
                                     min={getTomorrowDate()}
-                                    onChange={(e) => setVaccinationDate(e.target.value)}
+                                    onChange={(e) => { setVaccinationDate(e.target.value); setVaccinationTime(''); }}
                                     className="w-full px-3 py-2 border border-green-200 dark:border-green-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                                   />
                                 </div>
                                 <div className="flex-1">
                                   <select
-                                    value={vaccinationTime}
-                                    onChange={(e) => setVaccinationTime(e.target.value)}
+                                    value={vaccinationVisitType}
+                                    onChange={(e) => { setVaccinationVisitType(e.target.value); setVaccinationTime(''); }}
                                     disabled={!vaccinationDate || !appointmentVetId}
                                     className="w-full px-3 py-2 border border-green-200 dark:border-green-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
+                                    <option value="">{tFlow('nextAppointment.visitType')}</option>
+                                    {visitTypes.filter(vt => vt.isActive).map(vt => (
+                                      <option key={vt.code} value={vt.code}>{isRTL ? vt.nameAr : vt.nameEn}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={vaccinationTime}
+                                    onChange={(e) => setVaccinationTime(e.target.value)}
+                                    disabled={!vaccinationDate || !appointmentVetId || !vaccinationVisitType}
+                                    className="w-full px-3 py-2 border border-green-200 dark:border-green-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
+                                  >
                                     <option value="">{t('nextAppointment.time')}</option>
-                                    {vaccinationDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.VACCINATION], vaccinationDate)
-                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.VACCINATION], vaccinationBookedSlots))
+                                    {vaccinationAvailability?.slots
+                                      ?.filter(slot => slot === vaccinationTime || !isSlotBooked(slot, vaccinationDuration, getLocallySelectedSlots('vaccination', vaccinationDate)))
                                       .map(slot => (
                                         <option key={slot} value={slot}>{slot}</option>
                                       ))}
                                   </select>
                                 </div>
-                                {(vaccinationDate || vaccinationTime) && (
+                                {(vaccinationDate || vaccinationTime || vaccinationVisitType) && (
                                   <button
                                     type="button"
-                                    onClick={() => { setVaccinationDate(''); setVaccinationTime(''); }}
+                                    onClick={() => { setVaccinationDate(''); setVaccinationTime(''); setVaccinationVisitType(''); }}
                                     className="p-1 text-green-400 hover:text-green-600"
                                   >
                                     <XMarkIcon className="w-5 h-5" />
                                   </button>
                                 )}
                               </div>
+                              {vaccinationAvailability?.unavailableReason && !vaccinationAvailability.slots?.length && vaccinationDate && vaccinationVisitType && (
+                                <p className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                                  {tFlow(`nextAppointment.unavailable.${vaccinationAvailability.unavailableReason}`)}
+                                </p>
+                              )}
                               {bookedAppointmentsByType.vaccination.length > 0 && (
                                 <p className="mt-2 text-xs text-green-600 dark:text-green-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.nextVaccination')}
@@ -2013,35 +2028,53 @@ export const PatientRecordModal = ({
                                     type="date"
                                     value={dewormingDate}
                                     min={getTomorrowDate()}
-                                    onChange={(e) => setDewormingDate(e.target.value)}
+                                    onChange={(e) => { setDewormingDate(e.target.value); setDewormingTime(''); }}
                                     className="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                   />
                                 </div>
                                 <div className="flex-1">
                                   <select
-                                    value={dewormingTime}
-                                    onChange={(e) => setDewormingTime(e.target.value)}
+                                    value={dewormingVisitType}
+                                    onChange={(e) => { setDewormingVisitType(e.target.value); setDewormingTime(''); }}
                                     disabled={!dewormingDate || !appointmentVetId}
                                     className="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
+                                    <option value="">{tFlow('nextAppointment.visitType')}</option>
+                                    {visitTypes.filter(vt => vt.isActive).map(vt => (
+                                      <option key={vt.code} value={vt.code}>{isRTL ? vt.nameAr : vt.nameEn}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={dewormingTime}
+                                    onChange={(e) => setDewormingTime(e.target.value)}
+                                    disabled={!dewormingDate || !appointmentVetId || !dewormingVisitType}
+                                    className="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
+                                  >
                                     <option value="">{t('nextAppointment.time')}</option>
-                                    {dewormingDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], dewormingDate)
-                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.GENERAL_CHECKUP], dewormingBookedSlots))
+                                    {dewormingAvailability?.slots
+                                      ?.filter(slot => slot === dewormingTime || !isSlotBooked(slot, dewormingDuration, getLocallySelectedSlots('deworming', dewormingDate)))
                                       .map(slot => (
                                         <option key={slot} value={slot}>{slot}</option>
                                       ))}
                                   </select>
                                 </div>
-                                {(dewormingDate || dewormingTime) && (
+                                {(dewormingDate || dewormingTime || dewormingVisitType) && (
                                   <button
                                     type="button"
-                                    onClick={() => { setDewormingDate(''); setDewormingTime(''); }}
+                                    onClick={() => { setDewormingDate(''); setDewormingTime(''); setDewormingVisitType(''); }}
                                     className="p-1 text-purple-400 hover:text-purple-600"
                                   >
                                     <XMarkIcon className="w-5 h-5" />
                                   </button>
                                 )}
                               </div>
+                              {dewormingAvailability?.unavailableReason && !dewormingAvailability.slots?.length && dewormingDate && dewormingVisitType && (
+                                <p className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                                  {tFlow(`nextAppointment.unavailable.${dewormingAvailability.unavailableReason}`)}
+                                </p>
+                              )}
                               {bookedAppointmentsByType.deworming.length > 0 && (
                                 <p className="mt-2 text-xs text-purple-600 dark:text-purple-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.dewormingFlea')}
@@ -2083,35 +2116,53 @@ export const PatientRecordModal = ({
                                     type="date"
                                     value={surgeryDate}
                                     min={getTomorrowDate()}
-                                    onChange={(e) => setSurgeryDate(e.target.value)}
+                                    onChange={(e) => { setSurgeryDate(e.target.value); setSurgeryTime(''); }}
                                     className="w-full px-3 py-2 border border-red-200 dark:border-red-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                   />
                                 </div>
                                 <div className="flex-1">
                                   <select
-                                    value={surgeryTime}
-                                    onChange={(e) => setSurgeryTime(e.target.value)}
+                                    value={surgeryVisitType}
+                                    onChange={(e) => { setSurgeryVisitType(e.target.value); setSurgeryTime(''); }}
                                     disabled={!surgeryDate || !appointmentVetId}
                                     className="w-full px-3 py-2 border border-red-200 dark:border-red-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
                                   >
+                                    <option value="">{tFlow('nextAppointment.visitType')}</option>
+                                    {visitTypes.filter(vt => vt.isActive).map(vt => (
+                                      <option key={vt.code} value={vt.code}>{isRTL ? vt.nameAr : vt.nameEn}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="flex-1">
+                                  <select
+                                    value={surgeryTime}
+                                    onChange={(e) => setSurgeryTime(e.target.value)}
+                                    disabled={!surgeryDate || !appointmentVetId || !surgeryVisitType}
+                                    className="w-full px-3 py-2 border border-red-200 dark:border-red-700 bg-white dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed"
+                                  >
                                     <option value="">{t('nextAppointment.time')}</option>
-                                    {surgeryDate && appointmentVetId && generateTimeSlots(VISIT_TYPE_DURATION[VisitType.SURGERY], surgeryDate)
-                                      .filter(slot => !isSlotBooked(slot, VISIT_TYPE_DURATION[VisitType.SURGERY], surgeryBookedSlots))
+                                    {surgeryAvailability?.slots
+                                      ?.filter(slot => slot === surgeryTime || !isSlotBooked(slot, surgeryDuration, getLocallySelectedSlots('surgery', surgeryDate)))
                                       .map(slot => (
                                         <option key={slot} value={slot}>{slot}</option>
                                       ))}
                                   </select>
                                 </div>
-                                {(surgeryDate || surgeryTime) && (
+                                {(surgeryDate || surgeryTime || surgeryVisitType) && (
                                   <button
                                     type="button"
-                                    onClick={() => { setSurgeryDate(''); setSurgeryTime(''); }}
+                                    onClick={() => { setSurgeryDate(''); setSurgeryTime(''); setSurgeryVisitType(''); }}
                                     className="p-1 text-red-400 hover:text-red-600"
                                   >
                                     <XMarkIcon className="w-5 h-5" />
                                   </button>
                                 )}
                               </div>
+                              {surgeryAvailability?.unavailableReason && !surgeryAvailability.slots?.length && surgeryDate && surgeryVisitType && (
+                                <p className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                                  {tFlow(`nextAppointment.unavailable.${surgeryAvailability.unavailableReason}`)}
+                                </p>
+                              )}
                               {bookedAppointmentsByType.surgery.length > 0 && (
                                 <p className="mt-2 text-xs text-red-600 dark:text-red-400">
                                   {tFlow('nextAppointment.addAnother')} {tFlow('nextAppointment.surgeryDentalScaling')}

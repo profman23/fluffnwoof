@@ -373,8 +373,9 @@ export const shiftService = {
       currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')) + 30; // 30 min buffer
     }
 
-    // Generate slots every 15 minutes
-    for (let time = startMinutes; time + durationMinutes <= endMinutes; time += 15) {
+    // Generate slots based on visit type duration (minimum 5 min to prevent infinite loop)
+    const slotInterval = Math.max(durationMinutes, 5);
+    for (let time = startMinutes; time + durationMinutes <= endMinutes; time += slotInterval) {
       const slotStart = time;
       const slotEnd = time + durationMinutes;
       const slotTime = minutesToTime(slotStart);
@@ -701,8 +702,9 @@ export const shiftService = {
       currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')) + 30; // 30 min buffer
     }
 
-    // Generate slots every 15 minutes
-    for (let time = startMinutes; time + durationMinutes <= endMinutes; time += 15) {
+    // Generate slots based on visit type duration (minimum 5 min to prevent infinite loop)
+    const slotInterval = Math.max(durationMinutes, 5);
+    for (let time = startMinutes; time + durationMinutes <= endMinutes; time += slotInterval) {
       const slotStart = time;
       const slotEnd = time + durationMinutes;
       const slotTime = minutesToTime(slotStart);

@@ -16,7 +16,7 @@ export const generateTimeSlots = (durationMinutes: number, selectedDate: string)
   const startHour = 8; // 8:00 AM
   const endHour = 23; // 11:00 PM
   const endMinute = 30; // End at 11:30 PM
-  const slotInterval = 30; // Always use 30-minute intervals for slot display
+  const slotInterval = 5; // 5-minute intervals for fine-grained slot selection
 
   // Check if selected date is today (using local date, not UTC)
   const now = new Date();
