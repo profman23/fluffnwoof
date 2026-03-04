@@ -309,7 +309,14 @@ export const ServiceProductSelector = ({
                         >
                           <MinusIcon className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleQuantityChange(item.id, Math.max(1, parseInt(e.target.value) || 1))}
+                          disabled={disabled}
+                          className="w-12 text-center text-sm font-medium border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-[var(--app-text-primary)] focus:ring-1 focus:ring-secondary-300 focus:border-secondary-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                           disabled={disabled}

@@ -163,9 +163,12 @@ export const PatientRecordModal = ({
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
-  const [_creatingInvoice, setCreatingInvoice] = useState(false);
   const [savingInvoice, setSavingInvoice] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [hasUnsavedInvoiceChanges, setHasUnsavedInvoiceChanges] = useState(false);
+  // Track original items/payments loaded from DB for comparison during batch save
+  const [originalItems, setOriginalItems] = useState<SelectedItem[]>([]);
+  const [originalPayments, setOriginalPayments] = useState<PaymentEntry[]>([]);
 
   // Finalize invoice state
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
@@ -399,8 +402,7 @@ export const PatientRecordModal = ({
         const existingInvoice = await invoicesApi.getByAppointmentId(effectiveAppointment.id);
         if (existingInvoice && isMountedRef.current) {
           setInvoice(existingInvoice);
-          setSelectedItems(
-            existingInvoice.items.map((item) => ({
+          const loadedItems = existingInvoice.items.map((item) => ({
               id: item.id,
               name: item.description,
               quantity: item.quantity,
@@ -409,15 +411,17 @@ export const PatientRecordModal = ({
               taxRate: item.taxRate ?? 15,
               discount: item.discount || 0,
               totalPrice: item.totalPrice,
-            }))
-          );
-          setPayments(
-            existingInvoice.payments.map((p) => ({
+            }));
+          const loadedPayments = existingInvoice.payments.map((p) => ({
               id: p.id,
               amount: p.amount,
               paymentMethod: p.paymentMethod,
-            }))
-          );
+            }));
+          setSelectedItems(loadedItems);
+          setOriginalItems(loadedItems);
+          setPayments(loadedPayments);
+          setOriginalPayments(loadedPayments);
+          setHasUnsavedInvoiceChanges(false);
         }
       } catch (err) {
         console.log('No existing invoice for this appointment');
@@ -728,47 +732,50 @@ export const PatientRecordModal = ({
     return newInvoice;
   };
 
-  // Handle items change - auto-create/update invoice
-  const handleItemsChange = async (newItems: SelectedItem[]) => {
-    // Update local state immediately for UI responsiveness
+  // Handle items change - local state only (no auto-save, saved on modal close)
+  const handleItemsChange = (newItems: SelectedItem[]) => {
     setSelectedItems(newItems);
+    setHasUnsavedInvoiceChanges(true);
+  };
 
-    // If all items removed and invoice exists, delete each from database
-    if (newItems.length === 0 && invoice) {
-      setSavingInvoice(true);
-      try {
-        for (const item of selectedItems) {
-          await invoicesApi.removeItem(item.id);
-        }
-        const updatedInvoice = await invoicesApi.getById(invoice.id);
-        if (isMountedRef.current) {
-          setInvoice(updatedInvoice);
-        }
-      } catch (err) {
-        console.error('Failed to remove invoice items:', err);
-      } finally {
-        if (isMountedRef.current) {
-          setSavingInvoice(false);
-        }
-      }
-      return;
-    }
+  // Handle payments change - local state only (no auto-save, saved on modal close)
+  const handlePaymentsChange = (newPayments: PaymentEntry[]) => {
+    setPayments(newPayments);
+    setHasUnsavedInvoiceChanges(true);
+  };
 
-    // If no items and no invoice, nothing to do
-    if (newItems.length === 0) return;
+  // Handle remove payment - local state only (no auto-save, saved on modal close)
+  const handleRemovePayment = (paymentId: string) => {
+    setPayments(prev => prev.filter(p => p.id !== paymentId));
+    setHasUnsavedInvoiceChanges(true);
+  };
 
-    // If no invoice exists, create one
-    const ownerId = effectiveAppointment?.pet?.owner?.id || record?.pet?.owner?.id;
-    if (!invoice && ownerId) {
-      setCreatingInvoice(true);
-      setInvoiceError(null);
+  // Batch save all invoice changes (called on modal close)
+  const saveInvoiceChanges = async () => {
+    if (!hasUnsavedInvoiceChanges) return;
 
-      try {
-        const newInvoice = await createInvoiceWithItems(newItems);
-        if (newInvoice && isMountedRef.current) {
-          setInvoice(newInvoice);
-          setSelectedItems(
-            newInvoice.items.map((item) => ({
+    setSavingInvoice(true);
+    setInvoiceError(null);
+
+    try {
+      const ownerId = effectiveAppointment?.pet?.owner?.id || record?.pet?.owner?.id;
+
+      if (!invoice) {
+        // No invoice exists yet — create one with all current items
+        if (selectedItems.length > 0 && ownerId) {
+          const newInvoice = await createInvoiceWithItems(selectedItems);
+          if (newInvoice && isMountedRef.current) {
+            // Add payments to the new invoice
+            for (const payment of payments) {
+              await invoicesApi.addPayment(newInvoice.id, {
+                amount: payment.amount,
+                paymentMethod: payment.paymentMethod,
+              });
+            }
+            // Refresh to get real IDs
+            const refreshed = await invoicesApi.getById(newInvoice.id);
+            setInvoice(refreshed);
+            const syncedItems = refreshed.items.map((item) => ({
               id: item.id,
               name: item.description,
               quantity: item.quantity,
@@ -777,228 +784,102 @@ export const PatientRecordModal = ({
               taxRate: item.taxRate ?? 15,
               discount: item.discount || 0,
               totalPrice: item.totalPrice,
-            }))
-          );
+            }));
+            const syncedPayments = refreshed.payments.map((p) => ({
+              id: p.id,
+              amount: p.amount,
+              paymentMethod: p.paymentMethod,
+            }));
+            setSelectedItems(syncedItems);
+            setOriginalItems(syncedItems);
+            setPayments(syncedPayments);
+            setOriginalPayments(syncedPayments);
+          }
         }
-      } catch (err) {
-        console.error('Failed to create invoice:', err);
-        if (isMountedRef.current) {
-          setInvoiceError(tFlow('invoice.createError'));
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setCreatingInvoice(false);
-        }
-      }
-    } else if (invoice) {
-      // Invoice exists - check for new, changed, or removed items
-      const existingIds = selectedItems.map(item => item.id);
-      const newlyAddedItems = newItems.filter(item => !existingIds.includes(item.id));
+      } else {
+        // Invoice exists — diff against originals and apply changes
 
-      // Detect removed items (exist in current state but not in new)
-      const removedItems = selectedItems.filter(
-        existingItem => !newItems.some(newItem => newItem.id === existingItem.id)
-      );
-
-      // Check for quantity or discount changes in existing items
-      const changedItems = newItems.filter(newItem => {
-        const existingItem = selectedItems.find(item => item.id === newItem.id);
-        return existingItem && (
-          existingItem.quantity !== newItem.quantity ||
-          existingItem.discount !== newItem.discount
+        // Items: find added, changed, removed
+        const originalIds = originalItems.map(item => item.id);
+        const newlyAddedItems = selectedItems.filter(item => !originalIds.includes(item.id));
+        const removedItems = originalItems.filter(
+          orig => !selectedItems.some(current => current.id === orig.id)
         );
-      });
+        const changedItems = selectedItems.filter(current => {
+          const orig = originalItems.find(o => o.id === current.id);
+          return orig && (orig.quantity !== current.quantity || orig.discount !== current.discount);
+        });
 
-      if (newlyAddedItems.length > 0 || changedItems.length > 0 || removedItems.length > 0) {
-        setSavingInvoice(true);
-        try {
-          // Add new items
-          for (const item of newlyAddedItems) {
-            await invoicesApi.addItem(invoice.id, {
-              description: item.name,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              priceBeforeTax: item.priceBeforeTax,
-              taxRate: item.taxRate,
-              discount: item.discount,
-            });
-          }
-
-          // Update changed items (quantity or discount)
-          for (const item of changedItems) {
-            await invoicesApi.updateItem(item.id, {
-              quantity: item.quantity,
-              discount: item.discount,
-            });
-          }
-
-          // Delete removed items from database
-          for (const item of removedItems) {
-            await invoicesApi.removeItem(item.id);
-          }
-
-          // Refresh invoice to get updated items
-          const updatedInvoice = await invoicesApi.getById(invoice.id);
-          if (isMountedRef.current) {
-            setInvoice(updatedInvoice);
-            setSelectedItems(
-              updatedInvoice.items.map((item) => ({
-                id: item.id,
-                name: item.description,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
-                taxRate: item.taxRate ?? 15,
-                discount: item.discount || 0,
-                totalPrice: item.totalPrice,
-              }))
-            );
-          }
-        } catch (err) {
-          console.error('Failed to update invoice items:', err);
-        } finally {
-          if (isMountedRef.current) {
-            setSavingInvoice(false);
-          }
-        }
-      }
-    }
-  };
-
-  // Handle payments change - auto-create invoice if needed
-  const handlePaymentsChange = async (newPayments: PaymentEntry[]) => {
-    // If no invoice exists and we have items, create invoice first
-    const ownerId = effectiveAppointment?.pet?.owner?.id || record?.pet?.owner?.id;
-    const appointmentId = effectiveAppointment?.id;
-
-    if (!invoice && selectedItems.length > 0 && ownerId) {
-      setCreatingInvoice(true);
-      setInvoiceError(null);
-
-      try {
-        const newInvoice = await invoicesApi.create({
-          ownerId,
-          appointmentId,
-          items: selectedItems.map((item) => ({
+        // Apply item changes
+        for (const item of newlyAddedItems) {
+          await invoicesApi.addItem(invoice.id, {
             description: item.name,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             priceBeforeTax: item.priceBeforeTax,
             taxRate: item.taxRate,
             discount: item.discount,
-          })),
-        });
-
-        if (isMountedRef.current) {
-          setInvoice(newInvoice);
-          setSelectedItems(
-            newInvoice.items.map((item) => ({
-              id: item.id,
-              name: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
-              taxRate: item.taxRate ?? 15,
-              discount: item.discount || 0,
-              totalPrice: item.totalPrice,
-            }))
-          );
-
-          // Now add the payments to the new invoice
-          const addedPayments = newPayments.filter(
-            (np) => !payments.some((p) => p.id === np.id)
-          );
-
-          for (const payment of addedPayments) {
-            await invoicesApi.addPayment(newInvoice.id, {
-              amount: payment.amount,
-              paymentMethod: payment.paymentMethod,
-            });
-          }
-
-          // Refresh invoice to get updated payments
-          const updatedInvoice = await invoicesApi.getById(newInvoice.id);
-          setInvoice(updatedInvoice);
-          setPayments(
-            updatedInvoice.payments.map((p) => ({
-              id: p.id,
-              amount: p.amount,
-              paymentMethod: p.paymentMethod,
-            }))
-          );
-        }
-      } catch (err) {
-        console.error('Failed to create invoice:', err);
-        if (isMountedRef.current) {
-          setInvoiceError(tFlow('invoice.createError'));
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setCreatingInvoice(false);
-        }
-      }
-    } else if (invoice) {
-      // Invoice exists, add new payments
-      // استخدام مقارنة الطول لاكتشاف الدفعات الجديدة
-      // إذا كان عدد الدفعات الجديدة أكبر من الحالية، الدفعة الأخيرة هي الجديدة
-      if (newPayments.length > payments.length) {
-        const newPayment = newPayments[newPayments.length - 1];
-
-        setSavingInvoice(true);
-        try {
-          await invoicesApi.addPayment(invoice.id, {
-            amount: newPayment.amount,
-            paymentMethod: newPayment.paymentMethod,
           });
-
-          // Refresh invoice to get updated payments with real IDs
-          const updatedInvoice = await invoicesApi.getById(invoice.id);
-          if (isMountedRef.current) {
-            setInvoice(updatedInvoice);
-            setPayments(
-              updatedInvoice.payments.map((p) => ({
-                id: p.id,
-                amount: p.amount,
-                paymentMethod: p.paymentMethod,
-              }))
-            );
-          }
-        } catch (err) {
-          console.error('Failed to add payment:', err);
-        } finally {
-          if (isMountedRef.current) {
-            setSavingInvoice(false);
-          }
         }
-      }
-    } else {
-      // No invoice and no items - just store locally
-      setPayments(newPayments);
-    }
-  };
+        for (const item of changedItems) {
+          await invoicesApi.updateItem(item.id, {
+            quantity: item.quantity,
+            discount: item.discount,
+          });
+        }
+        for (const item of removedItems) {
+          await invoicesApi.removeItem(item.id);
+        }
 
-  // Handle remove payment from API
-  const handleRemovePayment = async (paymentId: string) => {
-    if (!invoice) return;
+        // Payments: find added, removed
+        const originalPaymentIds = originalPayments.map(p => p.id);
+        const newPayments = payments.filter(p => !originalPaymentIds.includes(p.id));
+        const removedPayments = originalPayments.filter(
+          orig => !payments.some(current => current.id === orig.id)
+        );
 
-    setSavingInvoice(true);
-    try {
-      await invoicesApi.removePayment(paymentId);
+        for (const payment of newPayments) {
+          await invoicesApi.addPayment(invoice.id, {
+            amount: payment.amount,
+            paymentMethod: payment.paymentMethod,
+          });
+        }
+        for (const payment of removedPayments) {
+          await invoicesApi.removePayment(payment.id);
+        }
 
-      // Refresh invoice to get updated payments
-      const updatedInvoice = await invoicesApi.getById(invoice.id);
-      if (isMountedRef.current) {
-        setInvoice(updatedInvoice);
-        setPayments(
-          updatedInvoice.payments.map((p) => ({
+        // Refresh invoice to sync state
+        const refreshed = await invoicesApi.getById(invoice.id);
+        if (isMountedRef.current) {
+          setInvoice(refreshed);
+          const syncedItems = refreshed.items.map((item) => ({
+            id: item.id,
+            name: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            priceBeforeTax: item.priceBeforeTax ?? (item.unitPrice / (1 + (item.taxRate ?? 15) / 100)),
+            taxRate: item.taxRate ?? 15,
+            discount: item.discount || 0,
+            totalPrice: item.totalPrice,
+          }));
+          const syncedPayments = refreshed.payments.map((p) => ({
             id: p.id,
             amount: p.amount,
             paymentMethod: p.paymentMethod,
-          }))
-        );
+          }));
+          setSelectedItems(syncedItems);
+          setOriginalItems(syncedItems);
+          setPayments(syncedPayments);
+          setOriginalPayments(syncedPayments);
+        }
       }
+
+      setHasUnsavedInvoiceChanges(false);
     } catch (err) {
-      console.error('Failed to remove payment:', err);
+      console.error('Failed to save invoice changes:', err);
+      if (isMountedRef.current) {
+        setInvoiceError(tFlow('invoice.createError'));
+      }
     } finally {
       if (isMountedRef.current) {
         setSavingInvoice(false);
@@ -1256,8 +1137,13 @@ export const PatientRecordModal = ({
       }
     }
 
+    // Save unsaved invoice changes before closing
+    if (hasUnsavedInvoiceChanges) {
+      await saveInvoiceChanges();
+    }
+
     onClose();
-  }, [onClose, saveRecord, hasUnsavedChanges, saving, isStandaloneRecord, isRecordEmpty, record?.id]);
+  }, [onClose, saveRecord, hasUnsavedChanges, saving, isStandaloneRecord, isRecordEmpty, record?.id, hasUnsavedInvoiceChanges, saveInvoiceChanges]);
 
   // Handle deleting empty standalone record
   const handleDeleteEmptyRecord = useCallback(async () => {
