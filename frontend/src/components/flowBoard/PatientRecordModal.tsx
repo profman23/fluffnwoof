@@ -1113,6 +1113,9 @@ export const PatientRecordModal = ({
   }, [saveRecord]);
 
   const handleClose = useCallback(async () => {
+    // Prevent double-click while saving
+    if (isSavingBeforeClose) return;
+
     // Cancel any pending auto-save
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
@@ -1125,14 +1128,17 @@ export const PatientRecordModal = ({
       return;
     }
 
+    // Show saving overlay for ANY save operation (medical record or invoice)
+    const needsSave = hasUnsavedChanges || saving || hasUnsavedInvoiceChanges;
+    if (needsSave) {
+      setIsSavingBeforeClose(true);
+    }
+
     // If there are unsaved changes or a save is in progress, save first
     if (hasUnsavedChanges || saving) {
-      setIsSavingBeforeClose(true);
       const success = await saveRecord(formDataRef.current);
-      setIsSavingBeforeClose(false);
-
       if (!success) {
-        // Save failed, don't close the modal
+        setIsSavingBeforeClose(false);
         return;
       }
     }
@@ -1142,8 +1148,9 @@ export const PatientRecordModal = ({
       await saveInvoiceChanges();
     }
 
+    setIsSavingBeforeClose(false);
     onClose();
-  }, [onClose, saveRecord, hasUnsavedChanges, saving, isStandaloneRecord, isRecordEmpty, record?.id, hasUnsavedInvoiceChanges, saveInvoiceChanges]);
+  }, [onClose, saveRecord, hasUnsavedChanges, saving, isStandaloneRecord, isRecordEmpty, record?.id, hasUnsavedInvoiceChanges, saveInvoiceChanges, isSavingBeforeClose]);
 
   // Handle deleting empty standalone record
   const handleDeleteEmptyRecord = useCallback(async () => {
@@ -1253,7 +1260,8 @@ export const PatientRecordModal = ({
             )}
             <button
               onClick={handleClose}
-              className="text-brand-dark/70 hover:text-brand-dark hover:bg-primary-300/50 p-2 rounded-lg transition-colors"
+              disabled={isSavingBeforeClose}
+              className="text-brand-dark/70 hover:text-brand-dark hover:bg-primary-300/50 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               type="button"
             >
               <XMarkIcon className="w-6 h-6" />
@@ -2238,9 +2246,10 @@ export const PatientRecordModal = ({
           <button
             type="button"
             onClick={handleClose}
-            className="px-5 py-2.5 border border-primary-300 rounded-lg text-brand-dark hover:bg-primary-100 font-medium transition-colors"
+            disabled={isSavingBeforeClose}
+            className="px-5 py-2.5 border border-primary-300 rounded-lg text-brand-dark hover:bg-primary-100 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t('close')}
+            {isSavingBeforeClose ? t('saving') : t('close')}
           </button>
           {!isReadOnly && (
             <button
