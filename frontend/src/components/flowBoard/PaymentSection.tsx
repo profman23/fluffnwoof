@@ -146,12 +146,12 @@ export const PaymentSection = ({
           <div className={`text-xs mb-1 ${isFinalized ? 'text-gray-500' : 'text-green-600'}`}>{t('paidAmount')}</div>
           <div className={`text-lg font-bold ${isFinalized ? 'text-gray-700' : 'text-green-600'} inline-flex items-center justify-center gap-1`}>{paidAmount.toFixed(2)} <SarSymbol className="w-4 h-4" /></div>
         </div>
-        <div className={`rounded-lg p-3 text-center ${isFinalized ? 'bg-gray-100' : remainingAmount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-          <div className={`text-xs mb-1 ${isFinalized ? 'text-gray-500' : remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+        <div className={`rounded-lg p-3 text-center ${isFinalized ? 'bg-gray-100' : remainingAmount > 0.01 ? 'bg-red-50' : 'bg-green-50'}`}>
+          <div className={`text-xs mb-1 ${isFinalized ? 'text-gray-500' : remainingAmount > 0.01 ? 'text-red-600' : 'text-green-600'}`}>
             {t('remainingAmount')}
           </div>
-          <div className={`text-lg font-bold ${isFinalized ? 'text-gray-700' : remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            <span className="inline-flex items-center justify-center gap-1">{remainingAmount.toFixed(2)} <SarSymbol className="w-4 h-4" /></span>
+          <div className={`text-lg font-bold ${isFinalized ? 'text-gray-700' : remainingAmount > 0.01 ? 'text-red-600' : 'text-green-600'}`}>
+            <span className="inline-flex items-center justify-center gap-1">{(remainingAmount > 0.01 ? remainingAmount : 0).toFixed(2)} <SarSymbol className="w-4 h-4" /></span>
           </div>
         </div>
       </div>
@@ -181,7 +181,7 @@ export const PaymentSection = ({
       </div>
 
       {/* Add Payment Form */}
-      {remainingAmount > 0 && (
+      {remainingAmount > 0.01 && (
         <div className="flex gap-2">
           <div className="relative flex-1">
             <input

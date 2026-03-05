@@ -316,7 +316,7 @@ export const invoiceService = {
     const newPaidAmount = invoice.paidAmount + data.amount;
     let newStatus: InvoiceStatus;
 
-    if (newPaidAmount >= invoice.totalAmount) {
+    if (Math.round(newPaidAmount * 100) >= Math.round(invoice.totalAmount * 100)) {
       newStatus = InvoiceStatus.PAID;
     } else if (newPaidAmount > 0) {
       newStatus = InvoiceStatus.PARTIALLY_PAID;

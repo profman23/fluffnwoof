@@ -893,6 +893,11 @@ export const PatientRecordModal = ({
 
     setFinalizingInvoice(true);
     try {
+      // Save unsaved invoice changes (items + payments) before finalizing
+      if (hasUnsavedInvoiceChanges) {
+        await saveInvoiceChanges();
+      }
+
       const finalizedInvoice = await invoicesApi.finalize(invoice.id);
       if (isMountedRef.current) {
         setInvoice(finalizedInvoice);
