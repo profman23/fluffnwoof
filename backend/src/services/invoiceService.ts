@@ -299,7 +299,7 @@ export const invoiceService = {
 
     const remainingAmount = invoice.totalAmount - invoice.paidAmount;
 
-    if (data.amount > remainingAmount) {
+    if (Math.round(data.amount * 100) > Math.round(remainingAmount * 100)) {
       throw new AppError('Payment amount exceeds remaining balance', 400);
     }
 
