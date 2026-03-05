@@ -90,6 +90,8 @@ export const reportService = {
             name: true,
             species: true,
             petCode: true,
+            daftraCode: true,
+            microchipId: true,
             owner: {
               select: {
                 id: true,

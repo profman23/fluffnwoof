@@ -43,6 +43,8 @@ interface FormData {
     birthDate: string;
     color: string;
     weight: string;
+    microchipId: string;
+    daftraCode: string;
     notes: string;
   };
 }
@@ -76,6 +78,8 @@ const initialFormData: FormData = {
     birthDate: '',
     color: '',
     weight: '',
+    microchipId: '',
+    daftraCode: '',
     notes: '',
   },
 };
@@ -261,6 +265,8 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
         birthDate: formData.pet.birthDate || undefined,
         color: formData.pet.color.trim() || undefined,
         weight: formData.pet.weight ? parseFloat(formData.pet.weight) : undefined,
+        microchipId: formData.pet.microchipId.trim() || undefined,
+        daftraCode: formData.pet.daftraCode.trim() || undefined,
         notes: formData.pet.notes.trim() || undefined,
       };
 
@@ -612,6 +618,24 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                 onChange={(e) => handleInputChange('pet.weight', e.target.value)}
                 min="0"
                 step="0.1"
+              />
+            </div>
+
+            {/* Microchip & Daftra Code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label={`🔬 ${t('pet.microchipId')}`}
+                value={formData.pet.microchipId}
+                onChange={(e) => handleInputChange('pet.microchipId', e.target.value)}
+                dir="ltr"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+              <Input
+                label={`🏷️ ${t('pet.daftraCode')}`}
+                value={formData.pet.daftraCode}
+                onChange={(e) => handleInputChange('pet.daftraCode', e.target.value)}
+                dir="ltr"
               />
             </div>
 

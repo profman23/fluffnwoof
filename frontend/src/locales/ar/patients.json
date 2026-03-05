@@ -35,6 +35,7 @@
     "color": "اللون",
     "weight": "الوزن (كجم)",
     "microchipId": "رقم الشريحة",
+    "daftraCode": "كود دفترة",
     "notes": "ملاحظات"
   },
 
@@ -78,6 +79,7 @@
     "email": "البريد الإلكتروني",
     "petCode": "كود الحيوان",
     "petName": "اسم الحيوان",
+    "daftraCode": "كود دفترة",
     "species": "النوع",
     "breed": "السلالة",
     "gender": "الجنس",
@@ -111,6 +113,7 @@
     "color": "اللون",
     "weight": "الوزن",
     "microchip": "الشريحة",
+    "daftraCode": "كود دفترة",
     "notes": "ملاحظات",
     "notProvided": "غير محدد"
   },

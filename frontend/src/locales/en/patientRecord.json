@@ -10,7 +10,8 @@
     "owner": "Owner",
     "phone": "Phone",
     "pet": "Pet",
-    "species": "Species"
+    "species": "Species",
+    "daftraCode": "Daftra Code"
   },
 
   "sections": {

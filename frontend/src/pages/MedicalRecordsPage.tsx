@@ -169,6 +169,15 @@ export const MedicalRecordsPage = () => {
       ),
     },
     {
+      id: 'daftraCode',
+      header: t('table.daftraCode'),
+      render: (record) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap" dir="ltr">
+          {record.pet?.daftraCode || '-'}
+        </span>
+      ),
+    },
+    {
       id: 'species',
       header: t('table.species'),
       render: (record) => (

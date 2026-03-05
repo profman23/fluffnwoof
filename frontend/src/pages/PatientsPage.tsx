@@ -151,6 +151,15 @@ export const PatientsPage: React.FC = () => {
       ),
     },
     {
+      id: 'daftraCode',
+      header: t('table.daftraCode'),
+      render: (pet) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap" dir="ltr">
+          {pet.daftraCode || '-'}
+        </span>
+      ),
+    },
+    {
       id: 'species',
       header: t('table.species'),
       render: (pet) => (

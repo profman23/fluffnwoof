@@ -82,6 +82,7 @@ export interface SalesReportInvoice {
       id: string;
       name: string;
       species: string;
+      daftraCode?: string;
     };
   } | null;
 }

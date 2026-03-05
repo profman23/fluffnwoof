@@ -35,6 +35,7 @@
     "color": "Color",
     "weight": "Weight (kg)",
     "microchipId": "Microchip ID",
+    "daftraCode": "Daftra Code",
     "notes": "Notes"
   },
 
@@ -78,6 +79,7 @@
     "email": "Email",
     "petCode": "Pet Code",
     "petName": "Pet Name",
+    "daftraCode": "Daftra Code",
     "species": "Species",
     "breed": "Breed",
     "gender": "Gender",
@@ -111,6 +113,7 @@
     "color": "Color",
     "weight": "Weight",
     "microchip": "Microchip",
+    "daftraCode": "Daftra Code",
     "notes": "Notes",
     "notProvided": "Not provided"
   },

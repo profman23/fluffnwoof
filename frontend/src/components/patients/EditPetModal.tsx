@@ -32,6 +32,8 @@ interface FormData {
   birthDate: string;
   color: string;
   weight: string;
+  microchipId: string;
+  daftraCode: string;
   notes: string;
 }
 
@@ -59,6 +61,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
     birthDate: '',
     color: '',
     weight: '',
+    microchipId: '',
+    daftraCode: '',
     notes: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -79,6 +83,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
         birthDate: pet.birthDate ? pet.birthDate.split('T')[0] : '',
         color: pet.color || '',
         weight: pet.weight?.toString() || '',
+        microchipId: pet.microchipId || '',
+        daftraCode: pet.daftraCode || '',
         notes: pet.notes || '',
       });
       setPhotoUrl(pet.photoUrl || null);
@@ -153,6 +159,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
         birthDate: formData.birthDate || undefined,
         color: formData.color.trim() || undefined,
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
+        microchipId: formData.microchipId.trim() || undefined,
+        daftraCode: formData.daftraCode.trim() || undefined,
         notes: formData.notes.trim() || undefined,
       };
 
@@ -339,6 +347,24 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
                 onChange={(e) => handleInputChange('weight', e.target.value)}
                 min="0"
                 step="0.1"
+              />
+            </div>
+
+            {/* Microchip & Daftra Code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label={`🔬 ${t('pet.microchipId')}`}
+                value={formData.microchipId}
+                onChange={(e) => handleInputChange('microchipId', e.target.value)}
+                dir="ltr"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+              <Input
+                label={`🏷️ ${t('pet.daftraCode')}`}
+                value={formData.daftraCode}
+                onChange={(e) => handleInputChange('daftraCode', e.target.value)}
+                dir="ltr"
               />
             </div>
 

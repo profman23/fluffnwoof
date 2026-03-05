@@ -122,6 +122,7 @@ export interface Pet {
   color?: string;
   weight?: number;
   microchipId?: string;
+  daftraCode?: string;
   photoUrl?: string;
   notes?: string;
   isActive: boolean;
@@ -161,6 +162,8 @@ export interface FlowBoardAppointment {
     id: string;
     name: string;
     species: Species;
+    microchipId?: string;
+    daftraCode?: string;
     owner?: {
       id: string;
       firstName: string;

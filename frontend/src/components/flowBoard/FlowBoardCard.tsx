@@ -265,6 +265,13 @@ export const FlowBoardCard = ({
         <span className="text-brand-dark/60 dark:text-[var(--app-text-tertiary)]">{t(`species.${appointment.pet.species}`)}</span>
       </div>
 
+      {/* Daftra Code */}
+      {appointment.pet.daftraCode && (
+        <div className="text-xs text-brand-dark/50 dark:text-[var(--app-text-tertiary)] mb-0.5" dir="ltr">
+          🏷️ {appointment.pet.daftraCode}
+        </div>
+      )}
+
       {/* Vet Name */}
       {appointment.vet && (
         <div className="flex items-center gap-1 text-xs text-brand-dark/60 dark:text-[var(--app-text-tertiary)] mb-1">

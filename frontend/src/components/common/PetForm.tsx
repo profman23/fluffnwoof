@@ -25,6 +25,7 @@ export interface PetFormData {
   color: string;
   weight: string;
   microchipId?: string;
+  daftraCode?: string;
   notes: string;
 }
 
@@ -44,6 +45,7 @@ export interface PetFormProps {
   // Feature flags for different contexts
   showPhotoUpload?: boolean;
   showMicrochip?: boolean;
+  showDaftraCode?: boolean;
   showNotes?: boolean;
   showBreedSelector?: boolean;
 
@@ -71,6 +73,7 @@ export const PetForm: React.FC<PetFormProps> = ({
   onErrorChange,
   showPhotoUpload = false,
   showMicrochip = false,
+  showDaftraCode = false,
   showNotes = true,
   showBreedSelector = true,
   photoUrl,
@@ -289,6 +292,19 @@ export const PetForm: React.FC<PetFormProps> = ({
           onChange={(e) => handleChange('microchipId', e.target.value)}
           disabled={disabled}
           dir="ltr"
+          inputMode="numeric"
+          pattern="[0-9]*"
+        />
+      )}
+
+      {/* Daftra Code - Only shown if enabled */}
+      {showDaftraCode && (
+        <Input
+          label={`🏷️ ${getLabel('daftraCode')}`}
+          value={formData.daftraCode || ''}
+          onChange={(e) => handleChange('daftraCode', e.target.value)}
+          disabled={disabled}
+          dir="ltr"
         />
       )}
 
@@ -345,6 +361,7 @@ export const getDefaultPetFormData = (): PetFormData => ({
   color: '',
   weight: '',
   microchipId: '',
+  daftraCode: '',
   notes: '',
 });
 

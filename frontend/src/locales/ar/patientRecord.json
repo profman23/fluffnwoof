@@ -10,7 +10,8 @@
     "owner": "المالك",
     "phone": "الهاتف",
     "pet": "الحيوان",
-    "species": "النوع"
+    "species": "النوع",
+    "daftraCode": "كود دفترة"
   },
 
   "sections": {

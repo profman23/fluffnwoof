@@ -7,6 +7,7 @@
   "table": {
     "visitDate": "Visit Date",
     "petName": "Pet",
+    "daftraCode": "Daftra Code",
     "species": "Species",
     "owner": "Owner",
     "chiefComplaint": "Complaint",

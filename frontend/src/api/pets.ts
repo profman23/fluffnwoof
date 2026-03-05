@@ -11,6 +11,7 @@ export interface CreatePetInput {
   color?: string;
   weight?: number;
   microchipId?: string;
+  daftraCode?: string;
   photoUrl?: string;
   notes?: string;
   sendWelcomeEmail?: boolean;
@@ -31,6 +32,8 @@ export interface CreatePetWithOwnerInput {
     birthDate?: string;
     color?: string;
     weight?: number;
+    microchipId?: string;
+    daftraCode?: string;
     notes?: string;
   };
 }
@@ -44,6 +47,7 @@ export interface UpdatePetInput {
   color?: string;
   weight?: number;
   microchipId?: string;
+  daftraCode?: string;
   photoUrl?: string;
   notes?: string;
   isActive?: boolean;

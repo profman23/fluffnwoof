@@ -124,6 +124,12 @@ export const PatientDetails: React.FC<PatientDetailsProps> = ({
               {pet.microchipId || t('details.notProvided')}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500 dark:text-[var(--app-text-secondary)]">{t('details.daftraCode')}:</span>
+            <span className="font-medium dark:text-[var(--app-text-primary)]" dir="ltr">
+              {pet.daftraCode || t('details.notProvided')}
+            </span>
+          </div>
           {pet.notes && (
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-[var(--app-text-secondary)]">{t('details.notes')}:</span>

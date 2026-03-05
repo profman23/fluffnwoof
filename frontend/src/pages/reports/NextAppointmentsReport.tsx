@@ -160,6 +160,15 @@ export const NextAppointmentsReport = () => {
       ),
     },
     {
+      id: 'daftraCode',
+      header: t('nextAppointments.table.daftraCode'),
+      render: (apt) => (
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap" dir="ltr">
+          {apt.pet?.daftraCode || '-'}
+        </span>
+      ),
+    },
+    {
       id: 'owner',
       header: t('nextAppointments.table.owner'),
       render: (apt) => (

@@ -27,6 +27,7 @@ export const petService = {
       color?: string;
       weight?: number;
       microchipId?: string;
+      daftraCode?: string;
       photoUrl?: string;
       notes?: string;
     };
@@ -125,6 +126,7 @@ export const petService = {
     color?: string;
     weight?: number;
     microchipId?: string;
+    daftraCode?: string;
     photoUrl?: string;
     notes?: string;
     ownerId: string;
@@ -190,6 +192,7 @@ export const petService = {
         { name: { contains: search, mode: 'insensitive' as const } },
         { breed: { contains: search, mode: 'insensitive' as const } },
         { microchipId: { contains: search } },
+        { daftraCode: { contains: search, mode: 'insensitive' as const } },
         { petCode: { contains: search, mode: 'insensitive' as const } },
         { owner: { firstName: { contains: search, mode: 'insensitive' as const } } },
         { owner: { lastName: { contains: search, mode: 'insensitive' as const } } },
@@ -290,6 +293,7 @@ export const petService = {
       color?: string;
       weight?: number;
       microchipId?: string;
+      daftraCode?: string;
       photoUrl?: string;
       notes?: string;
       isActive?: boolean;

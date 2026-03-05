@@ -17,6 +17,7 @@
       "date": "Date",
       "time": "Time",
       "pet": "Pet",
+      "daftraCode": "Daftra Code",
       "owner": "Owner",
       "phone": "Phone",
       "vet": "Veterinarian",

@@ -1304,6 +1304,12 @@ export const PatientRecordModal = ({
                     <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">🏷️ {t('patientInfo.species')}</label>
                     <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1">{effectiveAppointment?.pet?.species || record?.pet?.species || '-'}</p>
                   </div>
+                  {(effectiveAppointment?.pet?.daftraCode || record?.pet?.daftraCode) && (
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">🏷️ {t('patientInfo.daftraCode')}</label>
+                      <p className="font-semibold text-gray-900 dark:text-[var(--app-text-primary)] mt-1" dir="ltr">{effectiveAppointment?.pet?.daftraCode || record?.pet?.daftraCode}</p>
+                    </div>
+                  )}
                   {effectiveAppointment?.visitType && (
                     <div>
                       <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">📋 {tFlow('form.visitType')}</label>
