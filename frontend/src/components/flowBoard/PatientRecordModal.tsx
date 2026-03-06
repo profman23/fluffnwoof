@@ -250,13 +250,12 @@ export const PatientRecordModal = ({
     [checkupDate, checkupTime, vaccinationDate, vaccinationTime, dewormingDate, dewormingTime, surgeryDate, surgeryTime]
   );
 
-  // Mandatory fields validation
+  // Mandatory fields validation — requires actually booked appointments (not just form filled)
   const mandatoryFieldsValid = useMemo(() => {
-    // Check if each appointment type has a date + visit type set OR is already booked
-    const hasCheckup = (checkupDate.length > 0 && checkupVisitType.length > 0) || bookedAppointmentsByType.checkup.length > 0;
-    const hasVaccination = (vaccinationDate.length > 0 && vaccinationVisitType.length > 0) || bookedAppointmentsByType.vaccination.length > 0;
-    const hasDeworming = (dewormingDate.length > 0 && dewormingVisitType.length > 0) || bookedAppointmentsByType.deworming.length > 0;
-    const hasSurgery = (surgeryDate.length > 0 && surgeryVisitType.length > 0) || bookedAppointmentsByType.surgery.length > 0;
+    const hasCheckup = bookedAppointmentsByType.checkup.length > 0;
+    const hasVaccination = bookedAppointmentsByType.vaccination.length > 0;
+    const hasDeworming = bookedAppointmentsByType.deworming.length > 0;
+    const hasSurgery = bookedAppointmentsByType.surgery.length > 0;
 
     return (
       formData.weight !== undefined && formData.weight !== null && formData.weight > 0 &&
@@ -264,7 +263,7 @@ export const PatientRecordModal = ({
       formData.heartRate !== undefined && formData.heartRate !== null && formData.heartRate > 0 &&
       hasCheckup && hasVaccination && hasDeworming && hasSurgery
     );
-  }, [formData.weight, formData.temperature, formData.heartRate, checkupDate, checkupVisitType, vaccinationDate, vaccinationVisitType, dewormingDate, dewormingVisitType, surgeryDate, surgeryVisitType, bookedAppointmentsByType]);
+  }, [formData.weight, formData.temperature, formData.heartRate, bookedAppointmentsByType]);
 
   // Check if record is empty (no data added) - for standalone records
   const isRecordEmpty = useMemo(() => {
