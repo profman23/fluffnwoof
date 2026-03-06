@@ -838,14 +838,15 @@ export const PatientRecordModal = ({
           orig => !payments.some(current => current.id === orig.id)
         );
 
+        // Remove first, then add (avoid exceeding totalAmount during transition)
+        for (const payment of removedPayments) {
+          await invoicesApi.removePayment(payment.id);
+        }
         for (const payment of newPayments) {
           await invoicesApi.addPayment(invoice.id, {
             amount: payment.amount,
             paymentMethod: payment.paymentMethod,
           });
-        }
-        for (const payment of removedPayments) {
-          await invoicesApi.removePayment(payment.id);
         }
 
         // Refresh invoice to sync state
