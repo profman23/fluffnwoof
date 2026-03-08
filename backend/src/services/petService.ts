@@ -34,6 +34,9 @@ export const petService = {
   }) {
     const { owner: ownerData, pet: petData } = data;
     ownerData.phone = normalizePhone(ownerData.phone);
+    // Convert empty strings to null for unique fields
+    if (petData.daftraCode === '') petData.daftraCode = undefined;
+    if (petData.microchipId === '') petData.microchipId = undefined;
     const { birthDate, ...restPetData } = petData;
 
     const parsedBirthDate = birthDate
@@ -132,6 +135,9 @@ export const petService = {
     ownerId: string;
     sendWelcomeEmail?: boolean;
   }) {
+    // Convert empty strings to null for unique fields
+    if (data.daftraCode === '') data.daftraCode = undefined;
+    if (data.microchipId === '') data.microchipId = undefined;
     const { sendWelcomeEmail, birthDate, ...restData } = data;
     let petCode: string;
     try {
@@ -299,6 +305,9 @@ export const petService = {
       isActive?: boolean;
     }
   ) {
+    // Convert empty strings to null for unique fields
+    if (data.daftraCode === '') data.daftraCode = undefined;
+    if (data.microchipId === '') data.microchipId = undefined;
     const { birthDate, ...restData } = data;
     const parsedBirthDate = birthDate
       ? new Date(`${String(birthDate).split('T')[0]}T00:00:00.000Z`)
