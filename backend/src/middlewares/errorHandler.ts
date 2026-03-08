@@ -32,7 +32,6 @@ const errorMessages: Record<string, BilingualMessage> = {
   phoneExists: { ar: 'رقم الهاتف مستخدم بالفعل', en: 'Phone number is already in use' },
   recordExists: { ar: 'هذا السجل موجود بالفعل', en: 'This record already exists' },
   microchipExists: { ar: 'رقم الشريحة مستخدم بالفعل لحيوان آخر', en: 'This microchip ID is already assigned to another pet' },
-  daftraCodeExists: { ar: 'كود دفترة مستخدم بالفعل لحيوان آخر', en: 'This Daftra Code is already assigned to another pet' },
   appointmentConflict: { ar: 'هذا الدكتور لديه موعد آخر في هذا الوقت', en: 'This doctor already has an appointment at this time' },
   recordNotFound: { ar: 'السجل المطلوب غير موجود', en: 'Requested record not found' },
   relationError: { ar: 'خطأ في العلاقة بين البيانات', en: 'Data relationship error' },
@@ -89,9 +88,6 @@ export const errorHandler = (
       } else if (targetFields.some(f => f.includes('microchipId'))) {
         message = errorMessages.microchipExists.ar;
         messageEn = errorMessages.microchipExists.en;
-      } else if (targetFields.some(f => f.includes('daftraCode'))) {
-        message = errorMessages.daftraCodeExists.ar;
-        messageEn = errorMessages.daftraCodeExists.en;
       } else if (err.meta?.modelName === 'Appointment') {
         statusCode = 409;
         message = errorMessages.appointmentConflict.ar;

@@ -172,7 +172,7 @@ model Pet {
   color          String?
   weight         Float?
   microchipId    String?         @unique
-  daftraCode     String?         @unique
+  daftraCode     String?
   photoUrl       String?
   notes          String?
   isActive       Boolean         @default(true)
