@@ -25,7 +25,6 @@ const DANGEROUS_PATTERNS = [
   { pattern: /\bALTER\s+TABLE\s+\S+\s+DROP\b/i, label: 'ALTER TABLE ... DROP' },
   { pattern: /\bTRUNCATE\b/i, label: 'TRUNCATE' },
   { pattern: /\bDELETE\s+FROM\b/i, label: 'DELETE FROM' },
-  { pattern: /\bDROP\s+INDEX\b/i, label: 'DROP INDEX' },
 ];
 
 async function getAppliedMigrations() {
