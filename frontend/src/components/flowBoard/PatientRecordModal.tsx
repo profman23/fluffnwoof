@@ -1109,13 +1109,16 @@ export const PatientRecordModal = ({
   // Suppress unused warning - available for future use on form inputs
   void handleFieldBlur;
 
-  // Manual save
+  // Manual save (medical record + invoice items/payments)
   const handleManualSave = useCallback(async () => {
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
     await saveRecord();
-  }, [saveRecord]);
+    if (hasUnsavedInvoiceChanges) {
+      await saveInvoiceChanges();
+    }
+  }, [saveRecord, hasUnsavedInvoiceChanges, saveInvoiceChanges]);
 
   const handleClose = useCallback(async () => {
     // Prevent double-click while saving
