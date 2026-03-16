@@ -1,3 +1,3 @@
 -- AlterTable
-ALTER TABLE "service_products" ADD COLUMN "daftraCode" TEXT;
-ALTER TABLE "service_products" ADD COLUMN "barcode" TEXT;
+ALTER TABLE "service_products" ADD COLUMN IF NOT EXISTS "daftraCode" TEXT;
+ALTER TABLE "service_products" ADD COLUMN IF NOT EXISTS "barcode" TEXT;
