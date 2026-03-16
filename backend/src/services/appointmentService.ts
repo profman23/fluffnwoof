@@ -457,10 +457,11 @@ export const appointmentService = {
     return appointments;
   },
 
-  async getFlowBoardData(date?: string) {
-    const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+  async getFlowBoardData(startDateStr?: string, endDateStr?: string) {
+    const startTarget = startDateStr ? new Date(startDateStr) : new Date();
+    const endTarget = endDateStr ? new Date(endDateStr) : new Date(startTarget);
+    const startOfDay = new Date(startTarget.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(endTarget.setHours(23, 59, 59, 999));
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -475,6 +476,7 @@ export const appointmentService = {
             id: true,
             name: true,
             species: true,
+            petCode: true,
             daftraCode: true,
           },
         },

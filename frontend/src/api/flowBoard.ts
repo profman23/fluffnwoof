@@ -14,11 +14,12 @@ export interface CreateFlowBoardAppointmentInput {
 
 export const flowBoardApi = {
   /**
-   * Get Flow Board data for a specific date
+   * Get Flow Board data for a date range
    */
-  getData: async (date?: string): Promise<FlowBoardData> => {
+  getData: async (startDate?: string, endDate?: string): Promise<FlowBoardData> => {
     const params = new URLSearchParams();
-    if (date) params.append('date', date);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
     const response = await api.get(`/appointments/flow-board?${params.toString()}`);
     return response.data.data;
   },

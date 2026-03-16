@@ -263,14 +263,13 @@ export const FlowBoardCard = ({
         <span className="truncate font-medium">{appointment.pet.name}</span>
         <span className="text-brand-dark/40 dark:text-gray-600">•</span>
         <span className="text-brand-dark/60 dark:text-[var(--app-text-tertiary)]">{t(`species.${appointment.pet.species}`)}</span>
+        {appointment.pet.petCode && (
+          <>
+            <span className="text-brand-dark/40 dark:text-gray-600">•</span>
+            <span className="text-brand-dark/60 dark:text-[var(--app-text-tertiary)] font-mono" dir="ltr">{appointment.pet.petCode}</span>
+          </>
+        )}
       </div>
-
-      {/* Daftra Code */}
-      {appointment.pet.daftraCode && (
-        <div className="text-xs text-brand-dark/50 dark:text-[var(--app-text-tertiary)] mb-0.5" dir="ltr">
-          🏷️ {appointment.pet.daftraCode}
-        </div>
-      )}
 
       {/* Vet Name */}
       {appointment.vet && (
@@ -315,6 +314,13 @@ export const FlowBoardCard = ({
         <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded">
           <DocumentTextIcon className="w-3 h-3" />
           <span className="font-medium">{appointment.invoice.invoiceNumber}</span>
+        </div>
+      )}
+
+      {/* Daftra Code - at bottom of card */}
+      {appointment.pet.daftraCode && (
+        <div className="text-xs text-brand-dark/50 dark:text-[var(--app-text-tertiary)] mt-1.5 pt-1 border-t border-gray-100 dark:border-gray-700" dir="ltr">
+          🏷️ {appointment.pet.daftraCode}
         </div>
       )}
     </div>

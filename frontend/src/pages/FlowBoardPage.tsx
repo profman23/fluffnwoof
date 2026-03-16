@@ -11,7 +11,6 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import {
-  CalendarIcon,
   ArrowPathIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -61,7 +60,11 @@ export const FlowBoardPage = () => {
     completed: [],
   });
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
@@ -93,7 +96,7 @@ export const FlowBoardPage = () => {
     console.log('>>> loadData CALLED at', new Date().toISOString());
     setLoading(true);
     try {
-      const result = await flowBoardApi.getData(selectedDate);
+      const result = await flowBoardApi.getData(startDate, endDate);
       // Debug: Check if recordCode is returned
       console.log('=== FlowBoard Data Debug ===');
       const allAppts = [...(result.scheduled || []), ...(result.checkIn || []), ...(result.inProgress || []), ...(result.completed || [])];
@@ -112,7 +115,7 @@ export const FlowBoardPage = () => {
 
   useEffect(() => {
     loadData();
-  }, [selectedDate]);
+  }, [startDate, endDate]);
 
   // Load staff list
   useEffect(() => {
@@ -179,10 +182,21 @@ export const FlowBoardPage = () => {
     return result;
   }, [data, selectedStaff, showCancelled, columnSortOrder]);
 
-  const handleDateChange = (offset: number) => {
-    const date = new Date(selectedDate);
+  const handleStartDateChange = (offset: number) => {
+    const date = new Date(startDate);
     date.setDate(date.getDate() + offset);
-    setSelectedDate(date.toISOString().split('T')[0]);
+    const newDate = date.toISOString().split('T')[0];
+    setStartDate(newDate);
+    // If start goes past end, move end too
+    if (newDate > endDate) setEndDate(newDate);
+  };
+
+  const handleEndDateChange = (offset: number) => {
+    const date = new Date(endDate);
+    date.setDate(date.getDate() + offset);
+    const newDate = date.toISOString().split('T')[0];
+    // Don't allow end before start
+    if (newDate >= startDate) setEndDate(newDate);
   };
 
   const findAppointmentColumn = (id: string): string | null => {
@@ -255,14 +269,12 @@ export const FlowBoardPage = () => {
     }
   };
 
-  const formatDisplayDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDisplayDate = () => {
+    const opts: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const start = new Date(startDate).toLocaleDateString(undefined, opts);
+    if (startDate === endDate) return start;
+    const end = new Date(endDate).toLocaleDateString(undefined, opts);
+    return `${start} → ${end}`;
   };
 
   const handleCardClick = (appointment: FlowBoardAppointment) => {
@@ -278,34 +290,67 @@ export const FlowBoardPage = () => {
           <div className="flex items-center gap-2">
             <span className="text-xl">📋</span>
             <h1 className="text-xl font-bold text-brand-dark dark:text-[var(--app-text-primary)]">{t('title')}</h1>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{formatDisplayDate(selectedDate)}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{formatDisplayDate()}</span>
             {isReadOnly && <ReadOnlyBadge compact namespace="flowBoard" />}
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Date Navigation */}
-            <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md">
-              <button
-                onClick={() => handleDateChange(-1)}
-                className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
-              >
-                <ChevronLeftIcon className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-1 px-1">
-                <CalendarIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-xs font-medium w-28 py-0.5 dark:text-[var(--app-text-primary)]"
-                />
+            {/* Date Range Navigation */}
+            <div className="flex items-center gap-1">
+              {/* From Date */}
+              <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md">
+                <button
+                  onClick={() => handleStartDateChange(-1)}
+                  className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
+                >
+                  <ChevronLeftIcon className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-1 px-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('fromDate')}</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setStartDate(val);
+                      if (val > endDate) setEndDate(val);
+                    }}
+                    className="bg-transparent border-none focus:ring-0 text-xs font-medium w-28 py-0.5 dark:text-[var(--app-text-primary)]"
+                  />
+                </div>
+                <button
+                  onClick={() => handleStartDateChange(1)}
+                  className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
+                >
+                  <ChevronRightIcon className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={() => handleDateChange(1)}
-                className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
-              >
-                <ChevronRightIcon className="w-4 h-4" />
-              </button>
+
+              {/* To Date */}
+              <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md">
+                <button
+                  onClick={() => handleEndDateChange(-1)}
+                  className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
+                >
+                  <ChevronLeftIcon className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-1 px-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('toDate')}</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    min={startDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-transparent border-none focus:ring-0 text-xs font-medium w-28 py-0.5 dark:text-[var(--app-text-primary)]"
+                  />
+                </div>
+                <button
+                  onClick={() => handleEndDateChange(1)}
+                  className="p-1 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded-md transition-colors dark:text-gray-400"
+                >
+                  <ChevronRightIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Staff Filter */}
@@ -395,7 +440,7 @@ export const FlowBoardPage = () => {
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onSuccess={loadData}
-          selectedDate={selectedDate}
+          selectedDate={startDate}
         />
       )}
 

@@ -107,6 +107,61 @@ describe('Appointments API', () => {
       expect(found.status).toBe('SCHEDULED');
     });
 
+    it('should return appointments for date range using startDate and endDate', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+      // Create appointment for tomorrow
+      await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          petId: testPetId,
+          vetId: testVetId,
+          appointmentDate: tomorrow,
+          appointmentTime: '09:00',
+          duration: 30,
+        });
+
+      // Query with date range covering both days
+      const res = await request(app)
+        .get(`/api/appointments/flow-board?startDate=${today}&endDate=${tomorrow}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      const allAppointments = [
+        ...res.body.data.scheduled,
+        ...res.body.data.checkIn,
+        ...res.body.data.inProgress,
+        ...res.body.data.completed,
+      ];
+      // Should include appointments from both days
+      expect(allAppointments.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should default to today when no dates provided', async () => {
+      const res = await request(app)
+        .get('/api/appointments/flow-board')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('scheduled');
+    });
+
+    it('should support backward compatible single date parameter', async () => {
+      const today = new Date().toISOString().split('T')[0];
+
+      const res = await request(app)
+        .get(`/api/appointments/flow-board?date=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('scheduled');
+    });
+
     it('should reject without auth (401)', async () => {
       await request(app)
         .get('/api/appointments/flow-board')

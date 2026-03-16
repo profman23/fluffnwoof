@@ -89,6 +89,66 @@ describe('Pets API', () => {
     });
   });
 
+  describe('daftraCode duplicate handling', () => {
+    it('should allow creating two pets with the same daftraCode', async () => {
+      const daftraCode = 'DAFTRA-DUPLICATE-TEST';
+
+      const res1 = await request(app)
+        .post('/api/pets')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Pet1',
+          species: 'DOG',
+          gender: 'MALE',
+          ownerId: testOwnerId,
+          daftraCode,
+        })
+        .expect(201);
+
+      expect(res1.body.data.daftraCode).toBe(daftraCode);
+
+      const res2 = await request(app)
+        .post('/api/pets')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Pet2',
+          species: 'CAT',
+          gender: 'FEMALE',
+          ownerId: testOwnerId,
+          daftraCode,
+        })
+        .expect(201);
+
+      expect(res2.body.data.daftraCode).toBe(daftraCode);
+    });
+
+    it('should allow updating pet with a daftraCode that exists on another pet', async () => {
+      const sharedCode = 'DAFTRA-SHARED-UPDATE';
+
+      // Create pet with daftraCode
+      await request(app)
+        .post('/api/pets')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'ExistingCodePet',
+          species: 'BIRD',
+          gender: 'MALE',
+          ownerId: testOwnerId,
+          daftraCode: sharedCode,
+        })
+        .expect(201);
+
+      // Update another pet to use the same daftraCode
+      const res = await request(app)
+        .put(`/api/pets/${createdPetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ daftraCode: sharedCode })
+        .expect(200);
+
+      expect(res.body.data.daftraCode).toBe(sharedCode);
+    });
+  });
+
   describe('GET /api/pets', () => {
     it('should return list of pets', async () => {
       const res = await request(app)

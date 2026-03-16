@@ -14,6 +14,8 @@
   "confirmed": "Confirmed",
   "unconfirmed": "Unconfirmed",
   "cancelled": "Cancelled",
+  "fromDate": "From",
+  "toDate": "To",
   "showCancelled": "Show Cancelled",
   "sort": "Sort",
   "sortAsc": "Sort by time (earliest first)",

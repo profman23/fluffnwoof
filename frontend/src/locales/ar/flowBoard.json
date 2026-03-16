@@ -14,6 +14,8 @@
   "confirmed": "مؤكد",
   "unconfirmed": "غير مؤكد",
   "cancelled": "ملغي",
+  "fromDate": "من",
+  "toDate": "إلى",
   "showCancelled": "إظهار الملغي",
   "sort": "ترتيب",
   "sortAsc": "ترتيب حسب الوقت (الأقرب أولاً)",

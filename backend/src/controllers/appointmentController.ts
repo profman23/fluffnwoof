@@ -179,8 +179,11 @@ export const appointmentController = {
 
   async getFlowBoardData(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { date } = req.query;
-      const data = await appointmentService.getFlowBoardData(date as string);
+      const { date, startDate, endDate } = req.query;
+      // Backward compatible: support old single 'date' param
+      const start = (startDate || date) as string | undefined;
+      const end = (endDate || date) as string | undefined;
+      const data = await appointmentService.getFlowBoardData(start, end);
 
       res.status(200).json({
         success: true,

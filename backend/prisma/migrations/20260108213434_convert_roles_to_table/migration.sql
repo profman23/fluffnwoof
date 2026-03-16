@@ -58,7 +58,7 @@ WHERE rp.role::text = r.name;
 ALTER TABLE "role_permissions" ALTER COLUMN "roleId" SET NOT NULL;
 
 -- Drop old unique constraint
-ALTER TABLE "role_permissions" DROP CONSTRAINT "role_permissions_role_permissionId_key";
+ALTER TABLE "role_permissions" DROP CONSTRAINT IF EXISTS "role_permissions_role_permissionId_key";
 
 -- Add new unique constraint
 ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_roleId_permissionId_key"

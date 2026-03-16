@@ -162,6 +162,7 @@ export interface FlowBoardAppointment {
     id: string;
     name: string;
     species: Species;
+    petCode?: string;
     microchipId?: string;
     daftraCode?: string;
     owner?: {
