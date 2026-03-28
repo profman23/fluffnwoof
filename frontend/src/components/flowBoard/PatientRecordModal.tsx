@@ -1109,17 +1109,6 @@ export const PatientRecordModal = ({
   // Suppress unused warning - available for future use on form inputs
   void handleFieldBlur;
 
-  // Manual save (medical record + invoice items/payments)
-  const handleManualSave = useCallback(async () => {
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-    await saveRecord();
-    if (hasUnsavedInvoiceChanges) {
-      await saveInvoiceChanges();
-    }
-  }, [saveRecord, hasUnsavedInvoiceChanges, saveInvoiceChanges]);
-
   const handleClose = useCallback(async () => {
     // Prevent double-click while saving
     if (isSavingBeforeClose) return;
@@ -2255,20 +2244,10 @@ export const PatientRecordModal = ({
             type="button"
             onClick={handleClose}
             disabled={isSavingBeforeClose}
-            className="px-5 py-2.5 border border-primary-300 rounded-lg text-brand-dark hover:bg-primary-100 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 bg-secondary-300 text-brand-dark rounded-lg hover:bg-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
           >
-            {isSavingBeforeClose ? t('saving') : t('close')}
+            {isSavingBeforeClose ? t('saving') : t('saveAndClose')}
           </button>
-          {!isReadOnly && (
-            <button
-              type="button"
-              onClick={handleManualSave}
-              disabled={saving || loading}
-              className="px-5 py-2.5 bg-secondary-300 text-brand-dark rounded-lg hover:bg-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-            >
-              {saving ? t('saving') : t('save')}
-            </button>
-          )}
         </div>
       </div>
 
