@@ -214,7 +214,7 @@ export const RolesPermissions: React.FC = () => {
       // Convert 'mixed' to 'none' for backend (mixed is UI-only state)
       const cleanPermissions: ScreenPermissions = {};
       Object.entries(permissions).forEach(([screen, level]) => {
-        cleanPermissions[screen] = (level as string) === 'mixed' ? 'none' : level;
+        cleanPermissions[screen] = (level as string) === 'mixed' ? 'read' : level;
       });
 
       await rolesApi.updateRolePermissions(selectedRole.id, cleanPermissions, specialPermissions);
