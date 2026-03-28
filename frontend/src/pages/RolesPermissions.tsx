@@ -196,9 +196,7 @@ export const RolesPermissions: React.FC = () => {
             const anyChildHasAccess = parentGroup.children!.some(child =>
               (newPermissions[child] || 'none') !== 'none'
             );
-            const parentValue = anyChildHasAccess ? 'read' : 'none';
-            console.log(`[PERM FIX] Parent "${parentGroup.name}" children mixed → setting to "${parentValue}"`);
-            newPermissions[parentGroup.name] = parentValue;
+            newPermissions[parentGroup.name] = anyChildHasAccess ? 'read' : 'none';
           }
         }
       }
