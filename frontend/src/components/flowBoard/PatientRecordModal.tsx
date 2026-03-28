@@ -966,6 +966,10 @@ export const PatientRecordModal = ({
       if (Object.keys(sanitizedData).length > 0) {
         await medicalRecordsApi.update(record.id, sanitizedData);
       }
+      // Save invoice items/payments if any unsaved changes
+      if (hasUnsavedInvoiceChanges) {
+        await saveInvoiceChanges();
+      }
       // Then close the record
       const closedRecord = await medicalRecordsApi.closeRecord(record.id);
       if (isMountedRef.current) {
