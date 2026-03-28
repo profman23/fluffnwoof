@@ -70,4 +70,20 @@ export const uploadApi = {
   deleteMedicalAttachment: async (attachmentId: string): Promise<void> => {
     await api.delete(`/upload/medical/attachment/${attachmentId}`);
   },
+
+  // Download medical attachment via backend proxy
+  downloadMedicalAttachment: async (attachmentId: string, fileName: string): Promise<void> => {
+    const response = await api.get(`/upload/medical/attachment/${attachmentId}/download`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
 };

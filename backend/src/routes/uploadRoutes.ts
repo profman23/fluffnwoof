@@ -10,6 +10,7 @@ import {
   uploadMedicalAttachment,
   getMedicalAttachments,
   deleteMedicalAttachment,
+  downloadMedicalAttachment,
 } from '../controllers/uploadController';
 
 const router = Router();
@@ -122,6 +123,12 @@ router.delete(
   '/medical/attachment/:attachmentId',
   authenticate,
   deleteMedicalAttachment
+);
+
+router.get(
+  '/medical/attachment/:attachmentId/download',
+  authenticate,
+  downloadMedicalAttachment
 );
 
 export default router;

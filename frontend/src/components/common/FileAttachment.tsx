@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { uploadApi } from '../../api/upload';
 import {
   PaperClipIcon,
   DocumentIcon,
@@ -138,8 +139,12 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
     }
   };
 
-  const handleDownload = (attachment: MedicalAttachment) => {
-    window.open(attachment.fileUrl, '_blank');
+  const handleDownload = async (attachment: MedicalAttachment) => {
+    try {
+      await uploadApi.downloadMedicalAttachment(attachment.id, attachment.fileName);
+    } catch {
+      window.open(attachment.fileUrl, '_blank');
+    }
   };
 
   const handleImageClick = (url: string) => {
