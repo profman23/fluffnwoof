@@ -112,7 +112,15 @@ export const RolesPermissions: React.FC = () => {
           const allSame = group.children.every(child =>
             (completePermissions[child] || 'none') === firstChildLevel
           );
-          completePermissions[group.name] = allSame ? firstChildLevel : ('mixed' as any);
+          if (allSame) {
+            completePermissions[group.name] = firstChildLevel;
+          } else {
+            // Children have different levels - set parent to 'read' if any child has access
+            const anyChildHasAccess = group.children.some(child =>
+              (completePermissions[child] || 'none') !== 'none'
+            );
+            completePermissions[group.name] = anyChildHasAccess ? 'read' : 'none';
+          }
         }
       });
 
@@ -184,9 +192,11 @@ export const RolesPermissions: React.FC = () => {
             // All children are the same - set parent to that level
             newPermissions[parentGroup.name] = uniformLevel;
           } else {
-            // Children are mixed - set parent to a special 'mixed' state
-            // We'll use 'none' but the UI will show it as unselected
-            newPermissions[parentGroup.name] = 'mixed' as any;
+            // Children have different levels - set parent to 'read' if any child has access
+            const anyChildHasAccess = parentGroup.children!.some(child =>
+              (newPermissions[child] || 'none') !== 'none'
+            );
+            newPermissions[parentGroup.name] = anyChildHasAccess ? 'read' : 'none';
           }
         }
       }
