@@ -85,7 +85,8 @@
     "noRecordReadOnly": "لم يتم إنشاء سجل طبي لهذا الموعد بعد",
     "saveFailed": "فشل في حفظ التغييرات",
     "alreadyClosed": "السجل مغلق بالفعل",
-    "alreadyOpen": "السجل مفتوح بالفعل"
+    "alreadyOpen": "السجل مفتوح بالفعل",
+    "unsavedInvoiceChanges": "يوجد تغييرات غير محفوظة في الخدمات/المنتجات. يرجى الضغط على حفظ وإغلاق أولاً."
   },
 
   "nextAppointment": {

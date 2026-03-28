@@ -966,10 +966,6 @@ export const PatientRecordModal = ({
       if (Object.keys(sanitizedData).length > 0) {
         await medicalRecordsApi.update(record.id, sanitizedData);
       }
-      // Save invoice items/payments if any unsaved changes
-      if (hasUnsavedInvoiceChanges) {
-        await saveInvoiceChanges();
-      }
       // Then close the record
       const closedRecord = await medicalRecordsApi.closeRecord(record.id);
       if (isMountedRef.current) {
@@ -1244,7 +1240,13 @@ export const PatientRecordModal = ({
             {record && !record.isClosed && !isReadOnly && (
                 <div className="relative group">
                   <button
-                    onClick={() => setShowCloseWarning(true)}
+                    onClick={() => {
+                      if (hasUnsavedInvoiceChanges) {
+                        alert(t('errors.unsavedInvoiceChanges'));
+                        return;
+                      }
+                      setShowCloseWarning(true);
+                    }}
                     disabled={closingRecord || !mandatoryFieldsValid}
                     className="flex items-center gap-2 px-4 py-2 bg-accent-300 hover:bg-accent-400 text-brand-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     type="button"
