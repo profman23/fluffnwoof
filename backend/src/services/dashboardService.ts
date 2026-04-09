@@ -212,7 +212,14 @@ export const dashboardService = {
     const vetStats = await Promise.all(
       vets.map(async (vet) => {
         const records = await prisma.medicalRecord.findMany({
-          where: { vetId: vet.id },
+          where: {
+            vetId: vet.id,
+            // Exclude records linked to cancelled appointments
+            OR: [
+              { appointmentId: null },
+              { appointment: { status: { not: 'CANCELLED' } } },
+            ],
+          },
           select: {
             id: true,
             chiefComplaint: true,
@@ -485,6 +492,7 @@ export const dashboardService = {
             where: {
               vetId: vet.id,
               appointmentDate: { gte: startDate, lte: endDate },
+              status: { not: 'CANCELLED' },
             },
           }),
           prisma.medicalRecord.count({
@@ -492,12 +500,20 @@ export const dashboardService = {
               vetId: vet.id,
               isClosed: true,
               visitDate: { gte: startDate, lte: endDate },
+              OR: [
+                { appointmentId: null },
+                { appointment: { status: { not: 'CANCELLED' } } },
+              ],
             },
           }),
           prisma.medicalRecord.count({
             where: {
               vetId: vet.id,
               visitDate: { gte: startDate, lte: endDate },
+              OR: [
+                { appointmentId: null },
+                { appointment: { status: { not: 'CANCELLED' } } },
+              ],
             },
           }),
         ]);
