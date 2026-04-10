@@ -83,5 +83,37 @@
     },
     "noData": "No sales data found for the selected period",
     "total": "Total Invoices"
+  },
+  "acquisition": {
+    "title": "Customer Sources Report",
+    "from": "From",
+    "to": "To",
+    "firstInvoiceOnly": "First invoice only",
+    "firstInvoiceTooltip": "When enabled, only the first invoice per customer is counted. Disable to include all invoices.",
+    "noData": "No customer source data found for the selected period",
+    "totalCustomers": "Total New Customers",
+    "totalSalesWithTax": "Total Sales (incl. VAT)",
+    "totalSalesBeforeTax": "Total Sales (excl. VAT)",
+    "avgPerCustomer": "Avg. per Customer",
+    "sar": "SAR",
+    "customersBySource": "Customers by Source",
+    "salesBySource": "Sales by Source",
+    "withTax": "With VAT",
+    "beforeTax": "Before VAT",
+    "detailTable": "Detailed Breakdown",
+    "source": "Source",
+    "customers": "Customers",
+    "salesWithTax": "Sales (incl. VAT)",
+    "salesBeforeTax": "Sales (excl. VAT)",
+    "sources": {
+      "GOOGLE_SEARCH": "🔍 Google Search",
+      "GOOGLE_MAPS": "📍 Google Maps",
+      "INSTAGRAM": "📸 Instagram",
+      "FACEBOOK": "📘 Facebook",
+      "FRIEND_REFERRAL": "👥 Friend Referral",
+      "CLINIC_REFERRAL": "🏥 Clinic Referral",
+      "TIKTOK": "🎵 TikTok",
+      "SNAPCHAT": "👻 Snapchat"
+    }
   }
 }

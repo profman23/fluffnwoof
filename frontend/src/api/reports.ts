@@ -102,4 +102,41 @@ export const reportsApi = {
     const response = await api.get('/reports/sales', { params });
     return response.data;
   },
+
+  getAcquisitionReport: async (params: {
+    startDate?: string;
+    endDate?: string;
+    firstInvoiceOnly?: boolean;
+  }): Promise<AcquisitionReportResponse> => {
+    const response = await api.get('/reports/acquisition', { params });
+    return response.data.data;
+  },
 };
+
+export interface AcquisitionReportResponse {
+  summary: {
+    totalCustomers: number;
+    totalSalesWithTax: number;
+    totalSalesBeforeTax: number;
+    averagePerCustomer: number;
+  };
+  bySource: {
+    source: string;
+    customerCount: number;
+    totalWithTax: number;
+    totalBeforeTax: number;
+    customers: AcquisitionCustomer[];
+  }[];
+  customers: AcquisitionCustomer[];
+}
+
+export interface AcquisitionCustomer {
+  ownerId: string;
+  ownerName: string;
+  customerCode: string;
+  referralSource: string;
+  createdAt: string;
+  totalWithTax: number;
+  totalBeforeTax: number;
+  invoiceCount: number;
+}

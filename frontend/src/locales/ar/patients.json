@@ -128,6 +128,20 @@
     "error": "حدث خطأ"
   },
 
+  "referralSource": {
+    "label": "كيف سمعت عننا؟",
+    "placeholder": "اختر المصدر...",
+    "required": "يرجى اختيار كيف سمع العميل عننا",
+    "GOOGLE_SEARCH": "بحث جوجل",
+    "GOOGLE_MAPS": "خرائط جوجل",
+    "INSTAGRAM": "انستقرام",
+    "FACEBOOK": "فيسبوك",
+    "FRIEND_REFERRAL": "توصية صديق",
+    "CLINIC_REFERRAL": "تحويل من عيادة",
+    "TIKTOK": "تيكتوك",
+    "SNAPCHAT": "سناب تشات"
+  },
+
   "errors": {
     "ownerRequired": "يرجى اختيار أو إنشاء مالك",
     "petNameRequired": "اسم الحيوان مطلوب",

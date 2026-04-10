@@ -83,5 +83,37 @@
     },
     "noData": "لا توجد بيانات مبيعات للفترة المحددة",
     "total": "إجمالي الفواتير"
+  },
+  "acquisition": {
+    "title": "📊 تقرير مصادر العملاء",
+    "from": "من",
+    "to": "إلى",
+    "firstInvoiceOnly": "أول فاتورة فقط",
+    "firstInvoiceTooltip": "عند التفعيل، يتم احتساب أول فاتورة فقط لكل عميل. قم بإلغاء التفعيل لاحتساب جميع الفواتير.",
+    "noData": "لا توجد بيانات مصادر عملاء للفترة المحددة",
+    "totalCustomers": "إجمالي العملاء الجدد",
+    "totalSalesWithTax": "إجمالي المبيعات (شامل الضريبة)",
+    "totalSalesBeforeTax": "إجمالي المبيعات (بدون ضريبة)",
+    "avgPerCustomer": "متوسط لكل عميل",
+    "sar": "ر.س",
+    "customersBySource": "العملاء حسب المصدر",
+    "salesBySource": "المبيعات حسب المصدر",
+    "withTax": "شامل الضريبة",
+    "beforeTax": "بدون ضريبة",
+    "detailTable": "التفاصيل",
+    "source": "المصدر",
+    "customers": "العملاء",
+    "salesWithTax": "المبيعات (شامل الضريبة)",
+    "salesBeforeTax": "المبيعات (بدون ضريبة)",
+    "sources": {
+      "GOOGLE_SEARCH": "🔍 بحث جوجل",
+      "GOOGLE_MAPS": "📍 خرائط جوجل",
+      "INSTAGRAM": "📸 انستقرام",
+      "FACEBOOK": "📘 فيسبوك",
+      "FRIEND_REFERRAL": "👥 توصية صديق",
+      "CLINIC_REFERRAL": "🏥 تحويل من عيادة",
+      "TIKTOK": "🎵 تيكتوك",
+      "SNAPCHAT": "👻 سناب تشات"
+    }
   }
 }

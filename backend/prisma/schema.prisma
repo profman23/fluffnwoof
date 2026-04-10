@@ -150,6 +150,7 @@ model Owner {
   portalEnabled    Boolean           @default(true)
   preferredLang    String            @default("ar")
   verifiedAt       DateTime?
+  referralSource   String?
   invoices         Invoice[]
   otps             OwnerOtp[]
   pets             Pet[]

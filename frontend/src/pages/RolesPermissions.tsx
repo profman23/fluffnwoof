@@ -24,7 +24,7 @@ const SCREEN_GROUPS: ScreenItem[] = [
   { name: 'userManagement' },
   { name: 'rolesPermissions' },
   { name: 'serviceProducts' },
-  { name: 'reports', children: ['nextAppointments', 'salesReport'] },
+  { name: 'reports', children: ['nextAppointments', 'salesReport', 'acquisitionReport'] },
   { name: 'crm', children: ['sms', 'reminders'] },
   { name: 'clinicSetup', children: ['shiftsManagement', 'visitTypes', 'formsAndCertificates', 'boardingAndIcu'] },
   { name: 'importData', children: ['importClients'] },

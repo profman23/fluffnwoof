@@ -17,6 +17,7 @@ export const petService = {
       lastName: string;
       phone: string;
       email?: string;
+      referralSource?: string;
     };
     pet: {
       name: string;

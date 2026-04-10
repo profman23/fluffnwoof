@@ -128,6 +128,20 @@
     "error": "An error occurred"
   },
 
+  "referralSource": {
+    "label": "How did you hear about us?",
+    "placeholder": "Select source...",
+    "required": "Please select how the customer heard about us",
+    "GOOGLE_SEARCH": "Google Search",
+    "GOOGLE_MAPS": "Google Maps",
+    "INSTAGRAM": "Instagram",
+    "FACEBOOK": "Facebook",
+    "FRIEND_REFERRAL": "Friend Referral",
+    "CLINIC_REFERRAL": "Clinic Referral",
+    "TIKTOK": "TikTok",
+    "SNAPCHAT": "Snapchat"
+  },
+
   "errors": {
     "ownerRequired": "Please select or create an owner",
     "petNameRequired": "Pet name is required",

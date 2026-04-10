@@ -42,4 +42,21 @@ export const reportController = {
       res.status(500).json({ error: 'Failed to fetch sales report', details: error?.message });
     }
   },
+
+  getAcquisitionReport: async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate, firstInvoiceOnly } = req.query;
+
+      const result = await reportService.getAcquisitionReport({
+        startDate: startDate as string,
+        endDate: endDate as string,
+        firstInvoiceOnly: firstInvoiceOnly !== 'false',
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error('Error fetching acquisition report:', error?.message || error);
+      res.status(500).json({ error: 'Failed to fetch acquisition report' });
+    }
+  },
 };

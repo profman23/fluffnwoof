@@ -34,6 +34,7 @@ interface FormData {
     lastName: string;
     phone: string;
     email: string;
+    referralSource: string;
   };
   pet: {
     name: string;
@@ -55,6 +56,7 @@ interface FormErrors {
   lastName?: string;
   phone?: string;
   email?: string;
+  referralSource?: string;
   petName?: string;
   species?: string;
   breed?: string;
@@ -69,6 +71,7 @@ const initialFormData: FormData = {
     lastName: '',
     phone: '',
     email: '',
+    referralSource: '',
   },
   pet: {
     name: '',
@@ -228,6 +231,10 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
           newErrors.email = t('errors.invalidEmail');
         }
       }
+      // Referral source validation
+      if (!formData.newOwner.referralSource) {
+        newErrors.referralSource = t('referralSource.required');
+      }
     }
 
     // Validate pet
@@ -278,6 +285,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
             lastName: formData.newOwner.lastName.trim(),
             phone: formData.newOwner.phone.trim(),
             email: formData.newOwner.email.trim() || undefined,
+            referralSource: formData.newOwner.referralSource || undefined,
           },
           pet: petFields,
         });
@@ -511,6 +519,30 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                 required
                 dir="ltr"
               />
+              {/* Referral Source */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                  📢 {t('referralSource.label')} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.newOwner.referralSource}
+                  onChange={(e) => handleInputChange('newOwner.referralSource', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] dark:border-[var(--app-border-default)] ${errors.referralSource ? 'border-red-500' : 'border-gray-300'}`}
+                >
+                  <option value="">{t('referralSource.placeholder')}</option>
+                  <option value="GOOGLE_SEARCH">🔍 {t('referralSource.GOOGLE_SEARCH')}</option>
+                  <option value="GOOGLE_MAPS">📍 {t('referralSource.GOOGLE_MAPS')}</option>
+                  <option value="INSTAGRAM">📸 {t('referralSource.INSTAGRAM')}</option>
+                  <option value="FACEBOOK">📘 {t('referralSource.FACEBOOK')}</option>
+                  <option value="FRIEND_REFERRAL">👥 {t('referralSource.FRIEND_REFERRAL')}</option>
+                  <option value="CLINIC_REFERRAL">🏥 {t('referralSource.CLINIC_REFERRAL')}</option>
+                  <option value="TIKTOK">🎵 {t('referralSource.TIKTOK')}</option>
+                  <option value="SNAPCHAT">👻 {t('referralSource.SNAPCHAT')}</option>
+                </select>
+                {errors.referralSource && (
+                  <p className="mt-1 text-sm text-red-500">{errors.referralSource}</p>
+                )}
+              </div>
             </div>
           )}
         </div>

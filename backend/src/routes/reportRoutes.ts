@@ -12,4 +12,7 @@ router.get('/next-appointments', requireScreenAccess('nextAppointments'), report
 // Get sales report
 router.get('/sales', requireScreenAccess('salesReport'), reportController.getSalesReport);
 
+// Get acquisition report (customer sources)
+router.get('/acquisition', requireScreenAccess('acquisitionReport'), reportController.getAcquisitionReport);
+
 export default router;
