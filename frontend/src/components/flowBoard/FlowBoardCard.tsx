@@ -94,6 +94,7 @@ export const FlowBoardCard = ({
   const isConfirmed = appointment.isConfirmed;
   const isCancelled = appointment.status === AppointmentStatus.CANCELLED;
   const isScheduledColumn = columnId === 'scheduled';
+  const isPetDeceasedOrLost = appointment.pet.status === 'DECEASED' || appointment.pet.status === 'LOST';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -181,11 +182,20 @@ export const FlowBoardCard = ({
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`rounded-md shadow-sm dark:shadow-black/30 border p-2 cursor-grab active:cursor-grabbing
+      className={`relative overflow-hidden rounded-md shadow-sm dark:shadow-black/30 border p-2 cursor-grab active:cursor-grabbing
         ${isCancelled ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 opacity-75' : 'bg-brand-white dark:bg-[var(--app-bg-card)]'}
         ${isDragging ? 'opacity-50 shadow-lg' : ''}
         hover:shadow-md transition-shadow ${onCardClick ? 'hover:ring-2 hover:ring-secondary-300' : ''}`}
     >
+      {/* Deceased/Lost corner ribbon */}
+      {isPetDeceasedOrLost && (
+        <div className="absolute -top-1 -left-1 overflow-hidden w-16 h-16 pointer-events-none z-10">
+          <div className="absolute top-3 -left-5 w-20 text-center transform -rotate-45 bg-gray-900 text-white text-[9px] font-bold py-0.5 shadow-md">
+            {appointment.pet.status === 'DECEASED' ? '🕊️' : '🔍'}
+          </div>
+        </div>
+      )}
+
       {/* Header with time, status and menu */}
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-medium text-brand-dark/70 dark:text-[var(--app-text-secondary)]">

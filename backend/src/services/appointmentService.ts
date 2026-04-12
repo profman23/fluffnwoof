@@ -478,6 +478,7 @@ export const appointmentService = {
             species: true,
             petCode: true,
             daftraCode: true,
+            status: true,
           },
         },
         vet: {

@@ -90,8 +90,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
         notes: pet.notes || '',
       });
       setPhotoUrl(pet.photoUrl || null);
-      setPetStatus((pet as any).status || 'ALIVE');
-      setStatusReason((pet as any).statusReason || '');
+      setPetStatus(pet.status || 'ALIVE');
+      setStatusReason(pet.statusReason || '');
       setAvailableBreeds(getBreedsBySpecies(pet.species));
       setErrors({});
       setApiError('');
@@ -171,7 +171,7 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
       await petsApi.update(pet.id, updateData);
 
       // Update pet status if changed
-      const currentStatus = (pet as any).status || 'ALIVE';
+      const currentStatus = pet.status || 'ALIVE';
       if (petStatus !== currentStatus) {
         await petsApi.updateStatus(pet.id, { status: petStatus, statusReason: statusReason || undefined });
       }

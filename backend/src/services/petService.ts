@@ -372,6 +372,20 @@ export const petService = {
       },
     });
 
+    // Auto-cancel upcoming appointments when pet is deceased or lost
+    if (data.status === 'DECEASED' || data.status === 'LOST') {
+      await prisma.appointment.updateMany({
+        where: {
+          petId: id,
+          status: { in: ['SCHEDULED', 'CONFIRMED'] },
+          appointmentDate: { gte: new Date() },
+        },
+        data: {
+          status: 'CANCELLED',
+        },
+      });
+    }
+
     return pet;
   },
 };

@@ -126,6 +126,9 @@ export interface Pet {
   photoUrl?: string;
   notes?: string;
   isActive: boolean;
+  status?: string;
+  statusReason?: string;
+  statusDate?: string;
   ownerId: string;
   owner?: Owner;
   createdAt: string;
@@ -165,6 +168,7 @@ export interface FlowBoardAppointment {
     petCode?: string;
     microchipId?: string;
     daftraCode?: string;
+    status?: string;
     owner?: {
       id: string;
       firstName: string;
