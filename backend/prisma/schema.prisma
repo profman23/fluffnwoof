@@ -177,6 +177,9 @@ model Pet {
   photoUrl       String?
   notes          String?
   isActive       Boolean         @default(true)
+  status         String          @default("ALIVE")
+  statusReason   String?
+  statusDate     DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   ownerId        String

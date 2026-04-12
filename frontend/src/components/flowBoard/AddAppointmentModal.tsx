@@ -302,11 +302,13 @@ export const AddAppointmentModal = ({
         const response = await petsApi.getAll(1, 100, undefined, selectedOwner.id);
         console.log('Pets response:', response);
         if (!isMountedRef.current) return;
-        const simplePets: SimplePet[] = (response.data || []).map((p) => ({
-          id: p.id,
-          name: p.name,
-          species: p.species,
-        }));
+        const simplePets: SimplePet[] = (response.data || [])
+          .filter((p: any) => !p.status || p.status === 'ALIVE')
+          .map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            species: p.species,
+          }));
         console.log('Simple pets:', simplePets);
         setPets(simplePets);
         if (simplePets.length > 0) {

@@ -344,4 +344,34 @@ export const petService = {
 
     return { message: 'تم حذف الحيوان الأليف بنجاح' };
   },
+
+  async updateStatus(id: string, data: { status: string; statusReason?: string }) {
+    const validStatuses = ['ALIVE', 'LOST', 'DECEASED'];
+    if (!validStatuses.includes(data.status)) {
+      throw new AppError('Invalid status. Must be ALIVE, LOST, or DECEASED', 400);
+    }
+
+    const pet = await prisma.pet.update({
+      where: { id },
+      data: {
+        status: data.status,
+        statusReason: data.status === 'ALIVE' ? null : (data.statusReason || null),
+        statusDate: data.status === 'ALIVE' ? null : new Date(),
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            email: true,
+            customerCode: true,
+          },
+        },
+      },
+    });
+
+    return pet;
+  },
 };

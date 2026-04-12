@@ -128,6 +128,17 @@
     "error": "حدث خطأ"
   },
 
+  "petStatus": {
+    "title": "حالة الأليف",
+    "status": "الحالة",
+    "ALIVE": "حي",
+    "DECEASED": "متوفي",
+    "LOST": "مفقود",
+    "reason": "السبب",
+    "optional": "اختياري",
+    "reasonPlaceholder": "أدخل السبب..."
+  },
+
   "referralSource": {
     "label": "كيف سمعت عننا؟",
     "placeholder": "اختر المصدر...",

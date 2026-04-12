@@ -131,11 +131,26 @@ export const breedsBySpecies: Record<string, Breed[]> = {
     { value: 'saluki', labelEn: 'Saluki', labelAr: 'سلوقي' },
     { value: 'afghan_hound', labelEn: 'Afghan Hound', labelAr: 'كلب أفغاني' },
 
+    // Additional Popular Breeds
+    { value: 'german_spitz', labelEn: 'German Spitz', labelAr: 'سبيتز ألماني' },
+    { value: 'chow_chow', labelEn: 'Chow Chow', labelAr: 'تشاو تشاو' },
+    { value: 'dalmatian', labelEn: 'Dalmatian', labelAr: 'دلماسي' },
+    { value: 'weimaraner', labelEn: 'Weimaraner', labelAr: 'فايمارانر' },
+    { value: 'vizsla', labelEn: 'Vizsla', labelAr: 'فيزلا' },
+    { value: 'newfoundland', labelEn: 'Newfoundland', labelAr: 'نيوفاوندلاند' },
+    { value: 'st_bernard', labelEn: 'St. Bernard', labelAr: 'سانت برنارد' },
+    { value: 'irish_setter', labelEn: 'Irish Setter', labelAr: 'سيتر أيرلندي' },
+    { value: 'coton_de_tulear', labelEn: 'Coton de Tulear', labelAr: 'كوتون دي تولير' },
+    { value: 'lhasa_apso', labelEn: 'Lhasa Apso', labelAr: 'لاسا أبسو' },
+    { value: 'basenji', labelEn: 'Basenji', labelAr: 'باسنجي' },
+    { value: 'whippet', labelEn: 'Whippet', labelAr: 'ويبت' },
+
     // Mixed & Other
     { value: 'goldendoodle', labelEn: 'Goldendoodle', labelAr: 'جولدن دودل' },
     { value: 'labradoodle', labelEn: 'Labradoodle', labelAr: 'لابرادودل' },
     { value: 'cockapoo', labelEn: 'Cockapoo', labelAr: 'كوكابو' },
     { value: 'mixed_dog', labelEn: 'Mixed Breed', labelAr: 'سلالة مختلطة' },
+    { value: 'mixed_local', labelEn: 'Mixed Local', labelAr: 'خليط محلي' },
     { value: 'other_dog', labelEn: 'Other', labelAr: 'أخرى' },
   ],
 
@@ -167,6 +182,11 @@ export const breedsBySpecies: Record<string, Breed[]> = {
     { value: 'exotic_shorthair', labelEn: 'Exotic Shorthair', labelAr: 'إكزوتيك شورتهير' },
     { value: 'oriental', labelEn: 'Oriental', labelAr: 'أورينتال' },
     { value: 'somali', labelEn: 'Somali', labelAr: 'صومالي' },
+
+    // Domestic
+    { value: 'domestic', labelEn: 'Domestic', labelAr: 'محلي' },
+    { value: 'domestic_short_hair', labelEn: 'Domestic Short Hair', labelAr: 'محلي قصير الشعر' },
+    { value: 'domestic_long_hair', labelEn: 'Domestic Long Hair', labelAr: 'محلي طويل الشعر' },
 
     // Mixed & Other
     { value: 'mixed_cat', labelEn: 'Mixed Breed', labelAr: 'سلالة مختلطة' },

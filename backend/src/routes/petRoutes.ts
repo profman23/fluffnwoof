@@ -16,6 +16,7 @@ router.get('/:id', requireScreenAccess('patients'), petController.findById);
 router.post('/with-owner', requireScreenModify('patients'), petController.createWithOwner);
 router.post('/', requireScreenModify('patients'), petController.create);
 router.put('/:id', requireScreenModify('patients'), petController.update);
+router.patch('/:id/status', requireScreenModify('patients'), petController.updateStatus);
 router.delete('/:id', requireScreenModify('patients'), petController.delete);
 
 export default router;

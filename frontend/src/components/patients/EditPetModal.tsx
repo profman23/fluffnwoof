@@ -71,6 +71,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
   const [availableBreeds, setAvailableBreeds] = useState<Breed[]>([]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [petStatus, setPetStatus] = useState('ALIVE');
+  const [statusReason, setStatusReason] = useState('');
 
   // Load pet data when modal opens
   useEffect(() => {
@@ -88,6 +90,8 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
         notes: pet.notes || '',
       });
       setPhotoUrl(pet.photoUrl || null);
+      setPetStatus((pet as any).status || 'ALIVE');
+      setStatusReason((pet as any).statusReason || '');
       setAvailableBreeds(getBreedsBySpecies(pet.species));
       setErrors({});
       setApiError('');
@@ -165,6 +169,13 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
       };
 
       await petsApi.update(pet.id, updateData);
+
+      // Update pet status if changed
+      const currentStatus = (pet as any).status || 'ALIVE';
+      if (petStatus !== currentStatus) {
+        await petsApi.updateStatus(pet.id, { status: petStatus, statusReason: statusReason || undefined });
+      }
+
       onSuccess();
       handleClose();
     } catch (error: any) {
@@ -378,6 +389,50 @@ export const EditPetModal: React.FC<EditPetModalProps> = ({
                 className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
                 rows={3}
               />
+            </div>
+
+            {/* Pet Status Section */}
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-[var(--app-bg-tertiary)] rounded-lg border border-gray-200 dark:border-[var(--app-border-default)]">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-[var(--app-text-secondary)] mb-3 flex items-center gap-2">
+                🐾 {t('petStatus.title')}
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                    {t('petStatus.status')}
+                  </label>
+                  <select
+                    value={petStatus}
+                    onChange={(e) => {
+                      setPetStatus(e.target.value);
+                      if (e.target.value === 'ALIVE') setStatusReason('');
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] dark:border-[var(--app-border-default)] ${
+                      petStatus === 'DECEASED' ? 'border-gray-400 bg-gray-100' :
+                      petStatus === 'LOST' ? 'border-orange-400 bg-orange-50' :
+                      'border-gray-300'
+                    }`}
+                  >
+                    <option value="ALIVE">✅ {t('petStatus.ALIVE')}</option>
+                    <option value="DECEASED">🕊️ {t('petStatus.DECEASED')}</option>
+                    <option value="LOST">🔍 {t('petStatus.LOST')}</option>
+                  </select>
+                </div>
+                {petStatus !== 'ALIVE' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                      📝 {t('petStatus.reason')} <span className="text-gray-400 text-xs">({t('petStatus.optional')})</span>
+                    </label>
+                    <textarea
+                      value={statusReason}
+                      onChange={(e) => setStatusReason(e.target.value)}
+                      placeholder={t('petStatus.reasonPlaceholder')}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-secondary-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
+                      rows={2}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

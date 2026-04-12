@@ -88,7 +88,15 @@ export const PatientDetails: React.FC<PatientDetailsProps> = ({
         <div className="space-y-3">
           <div className="flex justify-between">
             <span className="text-gray-500 dark:text-[var(--app-text-secondary)]">{t('details.name')}:</span>
-            <span className="font-medium dark:text-[var(--app-text-primary)]">{pet.name}</span>
+            <span className="font-medium dark:text-[var(--app-text-primary)]">
+              {pet.name}
+              {(pet as any).status === 'DECEASED' && (
+                <span className="ms-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">🕊️ {t('petStatus.DECEASED')}</span>
+              )}
+              {(pet as any).status === 'LOST' && (
+                <span className="ms-2 px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">🔍 {t('petStatus.LOST')}</span>
+              )}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500 dark:text-[var(--app-text-secondary)]">{t('details.species')}:</span>

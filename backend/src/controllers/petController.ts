@@ -90,4 +90,18 @@ export const petController = {
       next(error);
     }
   },
+
+  async updateStatus(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { status, statusReason } = req.body;
+      const pet = await petService.updateStatus(req.params.id, { status, statusReason });
+
+      res.status(200).json({
+        success: true,
+        data: pet,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

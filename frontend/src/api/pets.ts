@@ -138,4 +138,12 @@ export const petsApi = {
   reactivate: async (id: string): Promise<void> => {
     await api.put(`/pets/${id}`, { isActive: true });
   },
+
+  /**
+   * Update pet status (ALIVE, DECEASED, LOST)
+   */
+  updateStatus: async (id: string, data: { status: string; statusReason?: string }): Promise<any> => {
+    const response = await api.patch(`/pets/${id}/status`, data);
+    return response.data.data;
+  },
 };
