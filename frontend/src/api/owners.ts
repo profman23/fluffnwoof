@@ -19,6 +19,7 @@ export interface UpdateOwnerInput {
   address?: string;
   nationalId?: string;
   notes?: string;
+  referralSource?: string;
 }
 
 export interface PaginatedOwners {

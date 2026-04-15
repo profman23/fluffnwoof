@@ -106,6 +106,7 @@ export interface Owner {
   address?: string;
   nationalId?: string;
   notes?: string;
+  referralSource?: string;
   createdAt: string;
   updatedAt: string;
   pets?: Pet[];

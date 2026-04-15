@@ -70,6 +70,12 @@ export const PatientDetails: React.FC<PatientDetailsProps> = ({
               {pet.owner.email || t('details.notProvided')}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500 dark:text-[var(--app-text-secondary)]">📢 {t('referralSource.label')}:</span>
+            <span className="font-medium dark:text-[var(--app-text-primary)]">
+              {pet.owner.referralSource ? t(`referralSource.${pet.owner.referralSource}`) : t('details.notProvided')}
+            </span>
+          </div>
         </div>
         {canModify && (
           <div className="mt-4 pt-4 border-t dark:border-[var(--app-border-default)]">

@@ -150,7 +150,10 @@
     "FRIEND_REFERRAL": "توصية صديق",
     "CLINIC_REFERRAL": "تحويل من عيادة",
     "TIKTOK": "تيكتوك",
-    "SNAPCHAT": "سناب تشات"
+    "SNAPCHAT": "سناب تشات",
+    "WALK_IN": "دخول مباشر",
+    "DR_MANDOUR_ADV": "إعلان د. مندور",
+    "DR_MAHMOUD_ADV": "إعلان د. محمود"
   },
 
   "errors": {

@@ -150,7 +150,10 @@
     "FRIEND_REFERRAL": "Friend Referral",
     "CLINIC_REFERRAL": "Clinic Referral",
     "TIKTOK": "TikTok",
-    "SNAPCHAT": "Snapchat"
+    "SNAPCHAT": "Snapchat",
+    "WALK_IN": "Walk-in",
+    "DR_MANDOUR_ADV": "Dr. Mandour Adv",
+    "DR_MAHMOUD_ADV": "Dr. Mahmoud Adv"
   },
 
   "errors": {

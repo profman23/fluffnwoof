@@ -21,6 +21,9 @@ const SOURCE_COLORS: Record<string, string> = {
   CLINIC_REFERRAL: '#5a9f7d',
   TIKTOK: '#000000',
   SNAPCHAT: '#FFFC00',
+  WALK_IN: '#9333EA',
+  DR_MANDOUR_ADV: '#0EA5E9',
+  DR_MAHMOUD_ADV: '#14B8A6',
 };
 
 const SOURCE_ICONS: Record<string, string> = {
@@ -32,6 +35,9 @@ const SOURCE_ICONS: Record<string, string> = {
   CLINIC_REFERRAL: '🏥',
   TIKTOK: '🎵',
   SNAPCHAT: '👻',
+  WALK_IN: '🚶',
+  DR_MANDOUR_ADV: '👨‍⚕️',
+  DR_MAHMOUD_ADV: '👨‍⚕️',
 };
 
 export const AcquisitionReport = () => {

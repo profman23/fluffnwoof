@@ -20,6 +20,7 @@ interface FormData {
   email: string;
   address: string;
   notes: string;
+  referralSource: string;
 }
 
 interface FormErrors {
@@ -43,6 +44,7 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
     email: '',
     address: '',
     notes: '',
+    referralSource: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,7 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
         email: owner.email || '',
         address: owner.address || '',
         notes: owner.notes || '',
+        referralSource: owner.referralSource || '',
       });
       setErrors({});
       setApiError('');
@@ -102,6 +105,7 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
         email: formData.email.trim() || undefined,
         address: formData.address.trim() || undefined,
         notes: formData.notes.trim() || undefined,
+        referralSource: formData.referralSource || undefined,
       };
 
       await ownersApi.update(owner.id, updateData);
@@ -189,6 +193,31 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
               className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
               rows={3}
             />
+          </div>
+
+          {/* Referral Source */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+              📢 {t('referralSource.label')}
+            </label>
+            <select
+              value={formData.referralSource}
+              onChange={(e) => handleInputChange('referralSource', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-secondary-300 dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)]"
+            >
+              <option value="">{t('referralSource.placeholder')}</option>
+              <option value="GOOGLE_SEARCH">🔍 {t('referralSource.GOOGLE_SEARCH')}</option>
+              <option value="GOOGLE_MAPS">📍 {t('referralSource.GOOGLE_MAPS')}</option>
+              <option value="INSTAGRAM">📸 {t('referralSource.INSTAGRAM')}</option>
+              <option value="FACEBOOK">📘 {t('referralSource.FACEBOOK')}</option>
+              <option value="FRIEND_REFERRAL">👥 {t('referralSource.FRIEND_REFERRAL')}</option>
+              <option value="CLINIC_REFERRAL">🏥 {t('referralSource.CLINIC_REFERRAL')}</option>
+              <option value="TIKTOK">🎵 {t('referralSource.TIKTOK')}</option>
+              <option value="SNAPCHAT">👻 {t('referralSource.SNAPCHAT')}</option>
+              <option value="WALK_IN">🚶 {t('referralSource.WALK_IN')}</option>
+              <option value="DR_MANDOUR_ADV">👨‍⚕️ {t('referralSource.DR_MANDOUR_ADV')}</option>
+              <option value="DR_MAHMOUD_ADV">👨‍⚕️ {t('referralSource.DR_MAHMOUD_ADV')}</option>
+            </select>
           </div>
         </div>
 

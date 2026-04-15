@@ -56,7 +56,7 @@ export interface UpdatePetInput {
 
 export interface PetWithOwner extends Omit<Pet, 'owner'> {
   petCode?: string;
-  owner: Pick<Owner, 'id' | 'firstName' | 'lastName' | 'phone' | 'email'> & {
+  owner: Pick<Owner, 'id' | 'firstName' | 'lastName' | 'phone' | 'email' | 'referralSource'> & {
     customerCode?: string;
   };
 }
