@@ -5,6 +5,7 @@ import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { ownersApi, UpdateOwnerInput } from '../../api/owners';
 import { Owner } from '../../types';
+import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 
 interface EditOwnerModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
   owner,
 }) => {
   const { t } = useTranslation('patients');
+  const { canViewPhone } = usePhonePermission();
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -101,7 +103,7 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
       const updateData: UpdateOwnerInput = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
-        phone: formData.phone.trim(),
+        ...(canViewPhone ? { phone: formData.phone.trim() } : {}),
         email: formData.email.trim() || undefined,
         address: formData.address.trim() || undefined,
         notes: formData.notes.trim() || undefined,
@@ -162,11 +164,12 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label={t('owner.phone')}
-              value={formData.phone}
+              value={canViewPhone ? formData.phone : maskPhoneNumber(formData.phone)}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               error={errors.phone}
               required
               dir="ltr"
+              disabled={!canViewPhone}
             />
             <Input
               label={t('owner.email')}
