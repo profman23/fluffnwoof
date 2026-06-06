@@ -59,4 +59,23 @@ export const reportController = {
       res.status(500).json({ error: 'Failed to fetch acquisition report' });
     }
   },
+
+  getLostCustomersReport: async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate, vetId, page, limit } = req.query;
+
+      const result = await reportService.getLostCustomersReport({
+        startDate: startDate as string,
+        endDate: endDate as string,
+        vetId: (vetId as string) || undefined,
+        page: page ? parseInt(page as string, 10) : 1,
+        limit: limit ? parseInt(limit as string, 10) : 20,
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error('Error fetching lost customers report:', error?.message || error);
+      res.status(500).json({ error: 'Failed to fetch lost customers report' });
+    }
+  },
 };

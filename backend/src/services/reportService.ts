@@ -20,6 +20,14 @@ interface GetSalesReportParams {
   limit?: number;
 }
 
+interface GetLostCustomersParams {
+  startDate?: string;
+  endDate?: string;
+  vetId?: string;
+  page?: number;
+  limit?: number;
+}
+
 interface PaginatedResult<T> {
   data: T[];
   total: number;
@@ -382,6 +390,150 @@ export const reportService = {
       },
       bySource,
       customers: ownerInvoices,
+    };
+  },
+
+  /**
+   * Lost Customers Report — pets whose LAST medical-record visit falls inside the
+   * selected date range (and therefore never returned afterwards). Optionally
+   * filtered to pets whose last visit was with a specific vet.
+   * Level = pet (each pet counted independently), per the manual Neon query.
+   */
+  async getLostCustomersReport(params: GetLostCustomersParams) {
+    const { startDate, endDate, vetId, page = 1, limit = 20 } = params;
+
+    // Date-range bounds (same convention as other reports)
+    const start = startDate ? new Date(startDate + 'T00:00:00.000Z') : null;
+    let end: Date | null = null;
+    if (endDate) {
+      end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    // 1) Last visit date for every pet (across ALL history, so it's truly the last)
+    const lastVisits = await prisma.medicalRecord.groupBy({
+      by: ['petId'],
+      _max: { visitDate: true },
+      _count: { _all: true },
+    });
+
+    // 2) Keep pets whose LAST visit falls inside the selected range
+    let inRange = lastVisits.filter((v) => {
+      const d = v._max.visitDate;
+      if (!d) return false;
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+
+    // 3) Optional vet filter: the last visit itself must have been with this vet
+    if (vetId && inRange.length > 0) {
+      const lastRecords = await prisma.medicalRecord.findMany({
+        where: {
+          petId: { in: inRange.map((v) => v.petId) },
+          visitDate: { in: inRange.map((v) => v._max.visitDate as Date) },
+        },
+        select: { petId: true, visitDate: true, vetId: true },
+      });
+
+      const okPets = new Set(
+        inRange
+          .filter((v) =>
+            lastRecords.some(
+              (r) =>
+                r.petId === v.petId &&
+                r.visitDate.getTime() === (v._max.visitDate as Date).getTime() &&
+                r.vetId === vetId
+            )
+          )
+          .map((v) => v.petId)
+      );
+      inRange = inRange.filter((v) => okPets.has(v.petId));
+    }
+
+    // 4) Sort by most-recent last visit, then paginate the pet list
+    inRange.sort(
+      (a, b) =>
+        (b._max.visitDate as Date).getTime() - (a._max.visitDate as Date).getTime()
+    );
+    const total = inRange.length;
+    const skip = (page - 1) * limit;
+    const pageItems = inRange.slice(skip, skip + limit);
+
+    // 5) Hydrate the page with pet + owner data and the vet of the last visit
+    const petIds = pageItems.map((p) => p.petId);
+    const [pets, lastRecordsForPage] = await Promise.all([
+      prisma.pet.findMany({
+        where: { id: { in: petIds } },
+        select: {
+          id: true,
+          name: true,
+          petCode: true,
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true,
+              customerCode: true,
+            },
+          },
+        },
+      }),
+      prisma.medicalRecord.findMany({
+        where: {
+          petId: { in: petIds },
+          visitDate: { in: pageItems.map((p) => p._max.visitDate as Date) },
+        },
+        select: {
+          petId: true,
+          visitDate: true,
+          vet: { select: { firstName: true, lastName: true } },
+        },
+      }),
+    ]);
+
+    const petMap = new Map(pets.map((p) => [p.id, p]));
+    const countMap = new Map(pageItems.map((p) => [p.petId, p._count._all]));
+
+    const data = pageItems
+      .map((item) => {
+        const pet = petMap.get(item.petId);
+        if (!pet || !pet.owner) return null;
+        const lastVisitDate = item._max.visitDate as Date;
+        // Match the vet for THIS pet's last visit
+        const lastRec = lastRecordsForPage.find(
+          (r) =>
+            r.petId === item.petId &&
+            r.visitDate.getTime() === lastVisitDate.getTime()
+        );
+        const lastVetName = lastRec?.vet
+          ? `${lastRec.vet.firstName} ${lastRec.vet.lastName}`.trim()
+          : '';
+
+        return {
+          petId: pet.id,
+          petCode: pet.petCode,
+          petName: pet.name,
+          ownerId: pet.owner.id,
+          ownerName: `${pet.owner.firstName} ${pet.owner.lastName}`.trim(),
+          customerCode: pet.owner.customerCode,
+          phone: pet.owner.phone,
+          email: pet.owner.email ?? undefined,
+          lastVisitDate: lastVisitDate.toISOString(),
+          lastVetName,
+          totalVisits: countMap.get(item.petId) ?? 0,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   },
 };

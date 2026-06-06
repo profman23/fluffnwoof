@@ -118,5 +118,38 @@
       "DR_MANDOUR_ADV": "👨‍⚕️ Dr. Mandour Adv",
       "DR_MAHMOUD_ADV": "👨‍⚕️ Dr. Mahmoud Adv"
     }
+  },
+  "lostCustomers": {
+    "title": "Lost Customers",
+    "filters": {
+      "from": "From",
+      "to": "To",
+      "vet": "Veterinarian",
+      "allVets": "All Veterinarians",
+      "apply": "Apply",
+      "reset": "Reset"
+    },
+    "table": {
+      "customerCode": "Customer Code",
+      "owner": "Owner",
+      "pet": "Pet",
+      "lastVisit": "Last Visit",
+      "vet": "Veterinarian",
+      "totalVisits": "Visits"
+    },
+    "modal": {
+      "title": "Customer Details",
+      "name": "Name",
+      "customerCode": "Customer Code",
+      "email": "Email",
+      "pet": "Pet",
+      "phone": "Phone Number",
+      "showNumber": "Show number",
+      "copy": "Copy",
+      "copied": "Copied",
+      "close": "Close"
+    },
+    "noData": "No lost customers found for the selected period",
+    "total": "Total Lost Customers"
   }
 }

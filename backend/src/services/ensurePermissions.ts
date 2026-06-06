@@ -59,6 +59,10 @@ export const ALL_PERMISSIONS = [
   { name: 'screens.acquisitionReport.read', description: 'Acquisition Report - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.acquisitionReport.full', description: 'Acquisition Report - Full Control', category: 'screens', action: 'full' },
 
+  // Lost Customers Report (child of Reports)
+  { name: 'screens.lostCustomersReport.read', description: 'Lost Customers Report - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.lostCustomersReport.full', description: 'Lost Customers Report - Full Control', category: 'screens', action: 'full' },
+
   // Services & Products
   { name: 'screens.serviceProducts.read', description: 'Services & Products - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.serviceProducts.full', description: 'Services & Products - Full Control', category: 'screens', action: 'full' },

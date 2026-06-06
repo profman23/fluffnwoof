@@ -15,4 +15,7 @@ router.get('/sales', requireScreenAccess('salesReport'), reportController.getSal
 // Get acquisition report (customer sources)
 router.get('/acquisition', requireScreenAccess('acquisitionReport'), reportController.getAcquisitionReport);
 
+// Get lost customers report (pets whose last visit was in range and never returned)
+router.get('/lost-customers', requireScreenAccess('lostCustomersReport'), reportController.getLostCustomersReport);
+
 export default router;

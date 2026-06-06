@@ -111,7 +111,34 @@ export const reportsApi = {
     const response = await api.get('/reports/acquisition', { params });
     return response.data.data;
   },
+
+  getLostCustomersReport: async (params: GetLostCustomersParams): Promise<PaginatedResult<LostCustomer>> => {
+    const response = await api.get('/reports/lost-customers', { params });
+    return response.data.data;
+  },
 };
+
+export interface GetLostCustomersParams {
+  startDate?: string;
+  endDate?: string;
+  vetId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface LostCustomer {
+  petId: string;
+  petCode: string;
+  petName: string;
+  ownerId: string;
+  ownerName: string;
+  customerCode: string;
+  phone: string;
+  email?: string;
+  lastVisitDate: string;
+  lastVetName: string;
+  totalVisits: number;
+}
 
 export interface AcquisitionReportResponse {
   summary: {
