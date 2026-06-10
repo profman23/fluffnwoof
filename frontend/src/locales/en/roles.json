@@ -27,6 +27,7 @@
     "flowBoard": "Flow Board",
     "boardingManagement": "Boarding & ICU Management",
     "medical": "Medical Records",
+    "aiDiagnosis": "AI Doctor Assist",
     "userManagement": "User Management",
     "rolesPermissions": "Roles & Permissions",
     "serviceProducts": "Services & Products",

@@ -20,7 +20,7 @@ const SCREEN_GROUPS: ScreenItem[] = [
   { name: 'patients' },
   { name: 'flowBoard' },
   { name: 'boardingManagement' },
-  { name: 'medical' },
+  { name: 'medical', children: ['aiDiagnosis'] },
   { name: 'userManagement' },
   { name: 'rolesPermissions' },
   { name: 'serviceProducts' },

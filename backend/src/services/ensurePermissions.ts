@@ -63,6 +63,10 @@ export const ALL_PERMISSIONS = [
   { name: 'screens.lostCustomersReport.read', description: 'Lost Customers Report - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.lostCustomersReport.full', description: 'Lost Customers Report - Full Control', category: 'screens', action: 'full' },
 
+  // AI Doctor Assist (used inside Medical Records)
+  { name: 'screens.aiDiagnosis.read', description: 'AI Doctor Assist - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.aiDiagnosis.full', description: 'AI Doctor Assist - Full Control', category: 'screens', action: 'full' },
+
   // Services & Products
   { name: 'screens.serviceProducts.read', description: 'Services & Products - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.serviceProducts.full', description: 'Services & Products - Full Control', category: 'screens', action: 'full' },

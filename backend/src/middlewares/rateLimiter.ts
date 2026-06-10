@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request } from 'express';
 
 const isTest = process.env.NODE_ENV === 'test';
@@ -144,6 +144,25 @@ export const portalApiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Rate limiter for AI Doctor Assist — cost control on the Anthropic API.
+ * 20 requests per hour per authenticated user (falls back to IP).
+ */
+export const aiDiagnosisLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  skip: () => isTest,
+  keyGenerator: (req: Request) =>
+    (req as any).user?.id || ipKeyGenerator(req.ip || '') || 'unknown',
+  message: {
+    success: false,
+    message: 'تم تجاوز الحد الأقصى لطلبات المساعد الذكي. يرجى المحاولة لاحقاً.',
+    messageEn: 'Too many AI assist requests. Please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   emailCheckLimiter,
   otpLimiter,
@@ -152,4 +171,5 @@ export default {
   passwordResetLimiter,
   bookingLimiter,
   portalApiLimiter,
+  aiDiagnosisLimiter,
 };

@@ -9,6 +9,8 @@ import { flowBoardApi } from '../../api/flowBoard';
 import { invoicesApi, Invoice } from '../../api/invoices';
 import { visitTypesApi } from '../../api/visitTypes';
 import { AuditLogSection } from '../medical/AuditLogSection';
+import { AiDoctorAssistModal } from '../medical/AiDoctorAssistModal';
+import { AiAssessParams } from '../../api/aiDiagnosis';
 import { FileAttachment } from '../common/FileAttachment';
 import { PetFormsSection } from '../forms/PetFormsSection';
 import { uploadApi } from '../../api/upload';
@@ -83,6 +85,11 @@ export const PatientRecordModal = ({
   const { t: tFlow } = useTranslation('flowBoard');
   const isRTL = i18n.language === 'ar';
   const { isReadOnly, hasNoAccess: noMedicalAccess } = useScreenPermission('medical');
+
+  // AI Doctor Assist
+  const { canAccess: canUseAi } = useScreenPermission('aiDiagnosis');
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiParams, setAiParams] = useState<AiAssessParams | null>(null);
 
   // Fetch visit types to get the actual name
   const { data: visitTypes = [] } = useQuery({
@@ -1574,6 +1581,41 @@ export const PatientRecordModal = ({
                       className="w-full px-3 py-2 border border-gray-300 dark:border-[var(--app-border-default)] dark:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-primary)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-[var(--app-bg-tertiary)] disabled:cursor-not-allowed text-sm"
                       placeholder={t('placeholders.diagnosis')}
                     />
+
+                    {/* AI Doctor Assist */}
+                    {canUseAi && (effectiveAppointment?.pet?.id || record?.pet?.id) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const petId = effectiveAppointment?.pet?.id || record?.pet?.id;
+                          if (!petId) return;
+                          setAiParams({
+                            petId,
+                            lang: i18n.language === 'ar' ? 'ar' : 'en',
+                            visit: {
+                              chiefComplaint: formData.chiefComplaint || undefined,
+                              history: formData.history || undefined,
+                              temperature: formData.temperature ?? undefined,
+                              heartRate: formData.heartRate ?? undefined,
+                              respirationRate: formData.respirationRate ?? undefined,
+                              weight: formData.weight ?? undefined,
+                              crt: formData.crt ?? undefined,
+                              bodyConditionScore: formData.bodyConditionScore ?? undefined,
+                              painScore: formData.painScore ?? undefined,
+                              hydration: formData.hydration || undefined,
+                              mucousMembranes: formData.mucousMembranes || undefined,
+                              muscleCondition: formData.muscleCondition || undefined,
+                              attitude: formData.attitude || undefined,
+                              behaviour: formData.behaviour || undefined,
+                            },
+                          });
+                          setAiModalOpen(true);
+                        }}
+                        className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition-colors"
+                      >
+                        🤖 {t('aiAssist.button')}
+                      </button>
+                    )}
                   </div>
 
                   {/* Plan */}
@@ -2305,6 +2347,12 @@ export const PatientRecordModal = ({
         cancelText={tFlow('record.closeCancel')}
         variant="warning"
         loading={closingRecord}
+      />
+
+      <AiDoctorAssistModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        params={aiParams}
       />
     </div>
   );

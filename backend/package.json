@@ -33,6 +33,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@prisma/client": "^5.22.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",

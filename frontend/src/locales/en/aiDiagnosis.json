@@ -1,0 +1,23 @@
+{
+  "title": "AI Doctor Assist",
+  "loading": "Analyzing the case...",
+  "sections": {
+    "differentials": "Differential Diagnoses",
+    "recommendedTests": "Recommended Tests & Imaging",
+    "questions": "Questions for the Vet"
+  },
+  "likelihood": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "questions": {
+    "hint": "Answer any of these to refine the assessment.",
+    "answerPlaceholder": "Your answer...",
+    "refine": "Update Assessment"
+  },
+  "errors": {
+    "notConfigured": "The AI service is not configured. Please contact the administrator.",
+    "failed": "Failed to generate the assessment. Please try again."
+  }
+}

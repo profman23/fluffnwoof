@@ -1,5 +1,8 @@
 {
   "title": "Patient Record",
+  "aiAssist": {
+    "button": "AI Doctor Assist"
+  },
   "saving": "Saving...",
   "save": "Save",
   "close": "Close",
