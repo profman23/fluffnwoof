@@ -17,6 +17,12 @@
   "fromDate": "From",
   "toDate": "To",
   "showCancelled": "Show Cancelled",
+  "searchPlaceholder": "Search by pet, code, or phone...",
+  "clearSearch": "Clear search",
+  "statusFilter": {
+    "all": "All",
+    "title": "Filter by status"
+  },
   "sort": "Sort",
   "sortAsc": "Sort by time (earliest first)",
   "sortDesc": "Sort by time (latest first)",

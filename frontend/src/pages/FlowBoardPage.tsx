@@ -15,11 +15,11 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   UserIcon,
-  EyeIcon,
-  EyeSlashIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { LogoLoader } from '../components/common/LogoLoader';
-import { FlowBoardColumn } from '../components/flowBoard/FlowBoardColumn';
+import { FlowBoardColumn, ScheduledStatusFilter } from '../components/flowBoard/FlowBoardColumn';
 import { FlowBoardCard } from '../components/flowBoard/FlowBoardCard';
 import { AddAppointmentModal } from '../components/flowBoard/AddAppointmentModal';
 import { PatientRecordModal } from '../components/flowBoard/PatientRecordModal';
@@ -74,7 +74,8 @@ export const FlowBoardPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<FlowBoardAppointment | null>(null);
   const [staffList, setStaffList] = useState<User[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string>('all');
-  const [showCancelled, setShowCancelled] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [scheduledStatusFilter, setScheduledStatusFilter] = useState<ScheduledStatusFilter>('all');
   const [rescheduleAppointment, setRescheduleAppointment] = useState<FlowBoardAppointment | null>(null);
   const [columnSortOrder, setColumnSortOrder] = useState<Record<string, 'asc' | 'desc'>>({
     scheduled: 'asc',
@@ -147,7 +148,7 @@ export const FlowBoardPage = () => {
     }));
   };
 
-  // Filter data by selected staff, cancelled visibility, and sort
+  // Filter data by selected staff, search query, status filter, and sort
   const filteredData = useMemo(() => {
     let result = data;
 
@@ -162,11 +163,40 @@ export const FlowBoardPage = () => {
       };
     }
 
-    // Filter out cancelled if not showing them
-    if (!showCancelled) {
+    // Filter by search query (pet name/code, daftra code, owner phone/name) — all columns
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      const matchesSearch = (a: FlowBoardAppointment) => {
+        const owner = a.pet?.owner;
+        const fields = [
+          a.pet?.name,
+          a.pet?.petCode,
+          a.pet?.daftraCode,
+          owner?.phone,
+          owner ? `${owner.firstName} ${owner.lastName}` : undefined,
+        ];
+        return fields.some((f) => f && f.toLowerCase().includes(query));
+      };
+      result = {
+        scheduled: result.scheduled.filter(matchesSearch),
+        checkIn: result.checkIn.filter(matchesSearch),
+        inProgress: result.inProgress.filter(matchesSearch),
+        hospitalized: result.hospitalized.filter(matchesSearch),
+        completed: result.completed.filter(matchesSearch),
+      };
+    }
+
+    // Filter scheduled column by status (confirmed / unconfirmed / cancelled / all)
+    if (scheduledStatusFilter !== 'all') {
       result = {
         ...result,
-        scheduled: result.scheduled.filter((a) => a.status !== AppointmentStatus.CANCELLED),
+        scheduled: result.scheduled.filter((a) => {
+          const isCancelled = a.status === AppointmentStatus.CANCELLED;
+          if (scheduledStatusFilter === 'cancelled') return isCancelled;
+          if (scheduledStatusFilter === 'confirmed') return !isCancelled && a.isConfirmed;
+          if (scheduledStatusFilter === 'unconfirmed') return !isCancelled && !a.isConfirmed;
+          return true;
+        }),
       };
     }
 
@@ -180,7 +210,7 @@ export const FlowBoardPage = () => {
     };
 
     return result;
-  }, [data, selectedStaff, showCancelled, columnSortOrder]);
+  }, [data, selectedStaff, searchQuery, scheduledStatusFilter, columnSortOrder]);
 
   const handleStartDateChange = (offset: number) => {
     const date = new Date(startDate);
@@ -353,6 +383,27 @@ export const FlowBoardPage = () => {
               </div>
             </div>
 
+            {/* Search Filter (all columns) */}
+            <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-1.5">
+              <MagnifyingGlassIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('searchPlaceholder')}
+                className="bg-transparent border-none focus:ring-0 text-xs font-medium py-1 w-44 dark:text-[var(--app-text-primary)] placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  title={t('clearSearch')}
+                  className="p-0.5 hover:bg-white dark:hover:bg-[var(--app-bg-tertiary)] rounded transition-colors flex-shrink-0"
+                >
+                  <XMarkIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                </button>
+              )}
+            </div>
+
             {/* Staff Filter */}
             <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-1.5">
               <UserIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
@@ -369,20 +420,6 @@ export const FlowBoardPage = () => {
                 ))}
               </select>
             </div>
-
-            {/* Show Cancelled Filter */}
-            <label className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-2 py-1 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showCancelled}
-                onChange={(e) => setShowCancelled(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-red-500 focus:ring-red-500"
-              />
-              <span className="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                {showCancelled ? <EyeIcon className="w-3.5 h-3.5" /> : <EyeSlashIcon className="w-3.5 h-3.5" />}
-                {t('showCancelled')}
-              </span>
-            </label>
 
             {/* Refresh Button */}
             <button
@@ -423,6 +460,8 @@ export const FlowBoardPage = () => {
                   hasFullAccess={hasFullAccess}
                   sortOrder={columnSortOrder[column.id] || 'asc'}
                   onSortChange={() => handleColumnSortChange(column.id)}
+                  statusFilter={column.id === 'scheduled' ? scheduledStatusFilter : undefined}
+                  onStatusFilterChange={column.id === 'scheduled' ? setScheduledStatusFilter : undefined}
                 />
               ))}
             </div>

@@ -17,6 +17,12 @@
   "fromDate": "من",
   "toDate": "إلى",
   "showCancelled": "إظهار الملغي",
+  "searchPlaceholder": "ابحث بالاسم أو الكود أو التليفون...",
+  "clearSearch": "مسح البحث",
+  "statusFilter": {
+    "all": "الكل",
+    "title": "تصفية حسب الحالة"
+  },
   "sort": "ترتيب",
   "sortAsc": "ترتيب حسب الوقت (الأقرب أولاً)",
   "sortDesc": "ترتيب حسب الوقت (الأبعد أولاً)",
