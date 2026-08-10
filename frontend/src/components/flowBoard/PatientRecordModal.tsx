@@ -855,6 +855,22 @@ export const PatientRecordModal = ({
           });
         }
 
+        // Empty draft cleanup: if no items and no payments remain on a
+        // non-finalized invoice, delete the draft so it doesn't linger as a
+        // phantom "Pending" row. Backend also re-guards against payments.
+        if (selectedItems.length === 0 && payments.length === 0 && !invoice.isFinalized) {
+          await invoicesApi.delete(invoice.id);
+          if (isMountedRef.current) {
+            setInvoice(null);
+            setSelectedItems([]);
+            setOriginalItems([]);
+            setPayments([]);
+            setOriginalPayments([]);
+            setHasUnsavedInvoiceChanges(false);
+          }
+          return; // Skip getById — the invoice no longer exists (would 404)
+        }
+
         // Refresh invoice to sync state
         const refreshed = await invoicesApi.getById(invoice.id);
         if (isMountedRef.current) {
@@ -1692,7 +1708,7 @@ export const PatientRecordModal = ({
                     <span className="text-xl">💳</span>
                     <h3 className="text-lg font-semibold text-brand-dark dark:text-[var(--app-text-primary)]">{tFlow('tabs.payment')}</h3>
                   </div>
-                  {invoice && (
+                  {invoice && selectedItems.length > 0 && (
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       invoice.status === 'PAID'
                         ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'

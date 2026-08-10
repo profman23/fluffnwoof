@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { InvoiceStatus, PaymentMethod } from '@prisma/client';
@@ -44,19 +45,10 @@ export const invoiceService = {
    * Create a new invoice
    */
   async create(data: CreateInvoiceInput) {
-    let invoiceNumber: string;
-    try {
-      invoiceNumber = await nextInvoiceNumber();
-    } catch (err) {
-      // Fallback if code_trackers table doesn't exist yet
-      console.error('[InvoiceService] nextInvoiceNumber failed, using fallback:', err);
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-      const count = await prisma.invoice.count({
-        where: { invoiceNumber: { startsWith: `INV-${dateStr}` } },
-      });
-      invoiceNumber = `INV-${dateStr}-${String(count + 1).padStart(4, '0')}`;
-    }
+    // Draft invoices get a temporary, unique, non-official number.
+    // The official INV-YYYYMMDD-NNNN serial is only minted at finalize(),
+    // so the sequential counter is never burned for drafts (gap-free serials).
+    const invoiceNumber = `DRAFT-${randomUUID()}`;
 
     // Calculate total from items (discount before tax)
     let totalAmount = 0;
@@ -485,13 +477,41 @@ export const invoiceService = {
       throw new AppError('Invoice is already finalized', 400);
     }
 
-    // Update invoice to finalized
-    const updatedInvoice = await prisma.invoice.update({
-      where: { id },
+    // Mint the official serial only now (at finalize), and only if this is still
+    // a draft. If a legacy row already carries an INV- number, keep it (never
+    // burn a second serial for the same invoice).
+    const officialNumber = invoice.invoiceNumber.startsWith('DRAFT-')
+      ? await nextInvoiceNumber()
+      : invoice.invoiceNumber;
+
+    // Conditional write closes the check-then-act (TOCTOU) window: only ONE
+    // concurrent finalize call (e.g. double-click) will match isFinalized:false
+    // and win. The loser sees count === 0 and is rejected — guaranteeing a single
+    // serial is burned per invoice.
+    const result = await prisma.invoice.updateMany({
+      where: { id, isFinalized: false },
       data: {
         isFinalized: true,
         finalizedAt: new Date(),
+        invoiceNumber: officialNumber,
       },
+    });
+
+    if (result.count === 0) {
+      throw new AppError('Invoice is already finalized', 400);
+    }
+
+    // Move appointment to COMPLETED if exists (winning path only)
+    if (invoice.appointmentId) {
+      await prisma.appointment.update({
+        where: { id: invoice.appointmentId },
+        data: { status: 'COMPLETED' },
+      });
+    }
+
+    // Re-fetch the finalized invoice with the relations the caller expects
+    const updatedInvoice = await prisma.invoice.findUnique({
+      where: { id },
       include: {
         owner: {
           select: {
@@ -506,14 +526,6 @@ export const invoiceService = {
         payments: true,
       },
     });
-
-    // Move appointment to COMPLETED if exists
-    if (invoice.appointmentId) {
-      await prisma.appointment.update({
-        where: { id: invoice.appointmentId },
-        data: { status: 'COMPLETED' },
-      });
-    }
 
     return updatedInvoice;
   },
