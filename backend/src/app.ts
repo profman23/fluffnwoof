@@ -37,6 +37,7 @@ import clinicSettingsRoutes from './routes/clinicSettingsRoutes';
 import publicFormRoutes from './routes/publicFormRoutes';
 import healthRoutes from './routes/healthRoutes';
 import boardingRoutes from './routes/boardingRoutes';
+import aiDiagnosisRoutes from './routes/aiDiagnosisRoutes';
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/api/forms', formRoutes);
 app.use('/api/clinic-settings', clinicSettingsRoutes);
 app.use('/api/public/forms', publicFormRoutes);
 app.use('/api/boarding', boardingRoutes);
+app.use('/api/ai-diagnosis', aiDiagnosisRoutes);
 
 // 404 Handler
 app.use(notFound);
