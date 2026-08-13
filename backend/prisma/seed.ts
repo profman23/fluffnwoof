@@ -46,6 +46,7 @@ const rolePermissions: Record<string, string[]> = {
     'screens.reports.full',
     'screens.nextAppointments.full',
     'screens.salesReport.full',
+    'salesReport.export',
     'screens.serviceProducts.full',
     'screens.crm.full',
     'screens.sms.full',

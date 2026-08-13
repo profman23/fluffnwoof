@@ -29,6 +29,11 @@
   },
   "salesReport": {
     "title": "تقرير المبيعات",
+    "export": {
+      "button": "تحميل Excel",
+      "loading": "جاري التحميل...",
+      "failed": "فشل تحميل التقرير"
+    },
     "filters": {
       "title": "الفلاتر",
       "startDate": "تاريخ البداية",

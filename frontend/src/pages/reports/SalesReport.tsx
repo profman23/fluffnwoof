@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FunnelIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import * as XLSX from 'xlsx';
+import { FunnelIcon, ChevronDownIcon, ChevronUpIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import {
   BanknotesIcon,
   CreditCardIcon,
@@ -23,6 +24,7 @@ import {
 } from '../../api/reports';
 import { InvoiceStatus } from '../../types';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
+import { useAuthStore } from '../../store/authStore';
 import { useDarkMode } from '../../context/DarkModeContext';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Button } from '../../components/common/Button';
@@ -55,9 +57,12 @@ export const SalesReport = () => {
   const { t, i18n } = useTranslation('reports');
   const isRTL = i18n.language === 'ar';
   const { canViewPhone } = usePhonePermission();
+  const { permissions } = useAuthStore();
+  const canExport = permissions.includes('salesReport.export');
   const { isDark } = useDarkMode();
 
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [reportData, setReportData] = useState<SalesReportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -141,6 +146,46 @@ export const SalesReport = () => {
     const totalPages = reportData?.invoices.totalPages || 1;
     if (newPage >= 1 && newPage <= totalPages) {
       setFilters(prev => ({ ...prev, page: newPage }));
+    }
+  };
+
+  // Export the FULL filtered result set to Excel (client-side, xlsx)
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const f = filtersRef.current;
+      // Same date/status filters as the screen, but fetch everything (not just one page)
+      const params: GetSalesReportParams = { page: 1, limit: 10000 };
+      const startDT = buildDateTime(f.startDate, f.startTime);
+      const endDT = buildDateTime(f.endDate, f.endTime);
+      if (startDT) params.startDateTime = startDT;
+      if (endDT) params.endDateTime = endDT;
+      if (f.status) params.status = f.status as InvoiceStatus;
+
+      const result = await reportsApi.getSalesReport(params);
+      const rows = (result.invoices?.data || []).map((inv) => ({
+        [t('salesReport.table.invoiceNumber')]: inv.invoiceNumber,
+        [t('salesReport.table.date')]: formatDate(inv.issueDate),
+        [t('salesReport.table.customer')]: `${inv.owner?.firstName || ''} ${inv.owner?.lastName || ''}`.trim(),
+        [t('salesReport.table.phone')]: canViewPhone ? (inv.owner?.phone || '') : maskPhoneNumber(inv.owner?.phone || ''),
+        [t('salesReport.table.items')]: inv.items.length,
+        [t('salesReport.table.total')]: Number(formatCurrency(inv.totalAmount)),
+        [t('salesReport.table.paid')]: Number(formatCurrency(inv.paidAmount)),
+        [t('salesReport.table.balance')]: Number(formatCurrency(inv.totalAmount - inv.paidAmount)),
+        [t('salesReport.table.status')]: t(`salesReport.status.${inv.status}`),
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, t('salesReport.title'));
+      const from = f.startDate || 'all';
+      const to = f.endDate || 'all';
+      XLSX.writeFile(wb, `sales-report-${from}_${to}.xlsx`);
+    } catch (err) {
+      console.error('[SalesReport] export failed:', err);
+      setError(t('salesReport.export.failed'));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -424,14 +469,26 @@ export const SalesReport = () => {
             {t('salesReport.title')}
           </h1>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-2 border dark:border-[var(--app-border-default)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)]"
-        >
-          <FunnelIcon className="w-5 h-5" />
-          {t('salesReport.filters.title')}
-          {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {canExport && (
+            <button
+              onClick={handleExportExcel}
+              disabled={exporting || loading}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <ArrowDownTrayIcon className={`w-5 h-5 ${exporting ? 'animate-pulse' : ''}`} />
+              {exporting ? t('salesReport.export.loading') : t('salesReport.export.button')}
+            </button>
+          )}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-4 py-2 border dark:border-[var(--app-border-default)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--app-bg-elevated)] dark:text-[var(--app-text-secondary)]"
+          >
+            <FunnelIcon className="w-5 h-5" />
+            {t('salesReport.filters.title')}
+            {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

@@ -47,7 +47,8 @@
   },
   "specialPermissions": {
     "title": "صلاحيات خاصة",
-    "hidePhone": "إخفاء رقم الهاتف"
+    "hidePhone": "إخفاء رقم الهاتف",
+    "salesReportExport": "تحميل تقرير المبيعات (Excel)"
   },
   "messages": {
     "loading": "جاري التحميل...",

@@ -47,7 +47,8 @@
   },
   "specialPermissions": {
     "title": "Special Permissions",
-    "hidePhone": "Hide Phone Number"
+    "hidePhone": "Hide Phone Number",
+    "salesReportExport": "Export Sales Report (Excel)"
   },
   "messages": {
     "loading": "Loading...",

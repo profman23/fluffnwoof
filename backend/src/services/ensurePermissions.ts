@@ -54,6 +54,7 @@ export const ALL_PERMISSIONS = [
   // Sales Report (child of Reports)
   { name: 'screens.salesReport.read', description: 'Sales Report - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.salesReport.full', description: 'Sales Report - Full Control', category: 'screens', action: 'full' },
+  { name: 'salesReport.export', description: 'Sales Report - Export/Download Excel', category: 'salesReport', action: 'export' },
 
   // Acquisition Report (child of Reports)
   { name: 'screens.acquisitionReport.read', description: 'Acquisition Report - Read Only', category: 'screens', action: 'read' },

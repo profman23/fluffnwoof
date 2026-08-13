@@ -29,6 +29,11 @@
   },
   "salesReport": {
     "title": "Sales Report",
+    "export": {
+      "button": "Export Excel",
+      "loading": "Exporting...",
+      "failed": "Failed to export the report"
+    },
     "filters": {
       "title": "Filters",
       "startDate": "Start Date",
