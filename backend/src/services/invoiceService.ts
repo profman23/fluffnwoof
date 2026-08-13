@@ -194,6 +194,13 @@ export const invoiceService = {
       throw new AppError('Invoice not found', 404);
     }
 
+    // A finalized invoice is locked — its items cannot change (accounting integrity).
+    // This also protects against stale/concurrent clients (e.g. the vet's screen still
+    // open after reception finalized the invoice).
+    if (invoice.isFinalized) {
+      throw new AppError('Cannot modify a finalized invoice', 409);
+    }
+
     const discount = data.discount || 0;
     const taxRate = data.taxRate ?? 15;
     const priceBeforeTax = data.priceBeforeTax ?? data.unitPrice;
@@ -228,6 +235,15 @@ export const invoiceService = {
 
     if (!item) {
       throw new AppError('Invoice item not found', 404);
+    }
+
+    // Block edits to items of a finalized invoice (accounting integrity).
+    const parentInvoice = await prisma.invoice.findUnique({
+      where: { id: item.invoiceId },
+      select: { isFinalized: true },
+    });
+    if (parentInvoice?.isFinalized) {
+      throw new AppError('Cannot modify a finalized invoice', 409);
     }
 
     const quantity = data.quantity ?? item.quantity;
@@ -266,6 +282,15 @@ export const invoiceService = {
 
     if (!item) {
       throw new AppError('Invoice item not found', 404);
+    }
+
+    // Block removing items from a finalized invoice (accounting integrity).
+    const parentInvoice = await prisma.invoice.findUnique({
+      where: { id: item.invoiceId },
+      select: { isFinalized: true },
+    });
+    if (parentInvoice?.isFinalized) {
+      throw new AppError('Cannot modify a finalized invoice', 409);
     }
 
     await prisma.invoiceItem.delete({

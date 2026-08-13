@@ -159,6 +159,7 @@
     "closing": "Closing...",
     "reopening": "Reopening...",
     "closed": "Record Closed",
+    "invoiceFinalizedElsewhere": "This invoice was finalized by another user. The screen has been refreshed — item changes are no longer allowed.",
     "savingBeforeClose": "Saving changes...",
     "closedBy": "Closed by",
     "closedAt": "Closed at",

@@ -455,4 +455,84 @@ describe('Invoices API', () => {
       expect(check.body.status).toBe('PENDING');
     });
   });
+
+  // ════════════════════════════════════════════════════════════
+  // Finalized invoice is locked — item edits rejected, payments allowed
+  // (concurrency guard: reception finalizes while vet's screen is stale)
+  // ════════════════════════════════════════════════════════════
+  describe('Finalized invoice item lock', () => {
+    const createFinalized = async () => {
+      const draft = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          ownerId: testOwnerId,
+          items: [{ description: 'Consult', quantity: 1, unitPrice: 115, priceBeforeTax: 100, taxRate: 15 }],
+        })
+        .expect(201);
+      await request(app)
+        .patch(`/api/invoices/${draft.body.id}/finalize`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      return draft.body; // has id + items[0].id
+    };
+
+    it('rejects ADD item on a finalized invoice (409) and leaves totals unchanged', async () => {
+      const inv = await createFinalized();
+      const before = await request(app)
+        .get(`/api/invoices/${inv.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      await request(app)
+        .post(`/api/invoices/${inv.id}/items`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ description: 'Sneaky', quantity: 1, unitPrice: 230, priceBeforeTax: 200, taxRate: 15 })
+        .expect(409);
+
+      const after = await request(app)
+        .get(`/api/invoices/${inv.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      // Total, status and item count are unchanged — invoice not corrupted
+      expect(after.body.items.length).toBe(before.body.items.length);
+      expect(after.body.totalAmount).toBeCloseTo(before.body.totalAmount, 2);
+      expect(after.body.status).toBe(before.body.status);
+    });
+
+    it('rejects UPDATE item on a finalized invoice (409)', async () => {
+      const inv = await createFinalized();
+      const itemId = inv.items[0].id;
+      await request(app)
+        .put(`/api/invoices/items/${itemId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ quantity: 5 })
+        .expect(409);
+    });
+
+    it('rejects REMOVE item on a finalized invoice (409)', async () => {
+      const inv = await createFinalized();
+      const itemId = inv.items[0].id;
+      await request(app)
+        .delete(`/api/invoices/items/${itemId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(409);
+    });
+
+    it('STILL allows adding a payment to a finalized invoice (installments)', async () => {
+      const inv = await createFinalized();
+      await request(app)
+        .post(`/api/invoices/${inv.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: 50, paymentMethod: 'CASH' })
+        .expect(201);
+
+      const check = await request(app)
+        .get(`/api/invoices/${inv.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(check.body.paidAmount).toBeCloseTo(50, 2);
+      expect(check.body.isFinalized).toBe(true);
+    });
+  });
 });

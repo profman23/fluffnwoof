@@ -816,6 +816,36 @@ export const PatientRecordModal = ({
           return orig && (orig.quantity !== current.quantity || orig.discount !== current.discount);
         });
 
+        const hasItemChanges = newlyAddedItems.length > 0 || changedItems.length > 0 || removedItems.length > 0;
+
+        // Concurrency guard: if this invoice was finalized elsewhere (e.g. reception
+        // clicked Generate) while this screen was open, item edits are no longer allowed.
+        // Re-fetch fresh state; if finalized + we have item changes, stop, refresh the
+        // UI (which locks the services/payment sections), and inform the user.
+        if (hasItemChanges) {
+          const fresh = await invoicesApi.getById(invoice.id);
+          if (fresh.isFinalized) {
+            if (isMountedRef.current) {
+              setInvoice(fresh);
+              const freshItems = fresh.items.map((it) => ({
+                id: it.id,
+                name: it.description,
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                priceBeforeTax: it.priceBeforeTax ?? (it.unitPrice / (1 + (it.taxRate ?? 15) / 100)),
+                taxRate: it.taxRate ?? 15,
+                discount: it.discount || 0,
+                totalPrice: it.totalPrice,
+              }));
+              setSelectedItems(freshItems);
+              setOriginalItems(freshItems);
+              setHasUnsavedInvoiceChanges(false);
+              setInvoiceError(tFlow('record.invoiceFinalizedElsewhere'));
+            }
+            return; // Abort — do not mutate a finalized invoice
+          }
+        }
+
         // Apply item changes
         for (const item of newlyAddedItems) {
           await invoicesApi.addItem(invoice.id, {
@@ -901,7 +931,18 @@ export const PatientRecordModal = ({
     } catch (err) {
       console.error('Failed to save invoice changes:', err);
       if (isMountedRef.current) {
-        setInvoiceError(tFlow('invoice.createError'));
+        // Backend rejected because the invoice was finalized elsewhere (409).
+        // Defense-in-depth if the pre-save re-check was skipped/raced.
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 409 && invoice) {
+          try {
+            const fresh = await invoicesApi.getById(invoice.id);
+            if (isMountedRef.current) setInvoice(fresh);
+          } catch { /* ignore */ }
+          setInvoiceError(tFlow('record.invoiceFinalizedElsewhere'));
+        } else {
+          setInvoiceError(tFlow('invoice.createError'));
+        }
       }
     } finally {
       if (isMountedRef.current) {
