@@ -48,7 +48,8 @@
   "specialPermissions": {
     "title": "Special Permissions",
     "hidePhone": "Hide Phone Number",
-    "salesReportExport": "Export Sales Report (Excel)"
+    "salesReportExport": "Export Sales Report (Excel)",
+    "flowBoardCheckout": "Checkout Control (return card from Ready to Checkout)"
   },
   "messages": {
     "loading": "Loading...",

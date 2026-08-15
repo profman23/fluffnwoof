@@ -48,7 +48,8 @@
   "specialPermissions": {
     "title": "صلاحيات خاصة",
     "hidePhone": "إخفاء رقم الهاتف",
-    "salesReportExport": "تحميل تقرير المبيعات (Excel)"
+    "salesReportExport": "تحميل تقرير المبيعات (Excel)",
+    "flowBoardCheckout": "التحكم في الدفع (إرجاع الكارت من جاهز للدفع)"
   },
   "messages": {
     "loading": "جاري التحميل...",

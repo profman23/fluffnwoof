@@ -118,6 +118,7 @@ export const ALL_PERMISSIONS = [
 
   // Special Permissions
   { name: 'patients.hidePhone', description: 'Hide Phone Numbers in Patients', category: 'patients', action: 'hidePhone' },
+  { name: 'flowBoard.checkout', description: 'Flow Board - Checkout Control (return card from Ready to Checkout, manage payment stage)', category: 'flowBoard', action: 'checkout' },
 
   // API-level permissions (for backwards compatibility)
   { name: 'users.read', description: 'Users - Read', category: 'users', action: 'read' },

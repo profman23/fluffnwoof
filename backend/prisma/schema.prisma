@@ -772,6 +772,7 @@ enum AppointmentStatus {
   CANCELLED
   CHECK_IN
   HOSPITALIZED
+  READY_TO_CHECKOUT
 }
 
 enum VisitType {

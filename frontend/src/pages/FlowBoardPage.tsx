@@ -35,6 +35,7 @@ const statusMap: Record<string, AppointmentStatus> = {
   checkIn: AppointmentStatus.CHECK_IN,
   inProgress: AppointmentStatus.IN_PROGRESS,
   hospitalized: AppointmentStatus.HOSPITALIZED,
+  readyToCheckout: AppointmentStatus.READY_TO_CHECKOUT,
   completed: AppointmentStatus.COMPLETED,
 };
 
@@ -49,6 +50,7 @@ export const FlowBoardPage = () => {
     { id: 'checkIn', color: flowBoardColors?.checkIn || '#F5DF59' },
     { id: 'inProgress', color: flowBoardColors?.inProgress || '#EAB8D5' },
     { id: 'hospitalized', color: flowBoardColors?.hospitalized || '#EAB8D5' },
+    { id: 'readyToCheckout', color: flowBoardColors?.readyToCheckout || '#B8D4EA' },
     { id: 'completed', color: flowBoardColors?.completed || '#CEE8DC' },
   ], [flowBoardColors]);
 
@@ -57,6 +59,7 @@ export const FlowBoardPage = () => {
     checkIn: [],
     inProgress: [],
     hospitalized: [],
+    readyToCheckout: [],
     completed: [],
   });
   const [loading, setLoading] = useState(true);
@@ -82,6 +85,7 @@ export const FlowBoardPage = () => {
     checkIn: 'asc',
     inProgress: 'asc',
     hospitalized: 'asc',
+    readyToCheckout: 'asc',
     completed: 'asc',
   }); // Default: closest time at top for all columns
 
@@ -159,6 +163,7 @@ export const FlowBoardPage = () => {
         checkIn: result.checkIn.filter((a) => a.vet?.id === selectedStaff),
         inProgress: result.inProgress.filter((a) => a.vet?.id === selectedStaff),
         hospitalized: result.hospitalized.filter((a) => a.vet?.id === selectedStaff),
+        readyToCheckout: result.readyToCheckout.filter((a) => a.vet?.id === selectedStaff),
         completed: result.completed.filter((a) => a.vet?.id === selectedStaff),
       };
     }
@@ -182,6 +187,7 @@ export const FlowBoardPage = () => {
         checkIn: result.checkIn.filter(matchesSearch),
         inProgress: result.inProgress.filter(matchesSearch),
         hospitalized: result.hospitalized.filter(matchesSearch),
+        readyToCheckout: result.readyToCheckout.filter(matchesSearch),
         completed: result.completed.filter(matchesSearch),
       };
     }
@@ -206,6 +212,7 @@ export const FlowBoardPage = () => {
       checkIn: sortAppointments(result.checkIn, 'checkIn'),
       inProgress: sortAppointments(result.inProgress, 'inProgress'),
       hospitalized: sortAppointments(result.hospitalized, 'hospitalized'),
+      readyToCheckout: sortAppointments(result.readyToCheckout, 'readyToCheckout'),
       completed: sortAppointments(result.completed, 'completed'),
     };
 

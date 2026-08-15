@@ -381,7 +381,7 @@ export const dashboardService = {
     const completed = appointments.filter(a => a.status === 'COMPLETED').length;
     const cancelled = appointments.filter(a => a.status === 'CANCELLED').length;
     const inProgress = appointments.filter(a =>
-      ['SCHEDULED', 'CONFIRMED', 'CHECK_IN', 'IN_PROGRESS', 'HOSPITALIZED'].includes(a.status)
+      ['SCHEDULED', 'CONFIRMED', 'CHECK_IN', 'IN_PROGRESS', 'HOSPITALIZED', 'READY_TO_CHECKOUT'].includes(a.status)
     ).length;
 
     // Group by date for trend

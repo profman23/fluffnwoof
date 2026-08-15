@@ -34,6 +34,34 @@ function calculateItemTotal(priceBeforeTax: number, quantity: number, discount: 
   return quantity * discountedPrice * (1 + taxRate / 100);
 }
 
+/**
+ * Authoritative guard: invoice items may only be edited while the visit is
+ * still in progress. Blocks edits when the invoice is finalized OR the linked
+ * appointment has moved to READY_TO_CHECKOUT (control handed to reception).
+ * Server-side so no stale/concurrent client can bypass it. Throws 409.
+ */
+async function assertItemsEditable(invoiceId: string): Promise<void> {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { isFinalized: true, appointmentId: true },
+  });
+  if (!invoice) {
+    throw new AppError('Invoice not found', 404);
+  }
+  if (invoice.isFinalized) {
+    throw new AppError('Cannot modify a finalized invoice', 409);
+  }
+  if (invoice.appointmentId) {
+    const appt = await prisma.appointment.findUnique({
+      where: { id: invoice.appointmentId },
+      select: { status: true },
+    });
+    if (appt?.status === 'READY_TO_CHECKOUT') {
+      throw new AppError('Cannot modify items while the appointment is ready for checkout', 409);
+    }
+  }
+}
+
 interface AddPaymentInput {
   amount: number;
   paymentMethod: PaymentMethod;
@@ -186,20 +214,8 @@ export const invoiceService = {
    * Add item to invoice
    */
   async addItem(invoiceId: string, data: AddInvoiceItemInput) {
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
-    });
-
-    if (!invoice) {
-      throw new AppError('Invoice not found', 404);
-    }
-
-    // A finalized invoice is locked — its items cannot change (accounting integrity).
-    // This also protects against stale/concurrent clients (e.g. the vet's screen still
-    // open after reception finalized the invoice).
-    if (invoice.isFinalized) {
-      throw new AppError('Cannot modify a finalized invoice', 409);
-    }
+    // Blocks finalized invoices AND appointments in READY_TO_CHECKOUT (server-side).
+    await assertItemsEditable(invoiceId);
 
     const discount = data.discount || 0;
     const taxRate = data.taxRate ?? 15;
@@ -237,14 +253,8 @@ export const invoiceService = {
       throw new AppError('Invoice item not found', 404);
     }
 
-    // Block edits to items of a finalized invoice (accounting integrity).
-    const parentInvoice = await prisma.invoice.findUnique({
-      where: { id: item.invoiceId },
-      select: { isFinalized: true },
-    });
-    if (parentInvoice?.isFinalized) {
-      throw new AppError('Cannot modify a finalized invoice', 409);
-    }
+    // Block edits to a finalized invoice OR one whose appointment is ready for checkout.
+    await assertItemsEditable(item.invoiceId);
 
     const quantity = data.quantity ?? item.quantity;
     const unitPrice = data.unitPrice ?? item.unitPrice;
@@ -284,14 +294,8 @@ export const invoiceService = {
       throw new AppError('Invoice item not found', 404);
     }
 
-    // Block removing items from a finalized invoice (accounting integrity).
-    const parentInvoice = await prisma.invoice.findUnique({
-      where: { id: item.invoiceId },
-      select: { isFinalized: true },
-    });
-    if (parentInvoice?.isFinalized) {
-      throw new AppError('Cannot modify a finalized invoice', 409);
-    }
+    // Block removing items from a finalized invoice OR one ready for checkout.
+    await assertItemsEditable(item.invoiceId);
 
     await prisma.invoiceItem.delete({
       where: { id: itemId },

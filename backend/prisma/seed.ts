@@ -43,6 +43,7 @@ const rolePermissions: Record<string, string[]> = {
     'screens.rolesPermissions.full',
     'screens.audit.full',
     'screens.flowBoard.full',
+    'flowBoard.checkout',
     'screens.reports.full',
     'screens.nextAppointments.full',
     'screens.salesReport.full',

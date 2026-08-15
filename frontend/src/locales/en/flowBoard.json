@@ -9,6 +9,7 @@
     "checkIn": "Check-In",
     "inProgress": "In Progress",
     "hospitalized": "Hospitalization & Boarding",
+    "readyToCheckout": "Ready to Checkout",
     "completed": "Closed"
   },
   "confirmed": "Confirmed",
@@ -160,6 +161,8 @@
     "reopening": "Reopening...",
     "closed": "Record Closed",
     "invoiceFinalizedElsewhere": "This invoice was finalized by another user. The screen has been refreshed — item changes are no longer allowed.",
+    "readyToCheckout": "Ready to Checkout",
+    "returnToDoctor": "Return to Doctor",
     "savingBeforeClose": "Saving changes...",
     "closedBy": "Closed by",
     "closedAt": "Closed at",

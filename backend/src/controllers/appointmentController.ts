@@ -1,5 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { appointmentService } from '../services/appointmentService';
+import { permissionService } from '../services/permissionService';
+import { AppError } from '../middlewares/errorHandler';
 import { AuthRequest } from '../types';
 import { AppointmentStatus } from '@prisma/client';
 import { t } from '../utils/i18n';
@@ -199,6 +201,19 @@ export const appointmentController = {
       const lang = getLang(req);
       const { id } = req.params;
       const { status } = req.body;
+
+      // Returning a card OUT of "Ready to Checkout" (control handed to reception)
+      // requires the dedicated checkout permission. Moving INTO it stays open to
+      // anyone with flow-board access.
+      const current = await appointmentService.findById(id);
+      if (current?.status === 'READY_TO_CHECKOUT' && status !== 'READY_TO_CHECKOUT') {
+        const isAdmin = req.user?.role === 'ADMIN';
+        const perms = req.user ? await permissionService.getUserPermissions(req.user.id) : [];
+        if (!isAdmin && !perms.includes('flowBoard.checkout')) {
+          throw new AppError('Only reception (checkout permission) can move a card back from Ready to Checkout', 403);
+        }
+      }
+
       const appointment = await appointmentService.updateStatus(id, status);
 
       res.status(200).json({

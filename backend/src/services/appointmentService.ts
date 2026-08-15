@@ -555,6 +555,7 @@ export const appointmentService = {
       checkIn: appointmentsWithOwner.filter((a) => a.status === 'CHECK_IN'),
       inProgress: appointmentsWithOwner.filter((a) => a.status === 'IN_PROGRESS'),
       hospitalized: appointmentsWithOwner.filter((a) => a.status === 'HOSPITALIZED'),
+      readyToCheckout: appointmentsWithOwner.filter((a) => a.status === 'READY_TO_CHECKOUT'),
       completed: appointmentsWithOwner.filter(
         (a) => a.status === 'COMPLETED'
       ),

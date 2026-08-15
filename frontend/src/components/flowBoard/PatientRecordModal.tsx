@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, CreditCardIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment, MedicalAttachment } from '../../types';
+import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment, MedicalAttachment, AppointmentStatus } from '../../types';
 import { medicalRecordsApi } from '../../api/medicalRecords';
 import { flowBoardApi } from '../../api/flowBoard';
 import { invoicesApi, Invoice } from '../../api/invoices';
@@ -15,6 +15,7 @@ import { FileAttachment } from '../common/FileAttachment';
 import { PetFormsSection } from '../forms/PetFormsSection';
 import { uploadApi } from '../../api/upload';
 import { useScreenPermission, usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
+import { useAuthStore } from '../../store/authStore';
 import { isSlotBooked, getTomorrowDate } from '../../utils/appointmentUtils';
 import { shiftsApi } from '../../api/shifts';
 import { ServiceProductSelector, SelectedItem } from './ServiceProductSelector';
@@ -110,6 +111,8 @@ export const PatientRecordModal = ({
   }, [visitTypes, isRTL, tFlow]);
   const { isFullControl: canCreateAppointments } = useScreenPermission('flowBoard');
   const { canViewPhone } = usePhonePermission();
+  const { permissions } = useAuthStore();
+  const canCheckoutControl = permissions.includes('flowBoard.checkout');
   // Reopen requires medical write permission (it modifies the medical record)
   const canReopenRecord = !isReadOnly && !noMedicalAccess;
   const isMountedRef = useRef(true);
@@ -979,6 +982,46 @@ export const PatientRecordModal = ({
     }
   };
 
+  // Ready-to-Checkout stage: doctor finished; items are locked, payment stays open.
+  const isReadyToCheckout = effectiveAppointment?.status === AppointmentStatus.READY_TO_CHECKOUT;
+
+  // Move the card to "Ready to Checkout" (locks items, hands control to reception).
+  const handleReadyToCheckout = async () => {
+    if (!effectiveAppointment?.id) return;
+    setSavingInvoice(true);
+    try {
+      if (hasUnsavedInvoiceChanges) {
+        await saveInvoiceChanges();
+      }
+      await flowBoardApi.updateStatus(effectiveAppointment.id, AppointmentStatus.READY_TO_CHECKOUT);
+      if (isMountedRef.current) {
+        onClose();
+        onSuccess?.();
+      }
+    } catch (err) {
+      console.error('Failed to move to ready-to-checkout:', err);
+    } finally {
+      if (isMountedRef.current) setSavingInvoice(false);
+    }
+  };
+
+  // Reception-only: return the card to In Progress (unlocks items for the doctor).
+  const handleReturnToDoctor = async () => {
+    if (!effectiveAppointment?.id) return;
+    setSavingInvoice(true);
+    try {
+      await flowBoardApi.updateStatus(effectiveAppointment.id, AppointmentStatus.IN_PROGRESS);
+      if (isMountedRef.current) {
+        onClose();
+        onSuccess?.();
+      }
+    } catch (err) {
+      console.error('Failed to return card to doctor:', err);
+    } finally {
+      if (isMountedRef.current) setSavingInvoice(false);
+    }
+  };
+
   // Get empty SOAP fields
   const getEmptyFields = useCallback((): string[] => {
     const emptyFields: string[] = [];
@@ -1298,6 +1341,28 @@ export const PatientRecordModal = ({
                 ) : (
                   tFlow('record.reopen')
                 )}
+              </button>
+            )}
+            {/* Ready to Checkout: hand the visit to reception (locks items). Any flow-board user. */}
+            {canCreateAppointments && effectiveAppointment && !isReadyToCheckout && !invoice?.isFinalized && (
+              <button
+                onClick={handleReadyToCheckout}
+                disabled={savingInvoice}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                type="button"
+              >
+                {tFlow('record.readyToCheckout')}
+              </button>
+            )}
+            {/* Return to Doctor: reception-only, unlocks items back for the vet. */}
+            {isReadyToCheckout && canCheckoutControl && (
+              <button
+                onClick={handleReturnToDoctor}
+                disabled={savingInvoice}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                type="button"
+              >
+                {tFlow('record.returnToDoctor')}
               </button>
             )}
             {/* Close Record Button - shown when record is open and user has write permission */}
@@ -1731,7 +1796,7 @@ export const PatientRecordModal = ({
                   <ServiceProductSelector
                     selectedItems={selectedItems}
                     onItemsChange={handleItemsChange}
-                    disabled={isReadOnly || invoice?.isFinalized}
+                    disabled={isReadOnly || invoice?.isFinalized || isReadyToCheckout}
                   />
 
                   {invoiceError && (

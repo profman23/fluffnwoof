@@ -19,6 +19,7 @@ export enum AppointmentStatus {
   CHECK_IN = 'CHECK_IN',
   IN_PROGRESS = 'IN_PROGRESS',
   HOSPITALIZED = 'HOSPITALIZED',
+  READY_TO_CHECKOUT = 'READY_TO_CHECKOUT',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
@@ -197,6 +198,7 @@ export interface FlowBoardData {
   checkIn: FlowBoardAppointment[];
   inProgress: FlowBoardAppointment[];
   hospitalized: FlowBoardAppointment[];
+  readyToCheckout: FlowBoardAppointment[];
   completed: FlowBoardAppointment[];
 }
 
@@ -389,6 +391,7 @@ export interface FlowBoardColorConfig {
   checkIn?: string;
   inProgress?: string;
   hospitalized?: string;
+  readyToCheckout?: string;
   completed?: string;
 }
 
