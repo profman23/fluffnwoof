@@ -163,6 +163,7 @@
     "invoiceFinalizedElsewhere": "تم إغلاق الفاتورة بواسطة مستخدم آخر. تم تحديث الشاشة — لم يعد تعديل الأصناف مسموحاً.",
     "readyToCheckout": "جاهز للدفع",
     "returnToDoctor": "إرجاع للدكتور",
+    "statusUpdateError": "تعذّر تحديث الحالة. من فضلك حدّث الصفحة وحاول تاني.",
     "savingBeforeClose": "جاري حفظ التغييرات...",
     "closedBy": "أُغلق بواسطة",
     "closedAt": "أُغلق في",

@@ -202,6 +202,13 @@ export const appointmentController = {
       const { id } = req.params;
       const { status } = req.body;
 
+      // Reject unknown status values with a clear 400 instead of letting an
+      // invalid enum reach Prisma and surface as an opaque 500. This also guards
+      // any environment where a new enum value's migration hasn't been applied yet.
+      if (!status || !Object.values(AppointmentStatus).includes(status)) {
+        throw new AppError('Invalid appointment status', 400);
+      }
+
       // Returning a card OUT of "Ready to Checkout" (control handed to reception)
       // requires the dedicated checkout permission. Moving INTO it stays open to
       // anyone with flow-board access.

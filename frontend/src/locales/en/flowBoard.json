@@ -163,6 +163,7 @@
     "invoiceFinalizedElsewhere": "This invoice was finalized by another user. The screen has been refreshed — item changes are no longer allowed.",
     "readyToCheckout": "Ready to Checkout",
     "returnToDoctor": "Return to Doctor",
+    "statusUpdateError": "Could not update the status. Please refresh and try again.",
     "savingBeforeClose": "Saving changes...",
     "closedBy": "Closed by",
     "closedAt": "Closed at",

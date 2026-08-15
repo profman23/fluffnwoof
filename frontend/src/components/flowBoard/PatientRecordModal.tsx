@@ -989,6 +989,7 @@ export const PatientRecordModal = ({
   const handleReadyToCheckout = async () => {
     if (!effectiveAppointment?.id) return;
     setSavingInvoice(true);
+    setInvoiceError(null);
     try {
       if (hasUnsavedInvoiceChanges) {
         await saveInvoiceChanges();
@@ -1000,6 +1001,7 @@ export const PatientRecordModal = ({
       }
     } catch (err) {
       console.error('Failed to move to ready-to-checkout:', err);
+      if (isMountedRef.current) setInvoiceError(tFlow('record.statusUpdateError'));
     } finally {
       if (isMountedRef.current) setSavingInvoice(false);
     }
@@ -1009,6 +1011,7 @@ export const PatientRecordModal = ({
   const handleReturnToDoctor = async () => {
     if (!effectiveAppointment?.id) return;
     setSavingInvoice(true);
+    setInvoiceError(null);
     try {
       await flowBoardApi.updateStatus(effectiveAppointment.id, AppointmentStatus.IN_PROGRESS);
       if (isMountedRef.current) {
@@ -1017,6 +1020,7 @@ export const PatientRecordModal = ({
       }
     } catch (err) {
       console.error('Failed to return card to doctor:', err);
+      if (isMountedRef.current) setInvoiceError(tFlow('record.statusUpdateError'));
     } finally {
       if (isMountedRef.current) setSavingInvoice(false);
     }

@@ -38,8 +38,9 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy only necessary files
-COPY --from=deps /app/node_modules ./node_modules
+# Copy node_modules from the builder stage (full install) so the Prisma CLI is
+# available at runtime for the Render pre-deploy `prisma migrate deploy` step.
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
