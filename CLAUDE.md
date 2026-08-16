@@ -56,6 +56,15 @@
 - **Dev workflow**: edit `schema.prisma` → run `prisma migrate dev` → commit migration file → deploy
 - **Never use `prisma db push` on Training/Production** — it has no history and no rollback
 
+### Migrations apply AUTOMATICALLY on deploy (SOLVED — Aug 2026)
+- **Render Pre-Deploy Command** is set on BOTH backend services (Training + Production):
+  `node scripts/check-migrations.js && npx prisma migrate deploy`
+- Runs in Render's release phase: AFTER the new image builds, BEFORE traffic switches. If it fails, Render **aborts the deploy and keeps the old version live** (zero downtime, no crash loop, no drift).
+- The Dockerfile production stage copies `node_modules` from the `builder` stage (full install) so the `prisma` CLI exists at runtime for this step. `CMD` stays `node dist/server.js` (no migrate in the startup path = uptime safety net).
+- **Consequence: any migration that works on Dev + Training WILL apply on Production automatically.** This class of "works on dev, 500 on staging/prod because the enum/column was never created" bug is permanently closed.
+- **Root cause of the old failures**: the Docker deploy never ran `migrate deploy` (only `render-build`, which is for the native buildpack, did — and Docker doesn't use it). Migrations were being applied manually/ad-hoc → drift.
+- **Still required for a new migration**: author it via `prisma migrate dev` (correct checksum), test on Dev, deploy to Training, verify the pre-deploy log shows it applied, THEN Production. The mechanism is automatic; the Dev→Training→Production discipline is not optional.
+
 ## Testing (CRITICAL)
 - **Tests run on a SEPARATE test database** (Neon `test` branch) — NEVER on Dev/Training/Production
 - `setup.ts` has safety checks that block non-test databases
