@@ -4,13 +4,15 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { ArrowPathIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, InformationCircleIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import * as XLSX from 'xlsx';
 import { reportsApi, AcquisitionReportResponse } from '../../api/reports';
 import { LogoLoader } from '../../components/common/LogoLoader';
 import { useScreenPermission } from '../../hooks/useScreenPermission';
 import { ScreenPermissionGuard } from '../../components/common/ScreenPermissionGuard';
 import { ReadOnlyBadge } from '../../components/common/ReadOnlyBadge';
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
+import { useAuthStore } from '../../store/authStore';
 
 const SOURCE_COLORS: Record<string, string> = {
   GOOGLE_SEARCH: '#4285F4',
@@ -40,18 +42,30 @@ const SOURCE_ICONS: Record<string, string> = {
   DR_MAHMOUD_ADV: '👨‍⚕️',
 };
 
+// Combine a date (YYYY-MM-DD) + time (HH:mm) into an ISO string; undefined if no date.
+const buildDateTime = (date: string, time: string): string | undefined => {
+  if (!date) return undefined;
+  return new Date(`${date}T${time || '00:00'}:00`).toISOString();
+};
+
 export const AcquisitionReport = () => {
   const { t } = useTranslation('reports');
   const { isReadOnly } = useScreenPermission('acquisitionReport');
+  const { permissions } = useAuthStore();
+  const canExport = permissions.includes('customerSourceReport.export');
 
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [data, setData] = useState<AcquisitionReportResponse | null>(null);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
     return d.toISOString().split('T')[0];
   });
+  const [startTime, setStartTime] = useState('00:00');
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endTime, setEndTime] = useState('23:59');
+  const [source, setSource] = useState('');
   const [firstInvoiceOnly, setFirstInvoiceOnly] = useState(true);
 
   const fetchData = async () => {
@@ -61,6 +75,9 @@ export const AcquisitionReport = () => {
         startDate,
         endDate,
         firstInvoiceOnly,
+        source: source || undefined,
+        startDateTime: buildDateTime(startDate, startTime),
+        endDateTime: buildDateTime(endDate, endTime),
       });
       setData(result);
     } catch (err) {
@@ -72,7 +89,31 @@ export const AcquisitionReport = () => {
 
   useEffect(() => {
     fetchData();
-  }, [startDate, endDate, firstInvoiceOnly]);
+  }, [startDate, startTime, endDate, endTime, source, firstInvoiceOnly]);
+
+  // Export the currently-loaded (filtered) grouped-by-source rows to Excel — client-side.
+  const handleExportExcel = () => {
+    setExporting(true);
+    try {
+      const rows = (data?.bySource || []).map((s) => ({
+        [t('acquisition.source')]: t(`acquisition.sources.${s.source}`, s.source),
+        [t('acquisition.customers')]: s.customerCount,
+        [t('acquisition.salesWithTax')]: Number(s.totalWithTax.toFixed(2)),
+        [t('acquisition.salesBeforeTax')]: Number(s.totalBeforeTax.toFixed(2)),
+        [t('acquisition.avgPerCustomer')]: Number(
+          (s.customerCount > 0 ? s.totalWithTax / s.customerCount : 0).toFixed(2)
+        ),
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, t('acquisition.title'));
+      XLSX.writeFile(wb, `customer-source-${startDate || 'all'}_${endDate || 'all'}.xlsx`);
+    } catch (err) {
+      console.error('[AcquisitionReport] export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const pieData = useMemo(() => {
     if (!data) return [];
@@ -106,13 +147,19 @@ export const AcquisitionReport = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Date Range */}
+            {/* Date + Time Range */}
             <div className="flex items-center gap-2 bg-white dark:bg-[var(--app-bg-card)] px-3 py-2 rounded-lg border border-gray-200 dark:border-[var(--app-border-default)]">
               <label className="text-sm text-gray-600 dark:text-gray-400">{t('acquisition.from')}</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="text-sm border-none bg-transparent focus:ring-0 dark:text-[var(--app-text-primary)]"
+              />
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
                 className="text-sm border-none bg-transparent focus:ring-0 dark:text-[var(--app-text-primary)]"
               />
               <label className="text-sm text-gray-600 dark:text-gray-400">{t('acquisition.to')}</label>
@@ -122,6 +169,29 @@ export const AcquisitionReport = () => {
                 onChange={(e) => setEndDate(e.target.value)}
                 className="text-sm border-none bg-transparent focus:ring-0 dark:text-[var(--app-text-primary)]"
               />
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="text-sm border-none bg-transparent focus:ring-0 dark:text-[var(--app-text-primary)]"
+              />
+            </div>
+
+            {/* Source Filter */}
+            <div className="flex items-center gap-2 bg-white dark:bg-[var(--app-bg-card)] px-3 py-2 rounded-lg border border-gray-200 dark:border-[var(--app-border-default)]">
+              <label className="text-sm text-gray-600 dark:text-gray-400">{t('acquisition.source')}</label>
+              <select
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                className="text-sm border-none bg-transparent focus:ring-0 dark:text-[var(--app-text-primary)] dark:bg-[var(--app-bg-card)]"
+              >
+                <option value="">{t('acquisition.sourceFilter.all')}</option>
+                {Object.keys(SOURCE_COLORS).map((src) => (
+                  <option key={src} value={src}>
+                    {t(`acquisition.sources.${src}`, src)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* First Invoice Toggle */}
@@ -152,6 +222,17 @@ export const AcquisitionReport = () => {
             >
               <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
+
+            {canExport && (
+              <button
+                onClick={handleExportExcel}
+                disabled={exporting || loading || !data || data.bySource.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-[#5a9f7d] hover:bg-[#4a8a6a] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ArrowDownTrayIcon className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? t('acquisition.export.loading') : t('acquisition.export.button')}
+              </button>
+            )}
           </div>
         </div>
 

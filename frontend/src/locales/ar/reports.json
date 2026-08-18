@@ -110,6 +110,14 @@
     "customers": "العملاء",
     "salesWithTax": "المبيعات (شامل الضريبة)",
     "salesBeforeTax": "المبيعات (بدون ضريبة)",
+    "sourceFilter": {
+      "all": "كل المصادر"
+    },
+    "export": {
+      "button": "تحميل Excel",
+      "loading": "جاري التحميل...",
+      "failed": "تعذّر تحميل التقرير"
+    },
     "sources": {
       "GOOGLE_SEARCH": "🔍 بحث جوجل",
       "GOOGLE_MAPS": "📍 خرائط جوجل",

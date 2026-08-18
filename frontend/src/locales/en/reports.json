@@ -110,6 +110,14 @@
     "customers": "Customers",
     "salesWithTax": "Sales (incl. VAT)",
     "salesBeforeTax": "Sales (excl. VAT)",
+    "sourceFilter": {
+      "all": "All Sources"
+    },
+    "export": {
+      "button": "Export Excel",
+      "loading": "Exporting...",
+      "failed": "Failed to export the report"
+    },
     "sources": {
       "GOOGLE_SEARCH": "🔍 Google Search",
       "GOOGLE_MAPS": "📍 Google Maps",

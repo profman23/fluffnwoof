@@ -49,6 +49,7 @@
     "title": "Special Permissions",
     "hidePhone": "Hide Phone Number",
     "salesReportExport": "Export Sales Report (Excel)",
+    "customerSourceReportExport": "Export Customer Source Report (Excel)",
     "flowBoardCheckout": "Checkout Control (return card from Ready to Checkout)"
   },
   "messages": {

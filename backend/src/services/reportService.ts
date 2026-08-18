@@ -36,6 +36,13 @@ interface PaginatedResult<T> {
   totalPages: number;
 }
 
+// Known referral sources (mirrors the frontend SOURCE_COLORS keys). referralSource is a free
+// String column, so we validate the source filter against this allow-list.
+const KNOWN_REFERRAL_SOURCES = [
+  'GOOGLE_SEARCH', 'GOOGLE_MAPS', 'INSTAGRAM', 'FACEBOOK', 'FRIEND_REFERRAL',
+  'CLINIC_REFERRAL', 'TIKTOK', 'SNAPCHAT', 'WALK_IN', 'DR_MANDOUR_ADV', 'DR_MAHMOUD_ADV',
+];
+
 export const reportService = {
   getNextAppointments: async (params: GetNextAppointmentsParams): Promise<PaginatedResult<any>> => {
     const { startDate, endDate, vetId, customerCode, phone, page = 1, limit = 20 } = params;
@@ -276,21 +283,39 @@ export const reportService = {
     startDate?: string;
     endDate?: string;
     firstInvoiceOnly?: boolean;
+    source?: string;
+    startDateTime?: string;
+    endDateTime?: string;
   }) {
-    const { startDate, endDate, firstInvoiceOnly = true } = params;
+    const { startDate, endDate, firstInvoiceOnly = true, source, startDateTime, endDateTime } = params;
 
+    // Date filter on owner.createdAt. Prefer precise DateTime (with time) when provided,
+    // otherwise fall back to whole-day date range (backward compatible).
     const dateFilter: any = {};
-    if (startDate) dateFilter.gte = new Date(startDate);
-    if (endDate) {
+    if (startDateTime) {
+      dateFilter.gte = new Date(startDateTime);
+    } else if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDateTime) {
+      dateFilter.lte = new Date(endDateTime);
+    } else if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       dateFilter.lte = end;
     }
 
+    // Source filter — only apply when it's a known referral source; otherwise show all sources.
+    // referralSource is a free String column (not a DB enum); validate against the known set.
+    const referralSourceFilter =
+      source && KNOWN_REFERRAL_SOURCES.includes(source)
+        ? { referralSource: source }
+        : { referralSource: { not: null } };
+
     // Get owners with referralSource created in date range
     const owners = await prisma.owner.findMany({
       where: {
-        referralSource: { not: null },
+        ...referralSourceFilter,
         ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {}),
       },
       select: {

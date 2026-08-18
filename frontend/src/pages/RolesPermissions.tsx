@@ -38,6 +38,7 @@ const ALL_SCREEN_NAMES = SCREEN_GROUPS.flatMap(group =>
 const SPECIAL_PERMISSIONS = [
   { key: 'patients.hidePhone', screen: 'patients', label: 'hidePhone' },
   { key: 'salesReport.export', screen: 'salesReport', label: 'salesReportExport' },
+  { key: 'customerSourceReport.export', screen: 'acquisitionReport', label: 'customerSourceReportExport' },
   { key: 'flowBoard.checkout', screen: 'flowBoard', label: 'flowBoardCheckout' },
 ];
 

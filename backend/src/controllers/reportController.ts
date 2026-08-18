@@ -45,12 +45,15 @@ export const reportController = {
 
   getAcquisitionReport: async (req: Request, res: Response) => {
     try {
-      const { startDate, endDate, firstInvoiceOnly } = req.query;
+      const { startDate, endDate, firstInvoiceOnly, source, startDateTime, endDateTime } = req.query;
 
       const result = await reportService.getAcquisitionReport({
         startDate: startDate as string,
         endDate: endDate as string,
         firstInvoiceOnly: firstInvoiceOnly !== 'false',
+        source: source as string,
+        startDateTime: startDateTime as string,
+        endDateTime: endDateTime as string,
       });
 
       res.json({ success: true, data: result });

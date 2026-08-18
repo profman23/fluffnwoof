@@ -107,6 +107,9 @@ export const reportsApi = {
     startDate?: string;
     endDate?: string;
     firstInvoiceOnly?: boolean;
+    source?: string;
+    startDateTime?: string;
+    endDateTime?: string;
   }): Promise<AcquisitionReportResponse> => {
     const response = await api.get('/reports/acquisition', { params });
     return response.data.data;

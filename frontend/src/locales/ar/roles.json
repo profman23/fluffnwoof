@@ -49,6 +49,7 @@
     "title": "صلاحيات خاصة",
     "hidePhone": "إخفاء رقم الهاتف",
     "salesReportExport": "تحميل تقرير المبيعات (Excel)",
+    "customerSourceReportExport": "تحميل تقرير مصدر العملاء (Excel)",
     "flowBoardCheckout": "التحكم في الدفع (إرجاع الكارت من جاهز للدفع)"
   },
   "messages": {
