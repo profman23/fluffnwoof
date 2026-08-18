@@ -370,7 +370,7 @@ export const shiftService = {
     // Calculate current time in Riyadh timezone (minutes from midnight)
     let currentTimeMinutes = 0;
     if (isToday) {
-      currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')) + 30; // 30 min buffer
+      currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')); // no buffer — allow booking up to the current moment
     }
 
     // Generate slots based on visit type duration (minimum 5 min to prevent infinite loop)
@@ -699,7 +699,7 @@ export const shiftService = {
     // Calculate current time in Riyadh timezone (minutes from midnight)
     let currentTimeMinutes = 0;
     if (isToday) {
-      currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')) + 30; // 30 min buffer
+      currentTimeMinutes = parseInt(getPart('hour')) * 60 + parseInt(getPart('minute')); // no buffer — allow booking up to the current moment
     }
 
     // Generate slots based on visit type duration (minimum 5 min to prevent infinite loop)
