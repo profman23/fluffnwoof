@@ -382,7 +382,8 @@ export const invoiceService = {
     const newPaidAmount = remainingPayments._sum.amount || 0;
     let newStatus: InvoiceStatus;
 
-    if (newPaidAmount >= payment.invoice.totalAmount) {
+    // Compare in cents to avoid float error (consistent with addPayment/recalculateTotal).
+    if (Math.round(newPaidAmount * 100) >= Math.round(payment.invoice.totalAmount * 100)) {
       newStatus = InvoiceStatus.PAID;
     } else if (newPaidAmount > 0) {
       newStatus = InvoiceStatus.PARTIALLY_PAID;
@@ -416,8 +417,10 @@ export const invoiceService = {
 
     if (!invoice) return;
 
+    // Compare in cents to avoid float error (e.g. totalAmount 240.00000000000003)
+    // leaving a fully-paid invoice stuck at PARTIALLY_PAID. Consistent with addPayment.
     let newStatus: InvoiceStatus;
-    if (invoice.paidAmount >= totalAmount && totalAmount > 0) {
+    if (Math.round(invoice.paidAmount * 100) >= Math.round(totalAmount * 100) && totalAmount > 0) {
       newStatus = InvoiceStatus.PAID;
     } else if (invoice.paidAmount > 0) {
       newStatus = InvoiceStatus.PARTIALLY_PAID;
@@ -513,6 +516,15 @@ export const invoiceService = {
       ? await nextInvoiceNumber()
       : invoice.invoiceNumber;
 
+    // Recompute status in cents at finalize so a fully-paid invoice never freezes
+    // at a stale PARTIALLY_PAID (consistent with addPayment/recalculateTotal).
+    const finalizedStatus: InvoiceStatus =
+      Math.round(invoice.paidAmount * 100) >= Math.round(invoice.totalAmount * 100) && invoice.totalAmount > 0
+        ? InvoiceStatus.PAID
+        : invoice.paidAmount > 0
+          ? InvoiceStatus.PARTIALLY_PAID
+          : InvoiceStatus.PENDING;
+
     // Conditional write closes the check-then-act (TOCTOU) window: only ONE
     // concurrent finalize call (e.g. double-click) will match isFinalized:false
     // and win. The loser sees count === 0 and is rejected — guaranteeing a single
@@ -523,6 +535,7 @@ export const invoiceService = {
         isFinalized: true,
         finalizedAt: new Date(),
         invoiceNumber: officialNumber,
+        status: finalizedStatus,
       },
     });
 

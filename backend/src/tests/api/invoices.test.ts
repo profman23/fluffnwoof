@@ -535,4 +535,95 @@ describe('Invoices API', () => {
       expect(check.body.isFinalized).toBe(true);
     });
   });
+
+  // Regression: a fully-paid invoice must show PAID even when totalAmount carries
+  // float error (e.g. 7 × 14.29 @ 15% = 115.0345). Before the fix, recalculateTotal
+  // and removePayment used a raw float compare (paidAmount >= totalAmount), which was
+  // false against the float-tailed total, freezing the invoice at PARTIALLY_PAID.
+  describe('Payment status rounding (cents-safe)', () => {
+    // total = 7 * 14.29 * 1.15 = 115.0345 → rounds to 115.03 (2dp)
+    const floatyItems = [
+      { description: 'Floaty Item', quantity: 7, unitPrice: 16.43, priceBeforeTax: 14.29, taxRate: 15 },
+    ];
+
+    const createInvoice = async () => {
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ownerId: testOwnerId, items: floatyItems })
+        .expect(201);
+      return res.body; // create returns the invoice directly on res.body
+    };
+
+    it('marks invoice PAID when paid amount equals a float-tailed total (to the cent)', async () => {
+      const inv = await createInvoice();
+      const paidToTheCent = Math.round(inv.totalAmount * 100) / 100; // 115.03
+
+      await request(app)
+        .post(`/api/invoices/${inv.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: paidToTheCent, paymentMethod: 'CASH' })
+        .expect(201);
+
+      const check = await request(app)
+        .get(`/api/invoices/${inv.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(check.body.status).toBe('PAID');
+    });
+
+    it('keeps status PAID after adding another item, then re-covering (recalculateTotal cents-safe)', async () => {
+      const inv = await createInvoice();
+      const paidToTheCent = Math.round(inv.totalAmount * 100) / 100;
+      await request(app)
+        .post(`/api/invoices/${inv.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: paidToTheCent, paymentMethod: 'CASH' })
+        .expect(201);
+
+      // Add another floaty item → recalculateTotal runs (raw-float bug would flip to PARTIALLY_PAID)
+      const addRes = await request(app)
+        .post(`/api/invoices/${inv.id}/items`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ description: 'Second', quantity: 7, unitPrice: 16.43, priceBeforeTax: 14.29, taxRate: 15 })
+        .expect(201);
+
+      // Now partially paid (only first half covered) — genuinely PARTIALLY_PAID
+      let check = await request(app)
+        .get(`/api/invoices/${inv.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(check.body.status).toBe('PARTIALLY_PAID');
+
+      // Pay the remaining to the cent → must become PAID (cents-safe recalcul/addPayment)
+      const remaining = Math.round((check.body.totalAmount - check.body.paidAmount) * 100) / 100;
+      await request(app)
+        .post(`/api/invoices/${inv.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: remaining, paymentMethod: 'CASH' })
+        .expect(201);
+
+      check = await request(app)
+        .get(`/api/invoices/${inv.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(check.body.status).toBe('PAID');
+    });
+
+    it('finalize recomputes a fully-paid float-tailed invoice to PAID', async () => {
+      const inv = await createInvoice();
+      const paidToTheCent = Math.round(inv.totalAmount * 100) / 100;
+      await request(app)
+        .post(`/api/invoices/${inv.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: paidToTheCent, paymentMethod: 'CASH' })
+        .expect(201);
+
+      const fin = await request(app)
+        .patch(`/api/invoices/${inv.id}/finalize`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(fin.body.data.status).toBe('PAID');
+    });
+  });
 });
