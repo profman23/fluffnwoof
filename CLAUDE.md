@@ -56,13 +56,13 @@
 - **Dev workflow**: edit `schema.prisma` → run `prisma migrate dev` → commit migration file → deploy
 - **Never use `prisma db push` on Training/Production** — it has no history and no rollback
 
-### Migrations apply AUTOMATICALLY on deploy (SOLVED — Aug 2026)
-- **Render Pre-Deploy Command** is set on BOTH backend services (Training + Production):
+### Migrations apply AUTOMATICALLY on deploy (SOLVED — Aug 2026, re-fixed Aug 27 2026)
+- **The backend services deploy via the NATIVE Node buildpack** (Render runs `npm run render-build`), NOT Docker. The `Dockerfile` in the repo is effectively unused by these services — do not rely on it for deploy behavior.
+- **`migrate deploy` has exactly ONE owner: the Render Pre-Deploy Command** — set on BOTH backend services (Training + Production):
   `node scripts/check-migrations.js && npx prisma migrate deploy`
-- Runs in Render's release phase: AFTER the new image builds, BEFORE traffic switches. If it fails, Render **aborts the deploy and keeps the old version live** (zero downtime, no crash loop, no drift).
-- The Dockerfile production stage copies `node_modules` from the `builder` stage (full install) so the `prisma` CLI exists at runtime for this step. `CMD` stays `node dist/server.js` (no migrate in the startup path = uptime safety net).
-- **Consequence: any migration that works on Dev + Training WILL apply on Production automatically.** This class of "works on dev, 500 on staging/prod because the enum/column was never created" bug is permanently closed.
-- **Root cause of the old failures**: the Docker deploy never ran `migrate deploy` (only `render-build`, which is for the native buildpack, did — and Docker doesn't use it). Migrations were being applied manually/ad-hoc → drift.
+  It runs AFTER the build, BEFORE traffic switches. If it fails, Render **aborts the deploy and keeps the old version live** (zero downtime, no crash loop, no drift).
+- **`render-build` MUST stay build-only**: `npm install && npx prisma generate && npm run build`. **NEVER add `prisma migrate deploy` to render-build.** ⚠️ Doing so makes migrate run twice (build + pre-deploy) → the two contend on the same Postgres advisory lock → `P1002 advisory-lock timeout` → deploy fails. This exact bug broke the Credit Notes production deploy on Aug 27 2026 (leftover migrate in render-build from Feb 2026, commit cd92c30). Fixed by removing it from render-build; pre-deploy is the sole owner.
+- **Consequence: any migration that works on Dev + Training WILL apply on Production automatically** (once, via pre-deploy). This class of "works on dev, 500 on staging/prod because the enum/column was never created" bug stays closed — and the double-migrate deadlock is now closed too.
 - **Still required for a new migration**: author it via `prisma migrate dev` (correct checksum), test on Dev, deploy to Training, verify the pre-deploy log shows it applied, THEN Production. The mechanism is automatic; the Dev→Training→Production discipline is not optional.
 
 ## Testing (CRITICAL)
