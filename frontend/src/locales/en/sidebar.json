@@ -10,6 +10,8 @@
     "medical": "Medical Records",
     "invoices": "Invoices",
     "serviceProducts": "Services & Products",
+    "salesModule": "Sales",
+    "creditNotes": "Credit Notes",
     "reports": "Reports",
     "nextAppointments": "Upcoming Appointments",
     "upcoming": "Upcoming",

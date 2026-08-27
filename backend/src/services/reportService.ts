@@ -176,8 +176,17 @@ export const reportService = {
       paymentWhere.paymentMethod = paymentMethod as PaymentMethod;
     }
 
-    // 4 parallel queries for performance
-    const [invoiceStats, paymentStats, paymentMethodBreakdown, total, invoices] = await Promise.all([
+    // Credit note where — filtered by the credit note's own createdAt (the day the
+    // refund was issued), scoped to the same reporting window.
+    const creditNoteWhere: any = {};
+    if (startDateTime || endDateTime) {
+      creditNoteWhere.createdAt = {};
+      if (startDateTime) creditNoteWhere.createdAt.gte = new Date(startDateTime);
+      if (endDateTime) creditNoteWhere.createdAt.lte = new Date(endDateTime);
+    }
+
+    // 5 parallel queries for performance
+    const [invoiceStats, paymentStats, paymentMethodBreakdown, total, invoices, creditStats] = await Promise.all([
       // 1. Invoice aggregate stats
       prisma.invoice.aggregate({
         where: invoiceWhere,
@@ -251,17 +260,31 @@ export const reportService = {
         skip,
         take: limit,
       }),
+
+      // 5. Credit notes (refunds) issued in the window
+      prisma.creditNote.aggregate({
+        where: creditNoteWhere,
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
     ]);
 
     const totalSales = invoiceStats._sum.totalAmount || 0;
     const totalPayments = paymentStats._sum.amount || 0;
     const outstandingBalance = totalSales - totalPayments;
+    // Decision: keep credited invoices in totalSales (audit transparency); surface
+    // refunds separately and show net = sales − credits.
+    const totalCredits = creditStats._sum.amount || 0;
+    const netSales = totalSales - totalCredits;
 
     return {
       stats: {
         totalSales,
         totalPayments,
         outstandingBalance,
+        totalCredits,
+        netSales,
+        creditNoteCount: creditStats._count.id,
         invoiceCount: invoiceStats._count.id,
         paymentMethodBreakdown: paymentMethodBreakdown.map((pm) => ({
           method: pm.paymentMethod,

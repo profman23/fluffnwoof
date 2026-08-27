@@ -17,6 +17,7 @@ import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NextAppointmentsReport } from './pages/reports/NextAppointmentsReport';
 import { SalesReport } from './pages/reports/SalesReport';
 import { AcquisitionReport } from './pages/reports/AcquisitionReport';
+import { CreditNotesPage } from './pages/sales/CreditNotesPage';
 import { LostCustomersReport } from './pages/reports/LostCustomersReport';
 import { ServiceProductsPage } from './pages/ServiceProductsPage';
 import { MyProfile } from './pages/MyProfile';
@@ -201,6 +202,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SalesReport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sales/credit-notes"
+            element={
+              <ProtectedRoute>
+                <CreditNotesPage />
               </ProtectedRoute>
             }
           />

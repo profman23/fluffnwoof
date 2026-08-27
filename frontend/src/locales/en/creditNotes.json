@@ -1,0 +1,49 @@
+{
+  "title": "Credit Notes",
+  "readOnly": "Read Only",
+  "refresh": "Refresh",
+  "createButton": "Create Credit Note",
+  "alreadyCredited": "Credited",
+  "searchPlaceholder": "Search by invoice number, customer, or phone…",
+  "tabs": {
+    "invoices": "Finalized Invoices",
+    "issued": "Issued Credit Notes"
+  },
+  "empty": {
+    "invoices": "No finalized invoices found",
+    "issued": "No credit notes have been issued yet"
+  },
+  "table": {
+    "invoiceNumber": "Invoice #",
+    "creditNoteNumber": "Credit Note #",
+    "originalInvoice": "Original Invoice",
+    "date": "Date",
+    "customer": "Customer",
+    "total": "Total",
+    "amount": "Amount",
+    "status": "Status",
+    "createdBy": "Created By",
+    "reason": "Reason"
+  },
+  "status": {
+    "PENDING": "Pending",
+    "PAID": "Paid",
+    "PARTIALLY_PAID": "Partial",
+    "OVERDUE": "Overdue",
+    "CREDITED": "Credited"
+  },
+  "confirm": {
+    "title": "Create Credit Note",
+    "warning": "This will fully cancel the invoice and cannot be undone.",
+    "invoice": "Invoice",
+    "customer": "Customer",
+    "amount": "Credit amount (full)",
+    "reasonLabel": "Reason (optional)",
+    "reasonPlaceholder": "e.g. Customer cancelled the service before it was delivered…",
+    "confirmButton": "Confirm Cancellation",
+    "cancelButton": "Cancel"
+  },
+  "errors": {
+    "createFailed": "Could not create the credit note. Please try again."
+  }
+}

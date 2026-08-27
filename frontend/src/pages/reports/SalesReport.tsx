@@ -7,6 +7,7 @@ import {
   CreditCardIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
+  ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline';
 import {
   PieChart,
@@ -593,7 +594,7 @@ export const SalesReport = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 animate-fade-in-up">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 animate-fade-in-up">
         <StatsCard
           title={t('salesReport.stats.totalSales')}
           value={stats?.totalSales || 0}
@@ -603,12 +604,28 @@ export const SalesReport = () => {
           animationDelay={0}
         />
         <StatsCard
+          title={t('salesReport.stats.totalCredits')}
+          value={stats?.totalCredits || 0}
+          icon={<ArrowUturnLeftIcon className="w-7 h-7" />}
+          color="danger"
+          loading={loading}
+          animationDelay={100}
+        />
+        <StatsCard
+          title={t('salesReport.stats.netSales')}
+          value={stats?.netSales ?? (stats?.totalSales || 0)}
+          icon={<BanknotesIcon className="w-7 h-7" />}
+          color="secondary"
+          loading={loading}
+          animationDelay={200}
+        />
+        <StatsCard
           title={t('salesReport.stats.totalPayments')}
           value={stats?.totalPayments || 0}
           icon={<CreditCardIcon className="w-7 h-7" />}
           color="success"
           loading={loading}
-          animationDelay={100}
+          animationDelay={300}
         />
         <StatsCard
           title={t('salesReport.stats.outstanding')}
@@ -616,7 +633,7 @@ export const SalesReport = () => {
           icon={<ExclamationTriangleIcon className="w-7 h-7" />}
           color="warning"
           loading={loading}
-          animationDelay={200}
+          animationDelay={400}
         />
         <StatsCard
           title={t('salesReport.stats.invoiceCount')}
@@ -624,7 +641,7 @@ export const SalesReport = () => {
           icon={<DocumentTextIcon className="w-7 h-7" />}
           color="accent"
           loading={loading}
-          animationDelay={300}
+          animationDelay={500}
         />
       </div>
 

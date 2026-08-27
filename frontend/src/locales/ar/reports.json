@@ -47,6 +47,8 @@
     },
     "stats": {
       "totalSales": "إجمالي المبيعات",
+      "totalCredits": "إجمالي المرتجعات",
+      "netSales": "صافي المبيعات",
       "totalPayments": "إجمالي المدفوعات",
       "outstanding": "المستحق",
       "invoiceCount": "الفواتير",
@@ -75,7 +77,8 @@
       "PENDING": "معلقة",
       "PAID": "مدفوعة",
       "PARTIALLY_PAID": "مدفوعة جزئياً",
-      "OVERDUE": "متأخرة"
+      "OVERDUE": "متأخرة",
+      "CREDITED": "ملغية"
     },
     "paymentMethods": {
       "CASH": "نقدي",

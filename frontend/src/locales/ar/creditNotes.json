@@ -1,0 +1,49 @@
+{
+  "title": "الإشعارات الدائنة",
+  "readOnly": "قراءة فقط",
+  "refresh": "تحديث",
+  "createButton": "إنشاء إشعار",
+  "alreadyCredited": "ملغية",
+  "searchPlaceholder": "ابحث برقم الفاتورة أو العميل أو التليفون…",
+  "tabs": {
+    "invoices": "الفواتير النهائية",
+    "issued": "الإشعارات الصادرة"
+  },
+  "empty": {
+    "invoices": "لا توجد فواتير نهائية",
+    "issued": "لم يتم إصدار أي إشعارات دائنة بعد"
+  },
+  "table": {
+    "invoiceNumber": "رقم الفاتورة",
+    "creditNoteNumber": "رقم الإشعار",
+    "originalInvoice": "الفاتورة الأصلية",
+    "date": "التاريخ",
+    "customer": "العميل",
+    "total": "الإجمالي",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "createdBy": "بواسطة",
+    "reason": "السبب"
+  },
+  "status": {
+    "PENDING": "معلّقة",
+    "PAID": "مدفوعة",
+    "PARTIALLY_PAID": "جزئية",
+    "OVERDUE": "متأخرة",
+    "CREDITED": "ملغية"
+  },
+  "confirm": {
+    "title": "إنشاء إشعار دائن",
+    "warning": "ده هيلغي الفاتورة بالكامل ونهائياً. مش هينفع التراجع.",
+    "invoice": "الفاتورة",
+    "customer": "العميل",
+    "amount": "مبلغ الإشعار (كامل)",
+    "reasonLabel": "السبب (اختياري)",
+    "reasonPlaceholder": "مثال: العميل ألغى الخدمة قبل تنفيذها…",
+    "confirmButton": "تأكيد الإلغاء",
+    "cancelButton": "إلغاء"
+  },
+  "errors": {
+    "createFailed": "تعذّر إنشاء الإشعار الدائن. من فضلك حاول تاني."
+  }
+}

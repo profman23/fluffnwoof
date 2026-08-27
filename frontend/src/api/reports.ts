@@ -38,6 +38,9 @@ export interface SalesReportStats {
   totalSales: number;
   totalPayments: number;
   outstandingBalance: number;
+  totalCredits: number;
+  netSales: number;
+  creditNoteCount: number;
   invoiceCount: number;
   paymentMethodBreakdown: PaymentMethodBreakdown[];
 }

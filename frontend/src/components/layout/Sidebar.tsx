@@ -46,6 +46,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { path: '/roles', key: 'rolesPermissions', icon: '🔐', screen: 'rolesPermissions' },
     { path: '/service-products', key: 'serviceProducts', icon: '💼', screen: 'serviceProducts' },
     {
+      key: 'salesModule',
+      icon: '🧾',
+      screen: 'sales',
+      children: [
+        { path: '/sales/credit-notes', key: 'creditNotes', icon: '↩️', screen: 'creditNotes' },
+      ],
+    },
+    {
       key: 'reports',
       icon: '📈',
       screen: 'reports',

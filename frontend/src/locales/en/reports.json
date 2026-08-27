@@ -47,6 +47,8 @@
     },
     "stats": {
       "totalSales": "Total Sales",
+      "totalCredits": "Total Credits",
+      "netSales": "Net Sales",
       "totalPayments": "Total Payments",
       "outstanding": "Outstanding",
       "invoiceCount": "Invoices",
@@ -75,7 +77,8 @@
       "PENDING": "Pending",
       "PAID": "Paid",
       "PARTIALLY_PAID": "Partial",
-      "OVERDUE": "Overdue"
+      "OVERDUE": "Overdue",
+      "CREDITED": "Credited"
     },
     "paymentMethods": {
       "CASH": "Cash",

@@ -70,6 +70,7 @@ export enum InvoiceStatus {
   PAID = 'PAID',
   PARTIALLY_PAID = 'PARTIALLY_PAID',
   OVERDUE = 'OVERDUE',
+  CREDITED = 'CREDITED',
 }
 
 export enum PaymentMethod {

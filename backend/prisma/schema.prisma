@@ -55,6 +55,7 @@ model User {
   createdPetForms      PetForm[]           @relation("PetFormCreator")
   boardingAssignedSessions BoardingSession[] @relation("BoardingAssignedVet")
   boardingCreatedSessions  BoardingSession[] @relation("BoardingCreatedBy")
+  createdCreditNotes       CreditNote[]      @relation("CreatedCreditNotes")
 
   @@index([roleId])
   @@map("users")
@@ -152,6 +153,7 @@ model Owner {
   verifiedAt       DateTime?
   referralSource   String?
   invoices         Invoice[]
+  creditNotes      CreditNote[]
   otps             OwnerOtp[]
   pets             Pet[]
   reminderLogs     ReminderLog[]
@@ -337,11 +339,32 @@ model Invoice {
   appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
   owner         Owner         @relation(fields: [ownerId], references: [id])
   payments      Payment[]
+  creditNote    CreditNote?
 
   @@index([ownerId])
   @@index([invoiceNumber])
   @@index([status])
   @@map("invoices")
+}
+
+model CreditNote {
+  id               String   @id @default(uuid())
+  creditNoteNumber String   @unique
+  amount           Float
+  reason           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  invoiceId        String   @unique
+  ownerId          String
+  createdById      String?
+  invoice          Invoice  @relation(fields: [invoiceId], references: [id])
+  owner            Owner    @relation(fields: [ownerId], references: [id])
+  createdBy        User?    @relation("CreatedCreditNotes", fields: [createdById], references: [id])
+
+  @@index([ownerId])
+  @@index([creditNoteNumber])
+  @@index([createdAt])
+  @@map("credit_notes")
 }
 
 model InvoiceItem {
@@ -821,6 +844,7 @@ enum InvoiceStatus {
   PAID
   PARTIALLY_PAID
   OVERDUE
+  CREDITED
 }
 
 enum PaymentMethod {

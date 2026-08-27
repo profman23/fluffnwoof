@@ -79,3 +79,18 @@ export async function nextInvoiceNumber(): Promise<string> {
   const num = await atomicNextNumber(`invoice_${dateStr}`);
   return `INV-${dateStr}-${num.toString().padStart(4, '0')}`;
 }
+
+/**
+ * Generate next credit note number: CN-YYYYMMDD-0001, CN-YYYYMMDD-0002, ...
+ * Uses a daily key so the sequence resets each day (mirrors nextInvoiceNumber).
+ */
+export async function nextCreditNoteNumber(): Promise<string> {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${year}${month}${day}`;
+
+  const num = await atomicNextNumber(`credit_note_${dateStr}`);
+  return `CN-${dateStr}-${num.toString().padStart(4, '0')}`;
+}

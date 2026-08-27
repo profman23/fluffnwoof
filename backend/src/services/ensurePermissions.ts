@@ -73,6 +73,14 @@ export const ALL_PERMISSIONS = [
   { name: 'screens.serviceProducts.read', description: 'Services & Products - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.serviceProducts.full', description: 'Services & Products - Full Control', category: 'screens', action: 'full' },
 
+  // Sales (parent screen)
+  { name: 'screens.sales.read', description: 'Sales - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.sales.full', description: 'Sales - Full Control', category: 'screens', action: 'full' },
+
+  // Credit Notes (child of Sales)
+  { name: 'screens.creditNotes.read', description: 'Credit Notes - Read Only', category: 'screens', action: 'read' },
+  { name: 'screens.creditNotes.full', description: 'Credit Notes - Full Control', category: 'screens', action: 'full' },
+
   // CRM Management (parent screen)
   { name: 'screens.crm.read', description: 'CRM Management - Read Only', category: 'screens', action: 'read' },
   { name: 'screens.crm.full', description: 'CRM Management - Full Control', category: 'screens', action: 'full' },
