@@ -50,6 +50,8 @@
       "totalCredits": "Total Credits",
       "netSales": "Net Sales",
       "totalPayments": "Total Payments",
+      "totalRefunds": "Total Refunds",
+      "netPayments": "Net Payments",
       "outstanding": "Outstanding",
       "invoiceCount": "Invoices",
       "paymentBreakdown": "Payment Methods"

@@ -167,13 +167,26 @@ export const reportService = {
       invoiceWhere.status = status as InvoiceStatus;
     }
 
-    // Payment where — filter payments by their invoice's issueDate
-    const paymentWhere: any = {};
+    // Payment where — INCOMING only (money received), by their invoice's issueDate.
+    // OUTGOING refunds are excluded here and counted separately as totalRefunds.
+    const paymentWhere: any = { direction: 'INCOMING' };
     if (startDateTime || endDateTime) {
       paymentWhere.invoice = { issueDate: invoiceWhere.issueDate };
     }
     if (paymentMethod && Object.values(PaymentMethod).includes(paymentMethod as PaymentMethod)) {
       paymentWhere.paymentMethod = paymentMethod as PaymentMethod;
+    }
+
+    // Refund where — OUTGOING payments, filtered by their own paymentDate (= the day
+    // the refund/credit note was issued), consistent with how totalCredits uses createdAt.
+    const refundWhere: any = { direction: 'OUTGOING' };
+    if (startDateTime || endDateTime) {
+      refundWhere.paymentDate = {};
+      if (startDateTime) refundWhere.paymentDate.gte = new Date(startDateTime);
+      if (endDateTime) refundWhere.paymentDate.lte = new Date(endDateTime);
+    }
+    if (paymentMethod && Object.values(PaymentMethod).includes(paymentMethod as PaymentMethod)) {
+      refundWhere.paymentMethod = paymentMethod as PaymentMethod;
     }
 
     // Credit note where — filtered by the credit note's own createdAt (the day the
@@ -185,8 +198,8 @@ export const reportService = {
       if (endDateTime) creditNoteWhere.createdAt.lte = new Date(endDateTime);
     }
 
-    // 5 parallel queries for performance
-    const [invoiceStats, paymentStats, paymentMethodBreakdown, total, invoices, creditStats] = await Promise.all([
+    // 6 parallel queries for performance
+    const [invoiceStats, paymentStats, paymentMethodBreakdown, total, invoices, creditStats, refundStats] = await Promise.all([
       // 1. Invoice aggregate stats
       prisma.invoice.aggregate({
         where: invoiceWhere,
@@ -267,6 +280,12 @@ export const reportService = {
         _sum: { amount: true },
         _count: { id: true },
       }),
+
+      // 6. Refunds actually paid out (OUTGOING payments) in the window
+      prisma.payment.aggregate({
+        where: refundWhere,
+        _sum: { amount: true },
+      }),
     ]);
 
     const totalSales = invoiceStats._sum.totalAmount || 0;
@@ -276,6 +295,9 @@ export const reportService = {
     // refunds separately and show net = sales − credits.
     const totalCredits = creditStats._sum.amount || 0;
     const netSales = totalSales - totalCredits;
+    // Refunds = money actually paid back out (OUTGOING). netPayments = cash truly kept.
+    const totalRefunds = refundStats._sum.amount || 0;
+    const netPayments = totalPayments - totalRefunds;
 
     return {
       stats: {
@@ -284,6 +306,8 @@ export const reportService = {
         outstandingBalance,
         totalCredits,
         netSales,
+        totalRefunds,
+        netPayments,
         creditNoteCount: creditStats._count.id,
         invoiceCount: invoiceStats._count.id,
         paymentMethodBreakdown: paymentMethodBreakdown.map((pm) => ({

@@ -22,6 +22,7 @@ export interface CreditNote {
   id: string;
   creditNoteNumber: string;
   amount: number;
+  refundedAmount: number;
   reason: string | null;
   createdAt: string;
   owner: {

@@ -353,7 +353,9 @@ export const appointmentService = {
         invoice: {
           include: {
             items: true,
-            payments: true,
+            // INCOMING only — the flow-board screen sums these as paidAmount; refunds
+            // (OUTGOING) must not appear here.
+            payments: { where: { direction: 'INCOMING' } },
           },
         },
       },

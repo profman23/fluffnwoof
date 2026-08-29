@@ -21,6 +21,7 @@
     "customer": "Customer",
     "total": "Total",
     "amount": "Amount",
+    "refunded": "Refunded",
     "status": "Status",
     "createdBy": "Created By",
     "reason": "Reason"
@@ -38,6 +39,8 @@
     "invoice": "Invoice",
     "customer": "Customer",
     "amount": "Credit amount (full)",
+    "refundAmount": "Refund amount (paid)",
+    "refundNote": "The amount the customer paid will be refunded automatically, using the same payment method(s).",
     "reasonLabel": "Reason (optional)",
     "reasonPlaceholder": "e.g. Customer cancelled the service before it was delivered…",
     "confirmButton": "Confirm Cancellation",

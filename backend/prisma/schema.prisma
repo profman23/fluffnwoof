@@ -348,18 +348,20 @@ model Invoice {
 }
 
 model CreditNote {
-  id               String   @id @default(uuid())
-  creditNoteNumber String   @unique
+  id               String    @id @default(uuid())
+  creditNoteNumber String    @unique
   amount           Float
+  refundedAmount   Float     @default(0)
   reason           String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  invoiceId        String   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  invoiceId        String    @unique
   ownerId          String
   createdById      String?
-  invoice          Invoice  @relation(fields: [invoiceId], references: [id])
-  owner            Owner    @relation(fields: [ownerId], references: [id])
-  createdBy        User?    @relation("CreatedCreditNotes", fields: [createdById], references: [id])
+  invoice          Invoice   @relation(fields: [invoiceId], references: [id])
+  owner            Owner     @relation(fields: [ownerId], references: [id])
+  createdBy        User?     @relation("CreatedCreditNotes", fields: [createdById], references: [id])
+  refundPayments   Payment[] @relation("CreditNoteRefunds")
 
   @@index([ownerId])
   @@index([creditNoteNumber])
@@ -386,17 +388,22 @@ model InvoiceItem {
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  paymentDate   DateTime      @default(now())
+  id            String           @id @default(uuid())
+  paymentDate   DateTime         @default(now())
   amount        Float
-  paymentMethod PaymentMethod @default(CASH)
+  paymentMethod PaymentMethod    @default(CASH)
+  direction     PaymentDirection @default(INCOMING)
   notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   invoiceId     String
-  invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  creditNoteId  String?
+  invoice       Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  creditNote    CreditNote?      @relation("CreditNoteRefunds", fields: [creditNoteId], references: [id])
 
   @@index([invoiceId])
+  @@index([direction])
+  @@index([creditNoteId])
   @@map("payments")
 }
 
@@ -854,6 +861,11 @@ enum PaymentMethod {
   MADA
   TABBY
   TAMARA
+}
+
+enum PaymentDirection {
+  INCOMING
+  OUTGOING
 }
 
 enum SmsStatus {

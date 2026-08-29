@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
-import { cleanDatabase, createTestUser } from '../setup';
+import { cleanDatabase, createTestUser, prisma } from '../setup';
 import { generateAdminToken } from '../helpers';
 
 describe('Credit Notes API', () => {
@@ -159,6 +159,114 @@ describe('Credit Notes API', () => {
         .expect(200);
       const credited = res2.body.data.find((i: { id: string }) => i.id === fresh.id);
       expect(credited?.status).toBe('CREDITED');
+    });
+  });
+
+  // ── Refund (outgoing payment) behaviour ──
+  describe('Refunds on credit note', () => {
+    const addPayment = async (invoiceId: string, amount: number, method = 'CASH') =>
+      request(app)
+        .post(`/api/invoices/${invoiceId}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount, paymentMethod: method })
+        .expect(201);
+
+    const outgoingFor = (invoiceId: string) =>
+      prisma.payment.findMany({ where: { invoiceId, direction: 'OUTGOING' } });
+    const incomingFor = (invoiceId: string) =>
+      prisma.payment.findMany({ where: { invoiceId, direction: 'INCOMING' } });
+
+    it('fully paid invoice → one OUTGOING refund mirroring the payment; refundedAmount = paid', async () => {
+      const inv = await createFinalized(); // total 230
+      await addPayment(inv.id, inv.totalAmount, 'MADA');
+
+      const res = await request(app)
+        .post('/api/credit-notes')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ invoiceId: inv.id })
+        .expect(201);
+
+      expect(res.body.refundedAmount).toBeCloseTo(inv.totalAmount, 2);
+
+      const out = await outgoingFor(inv.id);
+      expect(out.length).toBe(1);
+      expect(out[0].amount).toBeCloseTo(inv.totalAmount, 2);
+      expect(out[0].paymentMethod).toBe('MADA');
+      expect(out[0].creditNoteId).toBe(res.body.id);
+
+      // paidAmount (incoming) is untouched
+      const check = await request(app).get(`/api/invoices/${inv.id}`).set('Authorization', `Bearer ${adminToken}`).expect(200);
+      expect(check.body.paidAmount).toBeCloseTo(inv.totalAmount, 2);
+      expect(check.body.status).toBe('CREDITED');
+    });
+
+    it('partially paid → refund equals the PAID amount only, not the total', async () => {
+      const inv = await createFinalized(); // total 230
+      await addPayment(inv.id, 100, 'CASH'); // paid 100 of 230
+
+      const res = await request(app)
+        .post('/api/credit-notes')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ invoiceId: inv.id })
+        .expect(201);
+
+      expect(res.body.refundedAmount).toBeCloseTo(100, 2);
+      const out = await outgoingFor(inv.id);
+      expect(out.length).toBe(1);
+      expect(out[0].amount).toBeCloseTo(100, 2);
+    });
+
+    it('multiple methods → one OUTGOING per incoming payment, mirroring method + amount', async () => {
+      const inv = await createFinalized(); // total 230
+      await addPayment(inv.id, 130, 'CASH');
+      await addPayment(inv.id, 100, 'CARD');
+
+      const res = await request(app)
+        .post('/api/credit-notes')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ invoiceId: inv.id })
+        .expect(201);
+
+      expect(res.body.refundedAmount).toBeCloseTo(230, 2);
+      const out = await outgoingFor(inv.id);
+      expect(out.length).toBe(2);
+      const byMethod = Object.fromEntries(out.map((p) => [p.paymentMethod, p.amount]));
+      expect(byMethod.CASH).toBeCloseTo(130, 2);
+      expect(byMethod.CARD).toBeCloseTo(100, 2);
+    });
+
+    it('unpaid finalized invoice → zero refunds, refundedAmount 0', async () => {
+      const inv = await createFinalized();
+      const res = await request(app)
+        .post('/api/credit-notes')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ invoiceId: inv.id })
+        .expect(201);
+
+      expect(res.body.refundedAmount).toBe(0);
+      const out = await outgoingFor(inv.id);
+      expect(out.length).toBe(0);
+    });
+
+    it('regression: removePayment recomputes paidAmount from INCOMING only (ignores refunds)', async () => {
+      const inv = await createFinalized(); // total 230
+      const p1 = await addPayment(inv.id, 130, 'CASH');
+      await addPayment(inv.id, 100, 'CARD');
+
+      // Credit → creates 2 OUTGOING refunds
+      await request(app).post('/api/credit-notes').set('Authorization', `Bearer ${adminToken}`).send({ invoiceId: inv.id }).expect(201);
+      expect((await outgoingFor(inv.id)).length).toBe(2);
+
+      // Remove one incoming payment → paidAmount must re-aggregate INCOMING only (100 left),
+      // NOT be corrupted by the 230 of OUTGOING refunds.
+      await request(app)
+        .delete(`/api/invoices/payments/${p1.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(204);
+
+      const invRow = await prisma.invoice.findUnique({ where: { id: inv.id } });
+      expect(invRow?.paidAmount).toBeCloseTo(100, 2); // 230 − 130, refunds ignored
+      expect((await incomingFor(inv.id)).length).toBe(1);
     });
   });
 

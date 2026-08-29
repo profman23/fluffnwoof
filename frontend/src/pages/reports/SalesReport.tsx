@@ -628,12 +628,28 @@ export const SalesReport = () => {
           animationDelay={300}
         />
         <StatsCard
+          title={t('salesReport.stats.totalRefunds')}
+          value={stats?.totalRefunds || 0}
+          icon={<ArrowUturnLeftIcon className="w-7 h-7" />}
+          color="danger"
+          loading={loading}
+          animationDelay={400}
+        />
+        <StatsCard
+          title={t('salesReport.stats.netPayments')}
+          value={stats?.netPayments ?? (stats?.totalPayments || 0)}
+          icon={<CreditCardIcon className="w-7 h-7" />}
+          color="secondary"
+          loading={loading}
+          animationDelay={500}
+        />
+        <StatsCard
           title={t('salesReport.stats.outstanding')}
           value={stats?.outstandingBalance || 0}
           icon={<ExclamationTriangleIcon className="w-7 h-7" />}
           color="warning"
           loading={loading}
-          animationDelay={400}
+          animationDelay={600}
         />
         <StatsCard
           title={t('salesReport.stats.invoiceCount')}
@@ -641,7 +657,7 @@ export const SalesReport = () => {
           icon={<DocumentTextIcon className="w-7 h-7" />}
           color="accent"
           loading={loading}
-          animationDelay={500}
+          animationDelay={700}
         />
       </div>
 

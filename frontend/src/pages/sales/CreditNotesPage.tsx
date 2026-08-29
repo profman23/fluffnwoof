@@ -206,6 +206,7 @@ export const CreditNotesPage = () => {
                       <Th>{t('table.originalInvoice')}</Th>
                       <Th>{t('table.customer')}</Th>
                       <Th className="text-end">{t('table.amount')}</Th>
+                      <Th className="text-end">{t('table.refunded')}</Th>
                       <Th>{t('table.date')}</Th>
                       <Th>{t('table.createdBy')}</Th>
                       <Th>{t('table.reason')}</Th>
@@ -223,6 +224,13 @@ export const CreditNotesPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap font-medium dark:text-[var(--app-text-primary)]">{cn.owner.firstName} {cn.owner.lastName}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-end font-semibold text-red-600 dark:text-red-400" style={{ fontVariantNumeric: 'tabular-nums' }}>
                           <span className="inline-flex items-center gap-1" dir="ltr">− {fmtMoney(cn.amount)} <SarSymbol className="w-3.5 h-3.5" /></span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-end dark:text-[var(--app-text-primary)]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {cn.refundedAmount > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400" dir="ltr">💸 {fmtMoney(cn.refundedAmount)} <SarSymbol className="w-3.5 h-3.5" /></span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500">—</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{fmtDate(cn.createdAt)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
@@ -258,7 +266,15 @@ export const CreditNotesPage = () => {
                   <Row label={t('confirm.amount')}>
                     <span className="font-semibold text-red-600 dark:text-red-400" dir="ltr">− {fmtMoney(selected.totalAmount)} ﷼</span>
                   </Row>
+                  {selected.paidAmount > 0 && (
+                    <Row label={t('confirm.refundAmount')}>
+                      <span className="font-semibold text-orange-600 dark:text-orange-400" dir="ltr">💸 − {fmtMoney(selected.paidAmount)} ﷼</span>
+                    </Row>
+                  )}
                 </div>
+                {selected.paidAmount > 0 && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400">{t('confirm.refundNote')}</p>
+                )}
                 <div>
                   <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('confirm.reasonLabel')}</label>
                   <textarea

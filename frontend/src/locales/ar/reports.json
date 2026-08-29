@@ -47,9 +47,11 @@
     },
     "stats": {
       "totalSales": "إجمالي المبيعات",
-      "totalCredits": "إجمالي المرتجعات",
+      "totalCredits": "إجمالي الإشعارات الدائنة",
       "netSales": "صافي المبيعات",
       "totalPayments": "إجمالي المدفوعات",
+      "totalRefunds": "إجمالي المبالغ المرتجعة",
+      "netPayments": "صافي المدفوعات",
       "outstanding": "المستحق",
       "invoiceCount": "الفواتير",
       "paymentBreakdown": "طرق الدفع"

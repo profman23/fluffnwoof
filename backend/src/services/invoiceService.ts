@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
-import { InvoiceStatus, PaymentMethod } from '@prisma/client';
+import { InvoiceStatus, PaymentMethod, PaymentDirection } from '@prisma/client';
 import { nextInvoiceNumber } from '../utils/codeGenerator';
 
 interface CreateInvoiceInput {
@@ -129,7 +129,7 @@ export const invoiceService = {
           },
         },
         items: true,
-        payments: true,
+        payments: { where: { direction: PaymentDirection.INCOMING } },
       },
     });
 
@@ -170,6 +170,7 @@ export const invoiceService = {
           orderBy: { createdAt: 'asc' },
         },
         payments: {
+          where: { direction: PaymentDirection.INCOMING },
           orderBy: { paymentDate: 'desc' },
         },
       },
@@ -202,6 +203,7 @@ export const invoiceService = {
           orderBy: { createdAt: 'asc' },
         },
         payments: {
+          where: { direction: PaymentDirection.INCOMING },
           orderBy: { paymentDate: 'desc' },
         },
       },
@@ -311,7 +313,7 @@ export const invoiceService = {
   async addPayment(invoiceId: string, data: AddPaymentInput) {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { payments: true },
+      include: { payments: { where: { direction: PaymentDirection.INCOMING } } },
     });
 
     if (!invoice) {
@@ -329,6 +331,7 @@ export const invoiceService = {
         invoiceId,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
+        direction: PaymentDirection.INCOMING,
         notes: data.notes,
       },
     });
@@ -373,9 +376,10 @@ export const invoiceService = {
       where: { id: paymentId },
     });
 
-    // Recalculate paid amount
+    // Recalculate paid amount — INCOMING only, so OUTGOING refunds never fold back
+    // into paidAmount (which must stay the historical amount the customer paid).
     const remainingPayments = await prisma.payment.aggregate({
-      where: { invoiceId: payment.invoiceId },
+      where: { invoiceId: payment.invoiceId, direction: PaymentDirection.INCOMING },
       _sum: { amount: true },
     });
 
@@ -463,7 +467,7 @@ export const invoiceService = {
           },
         },
         items: true,
-        payments: true,
+        payments: { where: { direction: PaymentDirection.INCOMING } },
       },
     });
   },
@@ -565,7 +569,7 @@ export const invoiceService = {
           },
         },
         items: true,
-        payments: true,
+        payments: { where: { direction: PaymentDirection.INCOMING } },
       },
     });
 

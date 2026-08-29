@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
-import { InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus, PaymentDirection } from '@prisma/client';
 import { nextCreditNoteNumber } from '../utils/codeGenerator';
 
 interface ListParams {
@@ -38,7 +38,19 @@ export const creditNoteService = {
   async create(invoiceId: string, reason: string | undefined, userId: string | undefined) {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, ownerId: true, totalAmount: true, isFinalized: true, status: true },
+      select: {
+        id: true,
+        ownerId: true,
+        totalAmount: true,
+        paidAmount: true,
+        isFinalized: true,
+        status: true,
+        // Only INCOMING payments are mirrored as refunds (never other refunds).
+        payments: {
+          where: { direction: PaymentDirection.INCOMING },
+          select: { amount: true, paymentMethod: true },
+        },
+      },
     });
 
     if (!invoice) {
@@ -53,14 +65,19 @@ export const creditNoteService = {
       throw new AppError('This invoice has already been credited', 400);
     }
 
+    // Refund = what the customer actually paid (sum of INCOMING payments), mirrored
+    // one-for-one by method. The credit note still cancels the full invoice value.
+    const refundedAmount = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
+
     // Mint the serial before the transaction (atomicNextNumber is itself atomic).
     const creditNoteNumber = await nextCreditNoteNumber();
 
-    const [creditNote] = await prisma.$transaction([
-      prisma.creditNote.create({
+    const creditNote = await prisma.$transaction(async (tx) => {
+      const cn = await tx.creditNote.create({
         data: {
           creditNoteNumber,
           amount: invoice.totalAmount,
+          refundedAmount,
           reason: reason || null,
           invoiceId: invoice.id,
           ownerId: invoice.ownerId,
@@ -71,12 +88,30 @@ export const creditNoteService = {
           invoice: { select: { id: true, invoiceNumber: true, totalAmount: true, issueDate: true } },
           createdBy: { select: { id: true, firstName: true, lastName: true } },
         },
-      }),
-      prisma.invoice.update({
+      });
+
+      // Cancel the invoice. paidAmount is left untouched (historical incoming total).
+      await tx.invoice.update({
         where: { id: invoice.id },
         data: { status: InvoiceStatus.CREDITED },
-      }),
-    ]);
+      });
+
+      // Mirror each incoming payment as an OUTGOING refund (same method + amount).
+      if (invoice.payments.length > 0) {
+        await tx.payment.createMany({
+          data: invoice.payments.map((p) => ({
+            invoiceId: invoice.id,
+            creditNoteId: cn.id,
+            amount: p.amount,
+            paymentMethod: p.paymentMethod,
+            direction: PaymentDirection.OUTGOING,
+            notes: `Refund for credit note ${creditNoteNumber}`,
+          })),
+        });
+      }
+
+      return cn;
+    });
 
     return creditNote;
   },
