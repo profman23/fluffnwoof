@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
-import { cleanDatabase, createTestUser } from '../setup';
+import { cleanDatabase, createTestUser, prisma } from '../setup';
 import { generateAdminToken } from '../helpers';
 
 describe('Invoices API', () => {
@@ -624,6 +624,95 @@ describe('Invoices API', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       expect(fin.body.data.status).toBe('PAID');
+    });
+  });
+
+  // ── Payment / Generate gated by appointment checkout status ──
+  describe('Checkout-ready guard (payment + finalize)', () => {
+    let vetId: string;
+    let petId: string;
+
+    beforeAll(async () => {
+      const vet = await createTestUser({ email: `vet-checkout-${Date.now()}@fluffnwoof.com` });
+      vetId = vet.id;
+      const pet = await prisma.pet.create({
+        data: { name: 'CheckoutPet', species: 'DOG', gender: 'MALE', ownerId: testOwnerId, petCode: `PC-${Date.now()}` },
+      });
+      petId = pet.id;
+    });
+
+    // Create an invoice linked to an appointment in a given status.
+    const createInvoiceWithAppointment = async (status: string) => {
+      const appt = await prisma.appointment.create({
+        data: {
+          petId, vetId,
+          appointmentDate: new Date(),
+          appointmentTime: '10:00',
+          status: status as never,
+        },
+      });
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          ownerId: testOwnerId,
+          appointmentId: appt.id,
+          items: [{ description: 'Svc', quantity: 1, unitPrice: 115, priceBeforeTax: 100, taxRate: 15 }],
+        })
+        .expect(201);
+      return { invoice: res.body, appointmentId: appt.id };
+    };
+
+    it('rejects payment while the appointment is IN_PROGRESS (409)', async () => {
+      const { invoice } = await createInvoiceWithAppointment('IN_PROGRESS');
+      await request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: 50, paymentMethod: 'CASH' })
+        .expect(409);
+    });
+
+    it('rejects finalize while the appointment is IN_PROGRESS (409)', async () => {
+      const { invoice } = await createInvoiceWithAppointment('IN_PROGRESS');
+      await request(app)
+        .patch(`/api/invoices/${invoice.id}/finalize`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(409);
+    });
+
+    it('allows payment + finalize when READY_TO_CHECKOUT', async () => {
+      const { invoice } = await createInvoiceWithAppointment('READY_TO_CHECKOUT');
+      await request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: 50, paymentMethod: 'CASH' })
+        .expect(201);
+      await request(app)
+        .patch(`/api/invoices/${invoice.id}/finalize`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+    });
+
+    it('allows payment when COMPLETED', async () => {
+      const { invoice } = await createInvoiceWithAppointment('COMPLETED');
+      await request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: 50, paymentMethod: 'CASH' })
+        .expect(201);
+    });
+
+    it('allows payment on a DIRECT invoice with no appointment (regression)', async () => {
+      const res = await request(app)
+        .post('/api/invoices')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ownerId: testOwnerId, items: [{ description: 'Direct', quantity: 1, unitPrice: 115, priceBeforeTax: 100, taxRate: 15 }] })
+        .expect(201);
+      await request(app)
+        .post(`/api/invoices/${res.body.id}/payments`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: 50, paymentMethod: 'CASH' })
+        .expect(201);
     });
   });
 });

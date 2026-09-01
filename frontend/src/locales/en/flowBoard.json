@@ -135,7 +135,9 @@
   "payment": {
     "title": "Payment",
     "noInvoice": "No invoice created yet",
-    "addServicesFirst": "Add services and create an invoice first"
+    "addServicesFirst": "Add services and create an invoice first",
+    "notReadyTitle": "Payment not available yet",
+    "notReadyForCheckout": "Payment and Generate Invoice become available once the card is moved to \"Ready to Checkout\". Finish the visit and hand it to reception."
   },
   "paidAmount": "Paid",
   "remainingAmount": "Remaining",
@@ -161,6 +163,7 @@
     "reopening": "Reopening...",
     "closed": "Record Closed",
     "invoiceFinalizedElsewhere": "This invoice was finalized by another user. The screen has been refreshed — item changes are no longer allowed.",
+    "itemsLockedForCheckout": "Reception moved this card to \"Ready to Checkout\", so the services are now locked. The screen has been refreshed. If you need to edit, ask reception to return the card to the doctor.",
     "readyToCheckout": "Ready to Checkout",
     "returnToDoctor": "Return to Doctor",
     "statusUpdateError": "Could not update the status. Please refresh and try again.",

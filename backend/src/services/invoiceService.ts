@@ -62,6 +62,34 @@ async function assertItemsEditable(invoiceId: string): Promise<void> {
   }
 }
 
+/**
+ * Authoritative guard: payments and finalize are only allowed once the visit has
+ * been handed to reception (appointment READY_TO_CHECKOUT) or already COMPLETED.
+ * While the doctor is still working (e.g. IN_PROGRESS) taking money / issuing the
+ * invoice is blocked. Invoices with NO linked appointment (direct invoices) are
+ * always allowed. Server-side so a stale/concurrent client can't bypass it. 409.
+ */
+async function assertCheckoutReady(invoiceId: string): Promise<void> {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { appointmentId: true },
+  });
+  if (!invoice) {
+    throw new AppError('Invoice not found', 404);
+  }
+  // Direct invoices (no appointment) are always payable.
+  if (!invoice.appointmentId) return;
+
+  const appt = await prisma.appointment.findUnique({
+    where: { id: invoice.appointmentId },
+    select: { status: true },
+  });
+  const ready = appt?.status === 'READY_TO_CHECKOUT' || appt?.status === 'COMPLETED';
+  if (!ready) {
+    throw new AppError('Payment is only available once the card is ready for checkout', 409);
+  }
+}
+
 interface AddPaymentInput {
   amount: number;
   paymentMethod: PaymentMethod;
@@ -157,6 +185,7 @@ export const invoiceService = {
             id: true,
             appointmentDate: true,
             appointmentTime: true,
+            status: true,
             pet: {
               select: {
                 id: true,
@@ -311,6 +340,9 @@ export const invoiceService = {
    * Add payment to invoice
    */
   async addPayment(invoiceId: string, data: AddPaymentInput) {
+    // Payments only once the card is ready for checkout (or the invoice has no appointment).
+    await assertCheckoutReady(invoiceId);
+
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { payments: { where: { direction: PaymentDirection.INCOMING } } },
@@ -511,6 +543,17 @@ export const invoiceService = {
 
     if (invoice.isFinalized) {
       throw new AppError('Invoice is already finalized', 400);
+    }
+
+    // Generate Invoice only once the card is ready for checkout (or COMPLETED).
+    // Direct invoices (no appointment) are always allowed. Mirrors assertCheckoutReady.
+    if (invoice.appointment) {
+      const ready =
+        invoice.appointment.status === 'READY_TO_CHECKOUT' ||
+        invoice.appointment.status === 'COMPLETED';
+      if (!ready) {
+        throw new AppError('Payment is only available once the card is ready for checkout', 409);
+      }
     }
 
     // Mint the official serial only now (at finalize), and only if this is still

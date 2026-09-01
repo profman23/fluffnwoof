@@ -1,5 +1,5 @@
 import api from './client';
-import { PaymentMethod, InvoiceStatus } from '../types';
+import { PaymentMethod, InvoiceStatus, AppointmentStatus } from '../types';
 
 export interface InvoiceItem {
   id: string;
@@ -48,6 +48,7 @@ export interface Invoice {
     id: string;
     appointmentDate: string;
     appointmentTime: string;
+    status?: AppointmentStatus;
     pet?: {
       id: string;
       name: string;

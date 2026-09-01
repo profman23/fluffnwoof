@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, CreditCardIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon, CheckCircleIcon, PlusIcon, CreditCardIcon, ExclamationTriangleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { FlowBoardAppointment, MedicalRecord, MedicalRecordInput, VisitType, User, Appointment, MedicalAttachment, AppointmentStatus } from '../../types';
 import { medicalRecordsApi } from '../../api/medicalRecords';
 import { flowBoardApi } from '../../api/flowBoard';
@@ -760,8 +760,11 @@ export const PatientRecordModal = ({
   };
 
   // Batch save all invoice changes (called on modal close)
-  const saveInvoiceChanges = async () => {
-    if (!hasUnsavedInvoiceChanges) return;
+  // Returns true on success (or nothing to do), false if the save was blocked by a
+  // concurrency conflict (invoice finalized / card locked for checkout elsewhere) so
+  // callers can keep the modal open and let the doctor read the message.
+  const saveInvoiceChanges = async (): Promise<boolean> => {
+    if (!hasUnsavedInvoiceChanges) return true;
 
     setSavingInvoice(true);
     setInvoiceError(null);
@@ -821,13 +824,16 @@ export const PatientRecordModal = ({
 
         const hasItemChanges = newlyAddedItems.length > 0 || changedItems.length > 0 || removedItems.length > 0;
 
-        // Concurrency guard: if this invoice was finalized elsewhere (e.g. reception
-        // clicked Generate) while this screen was open, item edits are no longer allowed.
-        // Re-fetch fresh state; if finalized + we have item changes, stop, refresh the
-        // UI (which locks the services/payment sections), and inform the user.
+        // Concurrency guard: if this invoice was finalized OR the card was moved to
+        // Ready-to-Checkout elsewhere (e.g. reception locked it) while this screen was
+        // open, item edits are no longer allowed. Re-fetch fresh state; if locked +
+        // we have item changes, stop, refresh the UI (locking items) and inform the
+        // doctor with the CORRECT reason (checkout-lock vs finalized).
         if (hasItemChanges) {
           const fresh = await invoicesApi.getById(invoice.id);
-          if (fresh.isFinalized) {
+          const lockedByCheckout =
+            fresh.appointment?.status === AppointmentStatus.READY_TO_CHECKOUT;
+          if (fresh.isFinalized || lockedByCheckout) {
             if (isMountedRef.current) {
               setInvoice(fresh);
               const freshItems = fresh.items.map((it) => ({
@@ -843,9 +849,13 @@ export const PatientRecordModal = ({
               setSelectedItems(freshItems);
               setOriginalItems(freshItems);
               setHasUnsavedInvoiceChanges(false);
-              setInvoiceError(tFlow('record.invoiceFinalizedElsewhere'));
+              setInvoiceError(
+                fresh.isFinalized
+                  ? tFlow('record.invoiceFinalizedElsewhere')
+                  : tFlow('record.itemsLockedForCheckout')
+              );
             }
-            return; // Abort — do not mutate a finalized invoice
+            return false; // Blocked by conflict — keep modal open so the message shows
           }
         }
 
@@ -901,7 +911,7 @@ export const PatientRecordModal = ({
             setOriginalPayments([]);
             setHasUnsavedInvoiceChanges(false);
           }
-          return; // Skip getById — the invoice no longer exists (would 404)
+          return true; // Skip getById — the invoice no longer exists (would 404)
         }
 
         // Refresh invoice to sync state
@@ -931,22 +941,35 @@ export const PatientRecordModal = ({
       }
 
       setHasUnsavedInvoiceChanges(false);
+      return true;
     } catch (err) {
       console.error('Failed to save invoice changes:', err);
-      if (isMountedRef.current) {
-        // Backend rejected because the invoice was finalized elsewhere (409).
-        // Defense-in-depth if the pre-save re-check was skipped/raced.
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 409 && invoice) {
-          try {
-            const fresh = await invoicesApi.getById(invoice.id);
-            if (isMountedRef.current) setInvoice(fresh);
-          } catch { /* ignore */ }
-          setInvoiceError(tFlow('record.invoiceFinalizedElsewhere'));
-        } else {
-          setInvoiceError(tFlow('invoice.createError'));
+      // Backend rejected with 409 — either the invoice was finalized OR the card was
+      // locked for checkout elsewhere. Signal conflict (return false) so callers keep
+      // the modal open and the message shows.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        if (isMountedRef.current) {
+          let finalized = false;
+          if (invoice) {
+            try {
+              const fresh = await invoicesApi.getById(invoice.id);
+              finalized = fresh.isFinalized;
+              if (isMountedRef.current) setInvoice(fresh);
+            } catch { /* ignore */ }
+          }
+          setInvoiceError(
+            finalized
+              ? tFlow('record.invoiceFinalizedElsewhere')
+              : tFlow('record.itemsLockedForCheckout')
+          );
         }
+        return false;
       }
+      if (isMountedRef.current) {
+        setInvoiceError(tFlow('invoice.createError'));
+      }
+      return false;
     } finally {
       if (isMountedRef.current) {
         setSavingInvoice(false);
@@ -960,9 +983,14 @@ export const PatientRecordModal = ({
 
     setFinalizingInvoice(true);
     try {
-      // Save unsaved invoice changes (items + payments) before finalizing
+      // Save unsaved invoice changes (items + payments) before finalizing. If blocked
+      // by a conflict, stop — don't finalize on top of a stale/locked state.
       if (hasUnsavedInvoiceChanges) {
-        await saveInvoiceChanges();
+        const ok = await saveInvoiceChanges();
+        if (!ok) {
+          setFinalizingInvoice(false);
+          return;
+        }
       }
 
       const finalizedInvoice = await invoicesApi.finalize(invoice.id);
@@ -985,14 +1013,27 @@ export const PatientRecordModal = ({
   // Ready-to-Checkout stage: doctor finished; items are locked, payment stays open.
   const isReadyToCheckout = effectiveAppointment?.status === AppointmentStatus.READY_TO_CHECKOUT;
 
+  // Payment + Generate Invoice are only available once the card is ready for checkout
+  // (or already COMPLETED). Direct invoices with no appointment are always payable.
+  const canTakePayment =
+    !effectiveAppointment ||
+    effectiveAppointment.status === AppointmentStatus.READY_TO_CHECKOUT ||
+    effectiveAppointment.status === AppointmentStatus.COMPLETED;
+
   // Move the card to "Ready to Checkout" (locks items, hands control to reception).
   const handleReadyToCheckout = async () => {
     if (!effectiveAppointment?.id) return;
     setSavingInvoice(true);
     setInvoiceError(null);
     try {
+      // Save first. If blocked by a conflict, stop — keep the modal open so the
+      // message shows (don't proceed to move status / close).
       if (hasUnsavedInvoiceChanges) {
-        await saveInvoiceChanges();
+        const ok = await saveInvoiceChanges();
+        if (!ok) {
+          setSavingInvoice(false);
+          return;
+        }
       }
       await flowBoardApi.updateStatus(effectiveAppointment.id, AppointmentStatus.READY_TO_CHECKOUT);
       if (isMountedRef.current) {
@@ -1251,9 +1292,15 @@ export const PatientRecordModal = ({
       }
     }
 
-    // Save unsaved invoice changes before closing
+    // Save unsaved invoice changes before closing. If the save was blocked by a
+    // concurrency conflict (card locked / invoice finalized elsewhere), keep the modal
+    // open so the doctor can read the message instead of silently closing.
     if (hasUnsavedInvoiceChanges) {
-      await saveInvoiceChanges();
+      const ok = await saveInvoiceChanges();
+      if (!ok) {
+        setIsSavingBeforeClose(false);
+        return;
+      }
     }
 
     setIsSavingBeforeClose(false);
@@ -1836,6 +1883,14 @@ export const PatientRecordModal = ({
                       <CreditCardIcon className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                       <p className="font-medium">{tFlow('payment.noInvoice')}</p>
                       <p className="text-sm mt-1">{tFlow('payment.addServicesFirst')}</p>
+                    </div>
+                  ) : !canTakePayment ? (
+                    <div className="text-center py-8 px-4">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                        <LockClosedIcon className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <p className="font-medium text-gray-700 dark:text-[var(--app-text-primary)]">{tFlow('payment.notReadyTitle')}</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400 max-w-sm mx-auto">{tFlow('payment.notReadyForCheckout')}</p>
                     </div>
                   ) : (
                     <PaymentSection
