@@ -26,6 +26,7 @@ const SOURCE_COLORS: Record<string, string> = {
   WALK_IN: '#9333EA',
   DR_MANDOUR_ADV: '#0EA5E9',
   DR_MAHMOUD_ADV: '#14B8A6',
+  CHATGPT: '#10A37F',
 };
 
 const SOURCE_ICONS: Record<string, string> = {
@@ -40,6 +41,7 @@ const SOURCE_ICONS: Record<string, string> = {
   WALK_IN: '🚶',
   DR_MANDOUR_ADV: '👨‍⚕️',
   DR_MAHMOUD_ADV: '👨‍⚕️',
+  CHATGPT: '🤖',
 };
 
 // Combine a date (YYYY-MM-DD) + time (HH:mm) into an ISO string; undefined if no date.

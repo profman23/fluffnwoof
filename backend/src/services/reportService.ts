@@ -41,6 +41,7 @@ interface PaginatedResult<T> {
 const KNOWN_REFERRAL_SOURCES = [
   'GOOGLE_SEARCH', 'GOOGLE_MAPS', 'INSTAGRAM', 'FACEBOOK', 'FRIEND_REFERRAL',
   'CLINIC_REFERRAL', 'TIKTOK', 'SNAPCHAT', 'WALK_IN', 'DR_MANDOUR_ADV', 'DR_MAHMOUD_ADV',
+  'CHATGPT',
 ];
 
 export const reportService = {

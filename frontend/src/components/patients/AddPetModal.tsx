@@ -541,6 +541,7 @@ export const AddPetModal: React.FC<AddPetModalProps> = ({
                   <option value="WALK_IN">🚶 {t('referralSource.WALK_IN')}</option>
                   <option value="DR_MANDOUR_ADV">👨‍⚕️ {t('referralSource.DR_MANDOUR_ADV')}</option>
                   <option value="DR_MAHMOUD_ADV">👨‍⚕️ {t('referralSource.DR_MAHMOUD_ADV')}</option>
+                  <option value="CHATGPT">🤖 {t('referralSource.CHATGPT')}</option>
                 </select>
                 {errors.referralSource && (
                   <p className="mt-1 text-sm text-red-500">{errors.referralSource}</p>

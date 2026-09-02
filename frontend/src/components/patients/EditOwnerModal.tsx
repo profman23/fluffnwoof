@@ -220,6 +220,7 @@ export const EditOwnerModal: React.FC<EditOwnerModalProps> = ({
               <option value="WALK_IN">🚶 {t('referralSource.WALK_IN')}</option>
               <option value="DR_MANDOUR_ADV">👨‍⚕️ {t('referralSource.DR_MANDOUR_ADV')}</option>
               <option value="DR_MAHMOUD_ADV">👨‍⚕️ {t('referralSource.DR_MAHMOUD_ADV')}</option>
+              <option value="CHATGPT">🤖 {t('referralSource.CHATGPT')}</option>
             </select>
           </div>
         </div>
