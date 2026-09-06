@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 import { ArrowPathIcon, CalendarDaysIcon, UserGroupIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 import { Card } from '../components/common/Card';
 import { LogoLoader } from '../components/common/LogoLoader';
@@ -14,6 +16,11 @@ import { VetsChart } from '../components/dashboard/VetsChart';
 export const Dashboard: React.FC = () => {
   const { t, i18n } = useTranslation('dashboard');
   const isRtl = i18n.language === 'ar';
+
+  // Restricted marketing role (Google-only report) must never see the dashboard —
+  // redirect them to their report. Kept as a hook-order-safe check after all hooks below.
+  const permissions = useAuthStore((s) => s.permissions);
+  const isReportOnlyMarketing = permissions.includes('acquisitionReport.googleOnly');
 
   // Basic dashboard data
   const [loading, setLoading] = useState(true);
@@ -68,6 +75,12 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
+
+  // After all hooks: redirect the Google-only marketing role away from the dashboard.
+  // Loop-safe — they have acquisitionReport.read so the report's own guard won't bounce back.
+  if (isReportOnlyMarketing) {
+    return <Navigate to="/reports/acquisition" replace />;
+  }
 
   const handleDateRangeChange = (start: Date, end: Date, newPreset: DateRangePreset) => {
     setDateRange({ startDate: start, endDate: end });

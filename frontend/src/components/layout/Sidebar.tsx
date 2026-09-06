@@ -120,10 +120,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   // Menu item component for simple items
   const MenuItemComponent = ({ item }: { item: MenuItem }) => {
     const { canAccess } = useScreenPermission(item.screen);
+    const { permissions } = useAuthStore();
     const isActive = item.path && location.pathname === item.path;
     const isHovered = hoveredItem === item.key;
 
     if (!canAccess) return null;
+
+    // Dashboard is always accessible (hard-coded), but the Google-only marketing role
+    // must not see it — hide the dashboard item for that role only.
+    if (item.screen === 'dashboard' && permissions.includes('acquisitionReport.googleOnly')) {
+      return null;
+    }
 
     // If item has children, render as expandable
     if (item.children) {

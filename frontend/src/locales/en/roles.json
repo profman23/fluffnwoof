@@ -52,6 +52,7 @@
     "hidePhone": "Hide Phone Number",
     "salesReportExport": "Export Sales Report (Excel)",
     "customerSourceReportExport": "Export Customer Source Report (Excel)",
+    "acquisitionGoogleOnly": "Restrict Customer Source report to Google only (marketing)",
     "flowBoardCheckout": "Checkout Control (return card from Ready to Checkout)"
   },
   "messages": {

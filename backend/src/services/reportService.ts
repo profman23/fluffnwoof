@@ -334,8 +334,11 @@ export const reportService = {
     source?: string;
     startDateTime?: string;
     endDateTime?: string;
+    // Server-enforced restriction: when set, results are limited to this set of sources
+    // and a client `source` is honored ONLY if it's within the set (never widens).
+    allowedSources?: string[];
   }) {
-    const { startDate, endDate, firstInvoiceOnly = true, source, startDateTime, endDateTime } = params;
+    const { startDate, endDate, firstInvoiceOnly = true, source, startDateTime, endDateTime, allowedSources } = params;
 
     // Date filter on owner.createdAt. Prefer precise DateTime (with time) when provided,
     // otherwise fall back to whole-day date range (backward compatible).
@@ -353,12 +356,23 @@ export const reportService = {
       dateFilter.lte = end;
     }
 
-    // Source filter — only apply when it's a known referral source; otherwise show all sources.
-    // referralSource is a free String column (not a DB enum); validate against the known set.
-    const referralSourceFilter =
-      source && KNOWN_REFERRAL_SOURCES.includes(source)
-        ? { referralSource: source }
-        : { referralSource: { not: null } };
+    // Source filter — referralSource is a free String column (validate against known set).
+    // When allowedSources is set (server-enforced restriction, e.g. marketing = Google only):
+    //   - a client `source` is honored ONLY if it's within the allowed set (never widens);
+    //   - otherwise restrict to the whole allowed set via `in`.
+    // Without allowedSources: preserve original behavior (single source, or all sources).
+    let referralSourceFilter: any;
+    if (allowedSources && allowedSources.length > 0) {
+      referralSourceFilter =
+        source && allowedSources.includes(source)
+          ? { referralSource: source }
+          : { referralSource: { in: allowedSources } };
+    } else {
+      referralSourceFilter =
+        source && KNOWN_REFERRAL_SOURCES.includes(source)
+          ? { referralSource: source }
+          : { referralSource: { not: null } };
+    }
 
     // Get owners with referralSource created in date range
     const owners = await prisma.owner.findMany({

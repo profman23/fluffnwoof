@@ -52,6 +52,7 @@
     "hidePhone": "إخفاء رقم الهاتف",
     "salesReportExport": "تحميل تقرير المبيعات (Excel)",
     "customerSourceReportExport": "تحميل تقرير مصدر العملاء (Excel)",
+    "acquisitionGoogleOnly": "تقييد تقرير مصدر العملاء على Google فقط (التسويق)",
     "flowBoardCheckout": "التحكم في الدفع (إرجاع الكارت من جاهز للدفع)"
   },
   "messages": {

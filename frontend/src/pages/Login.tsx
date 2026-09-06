@@ -46,14 +46,20 @@ export const Login: React.FC = () => {
       setAuth(user, token);
 
       // Fetch user permissions after login
+      let permissions: string[] = [];
       try {
-        const permissions = await authApi.getMyPermissions();
+        permissions = await authApi.getMyPermissions();
         useAuthStore.getState().setPermissions(permissions);
       } catch (permError) {
         console.error('Failed to fetch permissions:', permError);
       }
 
-      navigate('/dashboard');
+      // Restricted marketing role (Google-only report) lands directly on the report,
+      // since the dashboard is not for them.
+      const landing = permissions.includes('acquisitionReport.googleOnly')
+        ? '/reports/acquisition'
+        : '/dashboard';
+      navigate(landing);
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 401) {

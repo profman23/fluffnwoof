@@ -40,6 +40,7 @@ const SPECIAL_PERMISSIONS = [
   { key: 'patients.hidePhone', screen: 'patients', label: 'hidePhone' },
   { key: 'salesReport.export', screen: 'salesReport', label: 'salesReportExport' },
   { key: 'customerSourceReport.export', screen: 'acquisitionReport', label: 'customerSourceReportExport' },
+  { key: 'acquisitionReport.googleOnly', screen: 'acquisitionReport', label: 'acquisitionGoogleOnly' },
   { key: 'flowBoard.checkout', screen: 'flowBoard', label: 'flowBoardCheckout' },
 ];
 

@@ -55,6 +55,10 @@ export const AcquisitionReport = () => {
   const { isReadOnly } = useScreenPermission('acquisitionReport');
   const { permissions } = useAuthStore();
   const canExport = permissions.includes('customerSourceReport.export');
+  // Google-only marketing role: lock the source filter to Google (backend enforces this
+  // regardless — this is convenience only). GOOGLE_MAPS/GOOGLE_SEARCH only, no "all".
+  const isGoogleOnly = permissions.includes('acquisitionReport.googleOnly');
+  const googleSources = ['GOOGLE_SEARCH', 'GOOGLE_MAPS'];
 
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -187,12 +191,25 @@ export const AcquisitionReport = () => {
                 onChange={(e) => setSource(e.target.value)}
                 className="text-sm border-none bg-transparent focus:ring-0 dark:text-[var(--app-text-primary)] dark:bg-[var(--app-bg-card)]"
               >
-                <option value="">{t('acquisition.sourceFilter.all')}</option>
-                {Object.keys(SOURCE_COLORS).map((src) => (
-                  <option key={src} value={src}>
-                    {t(`acquisition.sources.${src}`, src)}
-                  </option>
-                ))}
+                {isGoogleOnly ? (
+                  <>
+                    <option value="">{t('acquisition.sourceFilter.allGoogle', 'All Google')}</option>
+                    {googleSources.map((src) => (
+                      <option key={src} value={src}>
+                        {t(`acquisition.sources.${src}`, src)}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <option value="">{t('acquisition.sourceFilter.all')}</option>
+                    {Object.keys(SOURCE_COLORS).map((src) => (
+                      <option key={src} value={src}>
+                        {t(`acquisition.sources.${src}`, src)}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 

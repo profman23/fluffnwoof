@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
 import { reportService } from '../services/reportService';
+import { AuthRequest } from '../types';
+import { permissionService } from '../services/permissionService';
+
+// Sources visible to a Google-restricted (marketing) role.
+const GOOGLE_SOURCES = ['GOOGLE_SEARCH', 'GOOGLE_MAPS'];
 
 export const reportController = {
   getNextAppointments: async (req: Request, res: Response) => {
@@ -43,9 +48,22 @@ export const reportController = {
     }
   },
 
-  getAcquisitionReport: async (req: Request, res: Response) => {
+  getAcquisitionReport: async (req: AuthRequest, res: Response) => {
     try {
       const { startDate, endDate, firstInvoiceOnly, source, startDateTime, endDateTime } = req.query;
+
+      // Server-enforced Google-only restriction (marketing role). ADMIN bypasses.
+      // This is the ONLY real security boundary — a restricted user cannot widen the
+      // result by passing ?source=INSTAGRAM (or omitting source).
+      let allowedSources: string[] | undefined;
+      let restricted = false;
+      if (req.user && req.user.role !== 'ADMIN') {
+        const perms = await permissionService.getUserPermissions(req.user.id);
+        if (perms.includes('acquisitionReport.googleOnly')) {
+          allowedSources = GOOGLE_SOURCES;
+          restricted = true;
+        }
+      }
 
       const result = await reportService.getAcquisitionReport({
         startDate: startDate as string,
@@ -54,7 +72,17 @@ export const reportController = {
         source: source as string,
         startDateTime: startDateTime as string,
         endDateTime: endDateTime as string,
+        allowedSources,
       });
+
+      // Restricted (marketing) role gets aggregates only — strip customer PII (names/codes).
+      if (restricted) {
+        const r = result as any;
+        if (Array.isArray(r.customers)) r.customers = [];
+        if (Array.isArray(r.bySource)) {
+          r.bySource = r.bySource.map((s: any) => ({ ...s, customers: [] }));
+        }
+      }
 
       res.json({ success: true, data: result });
     } catch (error: any) {

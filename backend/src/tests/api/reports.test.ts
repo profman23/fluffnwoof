@@ -5,8 +5,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
-import { cleanDatabase, createTestUser } from '../setup';
-import { generateAdminToken } from '../helpers';
+import { cleanDatabase, createTestUser, prisma } from '../setup';
+import { generateAdminToken, generateUserToken } from '../helpers';
 
 describe('Reports API', () => {
   let adminToken: string;
@@ -190,6 +190,97 @@ describe('Reports API', () => {
 
     it('should reject without auth (401)', async () => {
       await request(app).get('/api/reports/sales').expect(401);
+    });
+  });
+
+  // ── Acquisition report: Google-only restriction (marketing role) ──
+  describe('GET /api/reports/acquisition — googleOnly restriction', () => {
+    let marketingToken: string;
+
+    beforeAll(async () => {
+      // Owners across sources (each needs a finalized paid invoice to appear in the report,
+      // which uses firstInvoiceOnly by default). Create owner + invoice + payment + finalize.
+      const makeOwnerWithInvoice = async (phone: string, source: string) => {
+        const o = await prisma.owner.create({
+          data: { firstName: 'Src', lastName: source, phone, customerCode: `SRC-${phone}`, referralSource: source },
+        });
+        const inv = await request(app).post('/api/invoices').set('Authorization', `Bearer ${adminToken}`)
+          .send({ ownerId: o.id, items: [{ description: 'x', quantity: 1, unitPrice: 115, priceBeforeTax: 100, taxRate: 15 }] }).expect(201);
+        await request(app).post(`/api/invoices/${inv.body.id}/payments`).set('Authorization', `Bearer ${adminToken}`)
+          .send({ amount: 115, paymentMethod: 'CASH' }).expect(201);
+        await request(app).patch(`/api/invoices/${inv.body.id}/finalize`).set('Authorization', `Bearer ${adminToken}`).expect(200);
+        return o.id;
+      };
+      await makeOwnerWithInvoice('+966510000001', 'GOOGLE_SEARCH');
+      await makeOwnerWithInvoice('+966510000002', 'GOOGLE_MAPS');
+      await makeOwnerWithInvoice('+966510000003', 'INSTAGRAM');
+      await makeOwnerWithInvoice('+966510000004', 'FACEBOOK');
+
+      // Marketing user: a role + the googleOnly permission granted via UserPermission.
+      const role = await prisma.role.create({
+        data: { name: `MKT_${Date.now()}`, displayNameEn: 'Mkt', displayNameAr: 'تسويق', isSystem: false },
+      });
+      const perm = await prisma.permission.upsert({
+        where: { name: 'acquisitionReport.googleOnly' },
+        update: {},
+        create: { name: 'acquisitionReport.googleOnly', description: 'x', category: 'acquisitionReport', action: 'googleOnly' },
+      });
+      const readPerm = await prisma.permission.upsert({
+        where: { name: 'screens.acquisitionReport.read' },
+        update: {},
+        create: { name: 'screens.acquisitionReport.read', description: 'x', category: 'screens', action: 'read' },
+      });
+      const mktUser = await prisma.user.create({
+        data: {
+          email: `mkt-${Date.now()}@fluffnwoof.com`, password: 'x', firstName: 'Mkt', lastName: 'User',
+          isActive: true, roleId: role.id,
+          permissions: { create: [{ permissionId: perm.id }, { permissionId: readPerm.id }] },
+        },
+      });
+      marketingToken = generateUserToken({ id: mktUser.id, email: mktUser.email, role: role.name });
+    });
+
+    const sourcesOf = (body: any): string[] =>
+      (body.data.bySource || []).map((s: any) => s.source);
+
+    it('ADMIN sees ALL sources (unrestricted)', async () => {
+      const res = await request(app).get('/api/reports/acquisition').set('Authorization', `Bearer ${adminToken}`).expect(200);
+      const srcs = sourcesOf(res.body);
+      expect(srcs).toEqual(expect.arrayContaining(['GOOGLE_SEARCH', 'GOOGLE_MAPS', 'INSTAGRAM', 'FACEBOOK']));
+    });
+
+    it('marketing (googleOnly) sees ONLY Google sources — no source param', async () => {
+      const res = await request(app).get('/api/reports/acquisition').set('Authorization', `Bearer ${marketingToken}`).expect(200);
+      const srcs = sourcesOf(res.body);
+      expect(srcs.sort()).toEqual(['GOOGLE_MAPS', 'GOOGLE_SEARCH']);
+      expect(srcs).not.toContain('INSTAGRAM');
+      expect(srcs).not.toContain('FACEBOOK');
+    });
+
+    it('CRITICAL bypass test: marketing passing ?source=INSTAGRAM still gets ONLY Google', async () => {
+      const res = await request(app).get('/api/reports/acquisition?source=INSTAGRAM').set('Authorization', `Bearer ${marketingToken}`).expect(200);
+      const srcs = sourcesOf(res.body);
+      expect(srcs).not.toContain('INSTAGRAM');
+      expect(srcs.every((s) => s === 'GOOGLE_SEARCH' || s === 'GOOGLE_MAPS')).toBe(true);
+    });
+
+    it('marketing narrowing within the allowed set: ?source=GOOGLE_MAPS → only maps', async () => {
+      const res = await request(app).get('/api/reports/acquisition?source=GOOGLE_MAPS').set('Authorization', `Bearer ${marketingToken}`).expect(200);
+      expect(sourcesOf(res.body)).toEqual(['GOOGLE_MAPS']);
+    });
+
+    it('marketing response strips customer PII (no customer names)', async () => {
+      const res = await request(app).get('/api/reports/acquisition').set('Authorization', `Bearer ${marketingToken}`).expect(200);
+      expect(res.body.data.customers).toEqual([]);
+      for (const s of res.body.data.bySource) {
+        expect(s.customers).toEqual([]);
+      }
+    });
+
+    it('ADMIN response still includes customer detail (not stripped)', async () => {
+      const res = await request(app).get('/api/reports/acquisition').set('Authorization', `Bearer ${adminToken}`).expect(200);
+      expect(Array.isArray(res.body.data.customers)).toBe(true);
+      expect(res.body.data.customers.length).toBeGreaterThan(0);
     });
   });
 });

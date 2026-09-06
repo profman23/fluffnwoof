@@ -116,7 +116,8 @@
     "salesWithTax": "المبيعات (شامل الضريبة)",
     "salesBeforeTax": "المبيعات (بدون ضريبة)",
     "sourceFilter": {
-      "all": "كل المصادر"
+      "all": "كل المصادر",
+      "allGoogle": "كل Google"
     },
     "export": {
       "button": "تحميل Excel",
