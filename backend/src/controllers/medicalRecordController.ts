@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { medicalRecordService } from '../services/medicalRecordService';
 import { auditService } from '../services/auditService';
+import { permissionService } from '../services/permissionService';
 import { AuthRequest } from '../types';
 
 export const medicalRecordController = {
@@ -10,10 +11,14 @@ export const medicalRecordController = {
   async findAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { page, limit, search } = req.query;
+      // Row-level scoping: restricted users (medical.ownOnly) see only their assigned records.
+      // ADMIN and unflagged users (reception/manager) see everything. Enforced server-side.
+      const scopeVetId = await permissionService.resolveOwnScope(req.user, 'medical.ownOnly');
       const result = await medicalRecordService.findAll(
         Number(page) || 1,
         Number(limit) || 20,
-        search as string
+        search as string,
+        scopeVetId
       );
 
       res.status(200).json({

@@ -459,7 +459,7 @@ export const appointmentService = {
     return appointments;
   },
 
-  async getFlowBoardData(startDateStr?: string, endDateStr?: string) {
+  async getFlowBoardData(startDateStr?: string, endDateStr?: string, scopeVetId?: string) {
     const startTarget = startDateStr ? new Date(startDateStr) : new Date();
     const endTarget = endDateStr ? new Date(endDateStr) : new Date(startTarget);
     const startOfDay = new Date(startTarget.setHours(0, 0, 0, 0));
@@ -471,6 +471,8 @@ export const appointmentService = {
           gte: startOfDay,
           lte: endOfDay,
         },
+        // Row-level scoping: restricted users (flowBoard.ownOnly) see only their assigned cards.
+        ...(scopeVetId ? { vetId: scopeVetId } : {}),
       },
       include: {
         pet: {

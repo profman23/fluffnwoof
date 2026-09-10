@@ -28,6 +28,7 @@ import { flowBoardApi } from '../api/flowBoard';
 import { FlowBoardData, FlowBoardAppointment, AppointmentStatus, User } from '../types';
 import { useScreenPermission } from '../hooks/useScreenPermission';
 import { useThemeStore } from '../store/themeStore';
+import { useAuthStore } from '../store/authStore';
 import { ReadOnlyBadge } from '../components/common/ReadOnlyBadge';
 
 const statusMap: Record<string, AppointmentStatus> = {
@@ -43,6 +44,10 @@ export const FlowBoardPage = () => {
   const { t } = useTranslation('flowBoard');
   const { isFullControl: hasFullAccess, isReadOnly } = useScreenPermission('flowBoard');
   const flowBoardColors = useThemeStore((state) => state.flowBoardColors);
+  // Restricted (own-only) users see only their own assigned cards — enforced by the backend.
+  // The staff filter is meaningless for them (backend returns only their cards), so hide it.
+  const permissions = useAuthStore((state) => state.permissions);
+  const isOwnOnly = permissions.includes('flowBoard.ownOnly');
 
   // Column config using theme colors - memoized to prevent infinite re-renders
   const columnConfig = useMemo(() => [
@@ -98,18 +103,9 @@ export const FlowBoardPage = () => {
   );
 
   const loadData = async () => {
-    console.log('>>> loadData CALLED at', new Date().toISOString());
     setLoading(true);
     try {
       const result = await flowBoardApi.getData(startDate, endDate);
-      // Debug: Check if recordCode is returned
-      console.log('=== FlowBoard Data Debug ===');
-      const allAppts = [...(result.scheduled || []), ...(result.checkIn || []), ...(result.inProgress || []), ...(result.completed || [])];
-      allAppts.forEach((appt) => {
-        if (appt.medicalRecord) {
-          console.log(`[${appt.status}] ${appt.pet?.name}: recordCode=${appt.medicalRecord?.recordCode}, isClosed=${appt.medicalRecord?.isClosed}`);
-        }
-      });
       setData(result);
     } catch (err) {
       console.error('Failed to load flow board data:', err);
@@ -124,6 +120,8 @@ export const FlowBoardPage = () => {
 
   // Load staff list
   useEffect(() => {
+    // Own-only users can't filter by staff, so there's no need to load the staff list.
+    if (isOwnOnly) return;
     const loadStaff = async () => {
       try {
         const staff = await flowBoardApi.getStaff();
@@ -133,7 +131,7 @@ export const FlowBoardPage = () => {
       }
     };
     loadStaff();
-  }, []);
+  }, [isOwnOnly]);
 
   // Sort appointments by time for a specific column
   const sortAppointments = (appointments: FlowBoardAppointment[], columnId: string) => {
@@ -411,22 +409,24 @@ export const FlowBoardPage = () => {
               )}
             </div>
 
-            {/* Staff Filter */}
-            <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-1.5">
-              <UserIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-              <select
-                value={selectedStaff}
-                onChange={(e) => setSelectedStaff(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-xs font-medium py-1 pr-5 dark:text-[var(--app-text-primary)]"
-              >
-                <option value="all">{t('allStaff')}</option>
-                {staffList.map((staff) => (
-                  <option key={staff.id} value={staff.id}>
-                    {staff.firstName} {staff.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Staff Filter — hidden for own-only users (they only ever see their own cards) */}
+            {!isOwnOnly && (
+              <div className="flex items-center bg-gray-100 dark:bg-[var(--app-bg-elevated)] rounded-md px-1.5">
+                <UserIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                <select
+                  value={selectedStaff}
+                  onChange={(e) => setSelectedStaff(e.target.value)}
+                  className="bg-transparent border-none focus:ring-0 text-xs font-medium py-1 pr-5 dark:text-[var(--app-text-primary)]"
+                >
+                  <option value="all">{t('allStaff')}</option>
+                  {staffList.map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.firstName} {staff.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Refresh Button */}
             <button

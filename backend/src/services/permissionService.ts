@@ -11,6 +11,24 @@ export const permissionService = {
   },
 
   /**
+   * Resolve "see only my own" row-level scoping for a screen.
+   *
+   * Central rule for the *.ownOnly special permissions (e.g. flowBoard.ownOnly,
+   * medical.ownOnly): a non-ADMIN user who holds `flag` is scoped to rows whose
+   * assigned vet is themselves. ADMIN (and anyone without the flag) is unscoped.
+   *
+   * @returns the user id to filter `vetId` by, or undefined for "see everything".
+   */
+  async resolveOwnScope(
+    user: { id: string; role: string } | undefined,
+    flag: string
+  ): Promise<string | undefined> {
+    if (!user || user.role === 'ADMIN') return undefined;
+    const perms = await this.getUserPermissions(user.id);
+    return perms.includes(flag) ? user.id : undefined;
+  },
+
+  /**
    * Get all permissions for a user (role-based + custom)
    */
   async getUserPermissions(userId: string): Promise<string[]> {

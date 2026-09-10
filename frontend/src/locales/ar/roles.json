@@ -53,7 +53,9 @@
     "salesReportExport": "تحميل تقرير المبيعات (Excel)",
     "customerSourceReportExport": "تحميل تقرير مصدر العملاء (Excel)",
     "acquisitionGoogleOnly": "تقييد تقرير مصدر العملاء على Google فقط (التسويق)",
-    "flowBoardCheckout": "التحكم في الدفع (إرجاع الكارت من جاهز للدفع)"
+    "flowBoardCheckout": "التحكم في الدفع (إرجاع الكارت من جاهز للدفع)",
+    "flowBoardOwnOnly": "يرى بطاقاته فقط في لوحة سير العمل (الطبيب المسند)",
+    "medicalOwnOnly": "يرى سجلاته الطبية فقط (الطبيب المسند)"
   },
   "messages": {
     "loading": "جاري التحميل...",

@@ -129,6 +129,8 @@ export const ALL_PERMISSIONS = [
   // Special Permissions
   { name: 'patients.hidePhone', description: 'Hide Phone Numbers in Patients', category: 'patients', action: 'hidePhone' },
   { name: 'flowBoard.checkout', description: 'Flow Board - Checkout Control (return card from Ready to Checkout, manage payment stage)', category: 'flowBoard', action: 'checkout' },
+  { name: 'flowBoard.ownOnly', description: 'Flow Board - See only own (assigned) cards', category: 'flowBoard', action: 'ownOnly' },
+  { name: 'medical.ownOnly', description: 'Medical Records - See only own (assigned) records', category: 'medical', action: 'ownOnly' },
 
   // API-level permissions (for backwards compatibility)
   { name: 'users.read', description: 'Users - Read', category: 'users', action: 'read' },

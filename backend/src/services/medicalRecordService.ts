@@ -61,10 +61,10 @@ export const medicalRecordService = {
   /**
    * Find all medical records with pagination and search
    */
-  async findAll(page = 1, limit = 20, search?: string) {
+  async findAll(page = 1, limit = 20, search?: string, scopeVetId?: string) {
     const skip = (page - 1) * limit;
 
-    const where = search
+    const searchWhere = search
       ? {
           OR: [
             { pet: { name: { contains: search, mode: 'insensitive' as const } } },
@@ -77,6 +77,13 @@ export const medicalRecordService = {
           ],
         }
       : {};
+
+    // Row-level scoping: restricted users (medical.ownOnly) see only their assigned records.
+    // Combined with search via AND (both applied to findMany and count).
+    const where = {
+      ...searchWhere,
+      ...(scopeVetId ? { vetId: scopeVetId } : {}),
+    };
 
     const [records, total] = await Promise.all([
       prisma.medicalRecord.findMany({

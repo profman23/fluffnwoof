@@ -185,7 +185,10 @@ export const appointmentController = {
       // Backward compatible: support old single 'date' param
       const start = (startDate || date) as string | undefined;
       const end = (endDate || date) as string | undefined;
-      const data = await appointmentService.getFlowBoardData(start, end);
+      // Row-level scoping: restricted users (flowBoard.ownOnly) see only their assigned cards.
+      // ADMIN and unflagged users (reception/manager) see everything. Enforced server-side.
+      const scopeVetId = await permissionService.resolveOwnScope(req.user, 'flowBoard.ownOnly');
+      const data = await appointmentService.getFlowBoardData(start, end, scopeVetId);
 
       res.status(200).json({
         success: true,
