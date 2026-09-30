@@ -2,9 +2,10 @@ import { apiClient } from './client';
 
 export interface DashboardStats {
   todayAppointments: number;
-  registeredPets: number;
-  registeredOwners: number;
-  pendingInvoices: number;
+  // These have no vetId and come back null when the dashboard is scoped to a single vet
+  registeredPets: number | null;
+  registeredOwners: number | null;
+  pendingInvoices: number | null;
   totalMedicalRecords: number;
 }
 
@@ -72,6 +73,16 @@ export interface VetAnalytics {
   completionRate: number;
 }
 
+export interface PatientsAnalytics {
+  newPets: number;
+  newOwners: number;
+  totalPets: number;
+  totalOwners: number;
+  petsChange: number;
+  ownersChange: number;
+  bySpecies: SpeciesData[];
+}
+
 export interface AnalyticsData {
   appointments: {
     total: number;
@@ -82,15 +93,8 @@ export interface AnalyticsData {
     trend: TrendData[];
     byVisitType: VisitTypeData[];
   };
-  patients: {
-    newPets: number;
-    newOwners: number;
-    totalPets: number;
-    totalOwners: number;
-    petsChange: number;
-    ownersChange: number;
-    bySpecies: SpeciesData[];
-  };
+  // null when the dashboard is scoped to a single vet (patient data has no vetId)
+  patients: PatientsAnalytics | null;
   vets: {
     performance: VetAnalytics[];
     totalVets: number;
@@ -98,9 +102,11 @@ export interface AnalyticsData {
 }
 
 export const dashboardApi = {
-  // Get all dashboard data at once
-  getData: async (): Promise<DashboardData> => {
-    const response = await apiClient.get('/dashboard');
+  // Get all dashboard data at once. Managers may pass a staffId to filter by vet.
+  getData: async (staffId?: string): Promise<DashboardData> => {
+    const response = await apiClient.get('/dashboard', {
+      params: staffId ? { staffId } : undefined,
+    });
     return response.data.data;
   },
 
@@ -128,9 +134,11 @@ export const dashboardApi = {
     return response.data.data;
   },
 
-  // Get analytics with date range
-  getAnalytics: async (startDate: string, endDate: string): Promise<AnalyticsData> => {
-    const response = await apiClient.get(`/dashboard/analytics?startDate=${startDate}&endDate=${endDate}`);
+  // Get analytics with date range. Managers may pass a staffId to filter by vet.
+  getAnalytics: async (startDate: string, endDate: string, staffId?: string): Promise<AnalyticsData> => {
+    const response = await apiClient.get('/dashboard/analytics', {
+      params: { startDate, endDate, ...(staffId ? { staffId } : {}) },
+    });
     return response.data.data;
   },
 };

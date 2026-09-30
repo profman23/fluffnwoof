@@ -1,11 +1,26 @@
 import { Response, NextFunction } from 'express';
 import { dashboardService } from '../services/dashboardService';
+import { permissionService } from '../services/permissionService';
 import { AuthRequest } from '../types';
+
+/**
+ * Resolve the vetId to scope dashboard data by.
+ * - A user holding `dashboard.ownOnly` (non-ADMIN) is always locked to their own id;
+ *   any `staffId` they pass is ignored (security).
+ * - An unscoped user (ADMIN / manager / reception) may optionally filter by `staffId`.
+ */
+async function resolveDashboardScope(req: AuthRequest): Promise<string | undefined> {
+  const ownScope = await permissionService.resolveOwnScope(req.user, 'dashboard.ownOnly');
+  if (ownScope) return ownScope; // own-only user: locked to self
+  const requestedStaffId = req.query.staffId as string | undefined;
+  return requestedStaffId || undefined; // manager's optional pick
+}
 
 export const dashboardController = {
   async getDashboardData(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const data = await dashboardService.getDashboardData();
+      const scopeVetId = await resolveDashboardScope(req);
+      const data = await dashboardService.getDashboardData(scopeVetId);
 
       res.status(200).json({
         success: true,
@@ -18,7 +33,8 @@ export const dashboardController = {
 
   async getStats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const stats = await dashboardService.getStats();
+      const scopeVetId = await resolveDashboardScope(req);
+      const stats = await dashboardService.getStats(scopeVetId);
 
       res.status(200).json({
         success: true,
@@ -32,7 +48,8 @@ export const dashboardController = {
   async getUpcomingAppointments(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
-      const appointments = await dashboardService.getUpcomingAppointments(limit);
+      const scopeVetId = await resolveDashboardScope(req);
+      const appointments = await dashboardService.getUpcomingAppointments(limit, scopeVetId);
 
       res.status(200).json({
         success: true,
@@ -46,7 +63,8 @@ export const dashboardController = {
   async getUpcomingVaccinations(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
-      const vaccinations = await dashboardService.getUpcomingVaccinations(limit);
+      const scopeVetId = await resolveDashboardScope(req);
+      const vaccinations = await dashboardService.getUpcomingVaccinations(limit, scopeVetId);
 
       res.status(200).json({
         success: true,
@@ -59,7 +77,8 @@ export const dashboardController = {
 
   async getVetPerformance(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const stats = await dashboardService.getVetPerformanceStats();
+      const scopeVetId = await resolveDashboardScope(req);
+      const stats = await dashboardService.getVetPerformanceStats(scopeVetId);
 
       res.status(200).json({
         success: true,
@@ -82,7 +101,8 @@ export const dashboardController = {
         ? new Date(endDate as string)
         : new Date();
 
-      const analytics = await dashboardService.getAnalytics(start, end);
+      const scopeVetId = await resolveDashboardScope(req);
+      const analytics = await dashboardService.getAnalytics(start, end, scopeVetId);
 
       res.status(200).json({
         success: true,

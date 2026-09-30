@@ -7,6 +7,9 @@ import { Card } from '../components/common/Card';
 import { LogoLoader } from '../components/common/LogoLoader';
 import { AnimatedNumber } from '../components/common/AnimatedNumber';
 import { dashboardApi, DashboardData, AnalyticsData } from '../api/dashboard';
+import { flowBoardApi } from '../api/flowBoard';
+import { User } from '../types';
+import { SearchableSelect } from '../components/common/SearchableSelect';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import { DateRangeFilter, DateRangePreset } from '../components/dashboard/DateRangeFilter';
 import { AppointmentsChart } from '../components/dashboard/AppointmentsChart';
@@ -21,6 +24,13 @@ export const Dashboard: React.FC = () => {
   // redirect them to their report. Kept as a hook-order-safe check after all hooks below.
   const permissions = useAuthStore((s) => s.permissions);
   const isReportOnlyMarketing = permissions.includes('acquisitionReport.googleOnly');
+
+  // Own-only doctors are locked to their own data: no staff filter, general (non-vet) cards hidden.
+  const isOwnOnly = permissions.includes('dashboard.ownOnly');
+
+  // Staff filter (managers/admins only — hidden for own-only users)
+  const [staffList, setStaffList] = useState<User[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
 
   // Basic dashboard data
   const [loading, setLoading] = useState(true);
@@ -40,11 +50,20 @@ export const Dashboard: React.FC = () => {
   const [preset, setPreset] = useState<DateRangePreset>('thisMonth');
 
 
-  const fetchDashboardData = async () => {
+  // Managers can filter by a chosen staff member; own-only users never send a staffId.
+  const staffFilter = isOwnOnly ? undefined : selectedStaffId || undefined;
+
+  // General (non-vet) stats are shown only when the dashboard is not scoped to a single vet.
+  // The backend returns patients: null and stats.pendingInvoices: null when scoped, so we
+  // key off the response — this also correctly hides them when a manager picks one vet.
+  const isScoped = isOwnOnly || !!staffFilter;
+  const showGeneralStats = !isScoped;
+
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const dashboardData = await dashboardApi.getData();
+      const dashboardData = await dashboardApi.getData(staffFilter);
       setData(dashboardData);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -52,25 +71,31 @@ export const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [staffFilter, t]);
 
   const fetchAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
       const startStr = dateRange.startDate.toISOString().split('T')[0];
       const endStr = dateRange.endDate.toISOString().split('T')[0];
-      const analyticsData = await dashboardApi.getAnalytics(startStr, endStr);
+      const analyticsData = await dashboardApi.getAnalytics(startStr, endStr, staffFilter);
       setAnalytics(analyticsData);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     } finally {
       setAnalyticsLoading(false);
     }
-  }, [dateRange]);
+  }, [dateRange, staffFilter]);
+
+  // Load the staff list once for the manager's filter dropdown (skipped for own-only users)
+  useEffect(() => {
+    if (isOwnOnly) return;
+    flowBoardApi.getStaff().then(setStaffList).catch(() => setStaffList([]));
+  }, [isOwnOnly]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -173,12 +198,30 @@ export const Dashboard: React.FC = () => {
             <ArrowPathIcon className="w-5 h-5" />
           </button>
         </div>
-        <DateRangeFilter
-          startDate={dateRange.startDate}
-          endDate={dateRange.endDate}
-          preset={preset}
-          onDateChange={handleDateRangeChange}
-        />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {!isOwnOnly && (
+            <div className="min-w-[200px]">
+              <SearchableSelect
+                options={staffList.map((s) => ({
+                  value: s.id,
+                  label: `Dr. ${s.firstName} ${s.lastName}`,
+                }))}
+                value={selectedStaffId}
+                onChange={setSelectedStaffId}
+                placeholder={t('staffFilter.allStaff')}
+                searchPlaceholder={t('staffFilter.search')}
+                allowClear
+                showIcons={false}
+              />
+            </div>
+          )}
+          <DateRangeFilter
+            startDate={dateRange.startDate}
+            endDate={dateRange.endDate}
+            preset={preset}
+            onDateChange={handleDateRangeChange}
+          />
+        </div>
       </div>
 
       {/* Main Stats Cards */}
@@ -193,52 +236,59 @@ export const Dashboard: React.FC = () => {
           loading={analyticsLoading}
           animationDelay={0}
         />
-        <StatsCard
-          title={t('analytics.newPatients')}
-          value={analytics?.patients.newPets || 0}
-          icon={<span className="text-2xl">🐾</span>}
-          change={analytics?.patients.petsChange}
-          changeLabel={t('analytics.changeFromPrevious')}
-          color="secondary"
-          loading={analyticsLoading}
-          animationDelay={100}
-        />
-        <StatsCard
-          title={t('analytics.newOwners')}
-          value={analytics?.patients.newOwners || 0}
-          icon={<UserGroupIcon className="w-7 h-7" />}
-          change={analytics?.patients.ownersChange}
-          changeLabel={t('analytics.changeFromPrevious')}
-          color="accent"
-          loading={analyticsLoading}
-          animationDelay={200}
-        />
-        <StatsCard
-          title={t('stats.pendingInvoices')}
-          value={data?.stats.pendingInvoices || 0}
-          icon={<ClipboardDocumentListIcon className="w-7 h-7" />}
-          color="warning"
-          loading={loading}
-          animationDelay={300}
-        />
+        {/* Patient/owner/invoice stats have no vetId — hidden when scoped to a single vet */}
+        {showGeneralStats && (
+          <>
+            <StatsCard
+              title={t('analytics.newPatients')}
+              value={analytics?.patients?.newPets || 0}
+              icon={<span className="text-2xl">🐾</span>}
+              change={analytics?.patients?.petsChange}
+              changeLabel={t('analytics.changeFromPrevious')}
+              color="secondary"
+              loading={analyticsLoading}
+              animationDelay={100}
+            />
+            <StatsCard
+              title={t('analytics.newOwners')}
+              value={analytics?.patients?.newOwners || 0}
+              icon={<UserGroupIcon className="w-7 h-7" />}
+              change={analytics?.patients?.ownersChange}
+              changeLabel={t('analytics.changeFromPrevious')}
+              color="accent"
+              loading={analyticsLoading}
+              animationDelay={200}
+            />
+            <StatsCard
+              title={t('stats.pendingInvoices')}
+              value={data?.stats.pendingInvoices || 0}
+              icon={<ClipboardDocumentListIcon className="w-7 h-7" />}
+              color="warning"
+              loading={loading}
+              animationDelay={300}
+            />
+          </>
+        )}
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        {/* Appointments Trend Chart - Takes 2 columns */}
-        <div className="lg:col-span-2">
+        {/* Appointments Trend Chart — spans full width when species chart is hidden */}
+        <div className={showGeneralStats ? 'lg:col-span-2' : 'lg:col-span-3'}>
           <AppointmentsChart
             data={analytics?.appointments.trend || []}
             loading={analyticsLoading}
           />
         </div>
-        {/* Patients by Species Chart */}
-        <div className="lg:col-span-1">
-          <PatientsChart
-            data={analytics?.patients.bySpecies || []}
-            loading={analyticsLoading}
-          />
-        </div>
+        {/* Patients by Species Chart — hidden when scoped to a single vet (no vetId) */}
+        {showGeneralStats && (
+          <div className="lg:col-span-1">
+            <PatientsChart
+              data={analytics?.patients?.bySpecies || []}
+              loading={analyticsLoading}
+            />
+          </div>
+        )}
       </div>
 
       {/* Vet Performance and Lists Section */}
@@ -347,36 +397,41 @@ export const Dashboard: React.FC = () => {
           </p>
           <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.todayAppointments')}</p>
         </div>
-        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
-          <p className="text-3xl font-bold text-secondary-500 dark:text-secondary-400">
-            <AnimatedNumber
-              value={analytics?.patients.totalPets || data?.stats.registeredPets || 0}
-              duration={1500}
-              delay={100}
-            />
-          </p>
-          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.registeredPets')}</p>
-        </div>
-        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
-          <p className="text-3xl font-bold text-accent-500 dark:text-accent-400">
-            <AnimatedNumber
-              value={analytics?.patients.totalOwners || data?.stats.registeredOwners || 0}
-              duration={1500}
-              delay={200}
-            />
-          </p>
-          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.registeredOwners')}</p>
-        </div>
-        <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
-          <p className="text-3xl font-bold text-primary-400">
-            <AnimatedNumber
-              value={analytics?.vets.totalVets || 0}
-              duration={1500}
-              delay={300}
-            />
-          </p>
-          <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('analytics.totalVets')}</p>
-        </div>
+        {/* Clinic-wide totals have no vetId — hidden when scoped to a single vet */}
+        {showGeneralStats && (
+          <>
+            <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
+              <p className="text-3xl font-bold text-secondary-500 dark:text-secondary-400">
+                <AnimatedNumber
+                  value={analytics?.patients?.totalPets || data?.stats.registeredPets || 0}
+                  duration={1500}
+                  delay={100}
+                />
+              </p>
+              <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.registeredPets')}</p>
+            </div>
+            <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
+              <p className="text-3xl font-bold text-accent-500 dark:text-accent-400">
+                <AnimatedNumber
+                  value={analytics?.patients?.totalOwners || data?.stats.registeredOwners || 0}
+                  duration={1500}
+                  delay={200}
+                />
+              </p>
+              <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('stats.registeredOwners')}</p>
+            </div>
+            <div className="bg-brand-white dark:bg-[var(--app-bg-card)] rounded-xl p-4 border border-primary-200 dark:border-[var(--app-border-default)] text-center">
+              <p className="text-3xl font-bold text-primary-400">
+                <AnimatedNumber
+                  value={analytics?.vets.totalVets || 0}
+                  duration={1500}
+                  delay={300}
+                />
+              </p>
+              <p className="text-sm text-brand-dark/60 dark:text-gray-400 mt-1">{t('analytics.totalVets')}</p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

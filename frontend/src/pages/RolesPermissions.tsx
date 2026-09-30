@@ -44,6 +44,7 @@ const SPECIAL_PERMISSIONS = [
   { key: 'flowBoard.checkout', screen: 'flowBoard', label: 'flowBoardCheckout' },
   { key: 'flowBoard.ownOnly', screen: 'flowBoard', label: 'flowBoardOwnOnly' },
   { key: 'medical.ownOnly', screen: 'medical', label: 'medicalOwnOnly' },
+  { key: 'dashboard.ownOnly', screen: 'dashboard', label: 'dashboardOwnOnly' },
 ];
 
 export const RolesPermissions: React.FC = () => {

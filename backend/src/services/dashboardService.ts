@@ -2,9 +2,10 @@ import prisma from '../config/database';
 
 export interface DashboardStats {
   todayAppointments: number;
-  registeredPets: number;
-  registeredOwners: number;
-  pendingInvoices: number;
+  // Fields below have no vetId and are hidden (null) when scoped to a single vet
+  registeredPets: number | null;
+  registeredOwners: number | null;
+  pendingInvoices: number | null;
   totalMedicalRecords: number;
 }
 
@@ -40,7 +41,7 @@ export interface VetPerformanceStats {
 }
 
 export const dashboardService = {
-  async getStats(): Promise<DashboardStats> {
+  async getStats(scopeVetId?: string): Promise<DashboardStats> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -53,31 +54,40 @@ export const dashboardService = {
       pendingInvoices,
       totalMedicalRecords,
     ] = await Promise.all([
-      // Today's appointments
+      // Today's appointments (scopable by vet)
       prisma.appointment.count({
         where: {
           appointmentDate: {
             gte: today,
             lt: tomorrow,
           },
+          ...(scopeVetId ? { vetId: scopeVetId } : {}),
         },
       }),
-      // Total registered pets
-      prisma.pet.count({
-        where: { isActive: true },
-      }),
-      // Total registered owners
-      prisma.owner.count(),
-      // Pending invoices
-      prisma.invoice.count({
+      // Total registered pets — no vetId, hidden when scoped
+      scopeVetId
+        ? Promise.resolve(null)
+        : prisma.pet.count({
+            where: { isActive: true },
+          }),
+      // Total registered owners — no vetId, hidden when scoped
+      scopeVetId ? Promise.resolve(null) : prisma.owner.count(),
+      // Pending invoices — no vetId, hidden when scoped
+      scopeVetId
+        ? Promise.resolve(null)
+        : prisma.invoice.count({
+            where: {
+              status: {
+                in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'],
+              },
+            },
+          }),
+      // Total medical records (scopable by vet)
+      prisma.medicalRecord.count({
         where: {
-          status: {
-            in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'],
-          },
+          ...(scopeVetId ? { vetId: scopeVetId } : {}),
         },
       }),
-      // Total medical records
-      prisma.medicalRecord.count(),
     ]);
 
     return {
@@ -89,7 +99,7 @@ export const dashboardService = {
     };
   },
 
-  async getUpcomingAppointments(limit = 5): Promise<UpcomingAppointment[]> {
+  async getUpcomingAppointments(limit = 5, scopeVetId?: string): Promise<UpcomingAppointment[]> {
     const now = new Date();
 
     const appointments = await prisma.appointment.findMany({
@@ -100,6 +110,7 @@ export const dashboardService = {
         status: {
           in: ['SCHEDULED', 'CONFIRMED'],
         },
+        ...(scopeVetId ? { vetId: scopeVetId } : {}),
       },
       orderBy: [
         { appointmentDate: 'asc' },
@@ -135,7 +146,7 @@ export const dashboardService = {
     }));
   },
 
-  async getUpcomingVaccinations(limit = 5): Promise<UpcomingVaccination[]> {
+  async getUpcomingVaccinations(limit = 5, scopeVetId?: string): Promise<UpcomingVaccination[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -148,6 +159,7 @@ export const dashboardService = {
           gte: today,
           lte: nextWeek,
         },
+        ...(scopeVetId ? { vetId: scopeVetId } : {}),
       },
       orderBy: {
         nextDueDate: 'asc',
@@ -181,11 +193,11 @@ export const dashboardService = {
     });
   },
 
-  async getDashboardData() {
+  async getDashboardData(scopeVetId?: string) {
     const [stats, upcomingAppointments, upcomingVaccinations] = await Promise.all([
-      this.getStats(),
-      this.getUpcomingAppointments(),
-      this.getUpcomingVaccinations(),
+      this.getStats(scopeVetId),
+      this.getUpcomingAppointments(5, scopeVetId),
+      this.getUpcomingVaccinations(5, scopeVetId),
     ]);
 
     return {
@@ -195,11 +207,12 @@ export const dashboardService = {
     };
   },
 
-  async getVetPerformanceStats(): Promise<VetPerformanceStats[]> {
-    // Get all vets (users who can create medical records)
+  async getVetPerformanceStats(scopeVetId?: string): Promise<VetPerformanceStats[]> {
+    // Get vets (users who can create medical records). When scoped, only the vet themselves.
     const vets = await prisma.user.findMany({
       where: {
         isActive: true,
+        ...(scopeVetId ? { id: scopeVetId } : {}),
       },
       select: {
         id: true,
@@ -287,7 +300,7 @@ export const dashboardService = {
   /**
    * Get comprehensive analytics for dashboard with date range
    */
-  async getAnalytics(startDate: Date, endDate: Date) {
+  async getAnalytics(startDate: Date, endDate: Date, scopeVetId?: string) {
     // Normalize dates
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
@@ -307,51 +320,57 @@ export const dashboardService = {
       patientsData,
       vetsData,
       prevAppointmentsCount,
-      prevPatientsCount,
-      prevOwnersCount,
     ] = await Promise.all([
-      this.getAppointmentsAnalytics(start, end),
-      this.getPatientsAnalytics(start, end),
-      this.getVetsAnalytics(start, end),
-      // Previous period counts for comparison
+      this.getAppointmentsAnalytics(start, end, scopeVetId),
+      // Patients analytics has no vetId — omitted (null) when scoped to a vet
+      scopeVetId ? Promise.resolve(null) : this.getPatientsAnalytics(start, end),
+      this.getVetsAnalytics(start, end, scopeVetId),
+      // Previous period appointment count for comparison (scopable)
       prisma.appointment.count({
         where: {
           appointmentDate: { gte: prevStart, lte: prevEnd },
-        },
-      }),
-      prisma.pet.count({
-        where: {
-          createdAt: { gte: prevStart, lte: prevEnd },
-        },
-      }),
-      prisma.owner.count({
-        where: {
-          createdAt: { gte: prevStart, lte: prevEnd },
+          ...(scopeVetId ? { vetId: scopeVetId } : {}),
         },
       }),
     ]);
 
-    // Calculate percentage changes
+    // Calculate percentage change for appointments
     const appointmentsChange = prevAppointmentsCount > 0
       ? Math.round(((appointmentsData.total - prevAppointmentsCount) / prevAppointmentsCount) * 100)
       : 0;
-    const patientsChange = prevPatientsCount > 0
-      ? Math.round(((patientsData.newPets - prevPatientsCount) / prevPatientsCount) * 100)
-      : 0;
-    const ownersChange = prevOwnersCount > 0
-      ? Math.round(((patientsData.newOwners - prevOwnersCount) / prevOwnersCount) * 100)
-      : 0;
+
+    // Patients comparison only when not scoped
+    let patients: (typeof patientsData & { petsChange: number; ownersChange: number }) | null = null;
+    if (patientsData) {
+      const [prevPatientsCount, prevOwnersCount] = await Promise.all([
+        prisma.pet.count({
+          where: { createdAt: { gte: prevStart, lte: prevEnd } },
+        }),
+        prisma.owner.count({
+          where: { createdAt: { gte: prevStart, lte: prevEnd } },
+        }),
+      ]);
+
+      const patientsChange = prevPatientsCount > 0
+        ? Math.round(((patientsData.newPets - prevPatientsCount) / prevPatientsCount) * 100)
+        : 0;
+      const ownersChange = prevOwnersCount > 0
+        ? Math.round(((patientsData.newOwners - prevOwnersCount) / prevOwnersCount) * 100)
+        : 0;
+
+      patients = {
+        ...patientsData,
+        petsChange: patientsChange,
+        ownersChange: ownersChange,
+      };
+    }
 
     return {
       appointments: {
         ...appointmentsData,
         change: appointmentsChange,
       },
-      patients: {
-        ...patientsData,
-        petsChange: patientsChange,
-        ownersChange: ownersChange,
-      },
+      patients,
       vets: vetsData,
     };
   },
@@ -359,7 +378,7 @@ export const dashboardService = {
   /**
    * Get appointments analytics with daily trend
    */
-  async getAppointmentsAnalytics(startDate: Date, endDate: Date) {
+  async getAppointmentsAnalytics(startDate: Date, endDate: Date, scopeVetId?: string) {
     // Get all appointments in range
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -367,6 +386,7 @@ export const dashboardService = {
           gte: startDate,
           lte: endDate,
         },
+        ...(scopeVetId ? { vetId: scopeVetId } : {}),
       },
       select: {
         id: true,
@@ -473,11 +493,15 @@ export const dashboardService = {
   },
 
   /**
-   * Get vets analytics with appointments count
+   * Get vets analytics with appointments count.
+   * When scoped, only the vet themselves is returned.
    */
-  async getVetsAnalytics(startDate: Date, endDate: Date) {
+  async getVetsAnalytics(startDate: Date, endDate: Date, scopeVetId?: string) {
     const vets = await prisma.user.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(scopeVetId ? { id: scopeVetId } : {}),
+      },
       select: {
         id: true,
         firstName: true,

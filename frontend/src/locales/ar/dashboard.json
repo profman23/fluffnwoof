@@ -2,6 +2,10 @@
   "title": "لوحة التحكم",
   "refresh": "تحديث",
   "retry": "إعادة المحاولة",
+  "staffFilter": {
+    "allStaff": "كل الموظفين",
+    "search": "بحث عن موظف..."
+  },
   "stats": {
     "todayAppointments": "مواعيد اليوم",
     "registeredPets": "الحيوانات المسجلة",

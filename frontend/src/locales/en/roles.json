@@ -55,7 +55,8 @@
     "acquisitionGoogleOnly": "Restrict Customer Source report to Google only (marketing)",
     "flowBoardCheckout": "Checkout Control (return card from Ready to Checkout)",
     "flowBoardOwnOnly": "See only own flow board cards (assigned vet)",
-    "medicalOwnOnly": "See only own medical records (assigned vet)"
+    "medicalOwnOnly": "See only own medical records (assigned vet)",
+    "dashboardOwnOnly": "See only own dashboard data (assigned vet)"
   },
   "messages": {
     "loading": "Loading...",

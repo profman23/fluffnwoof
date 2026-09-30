@@ -2,6 +2,10 @@
   "title": "Dashboard",
   "refresh": "Refresh",
   "retry": "Retry",
+  "staffFilter": {
+    "allStaff": "All Staff",
+    "search": "Search staff..."
+  },
   "stats": {
     "todayAppointments": "Today's Appointments",
     "registeredPets": "Registered Pets",
