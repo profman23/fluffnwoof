@@ -30,13 +30,14 @@ export const reportController = {
 
   getSalesReport: async (req: Request, res: Response) => {
     try {
-      const { startDateTime, endDateTime, status, paymentMethod, page, limit } = req.query;
+      const { startDateTime, endDateTime, status, paymentMethod, vetId, page, limit } = req.query;
 
       const result = await reportService.getSalesReport({
         startDateTime: startDateTime as string,
         endDateTime: endDateTime as string,
         status: status as string,
         paymentMethod: paymentMethod as string,
+        vetId: vetId as string,
         page: page ? parseInt(page as string, 10) : 1,
         limit: limit ? parseInt(limit as string, 10) : 20,
       });

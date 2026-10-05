@@ -193,6 +193,113 @@ describe('Reports API', () => {
     });
   });
 
+  // ── Sales report: staff (vet/doctor) filter ──
+  describe('GET /api/reports/sales — vetId (doctor) filter', () => {
+    let vetAId: string;
+    let vetBId: string;
+    let invAId: string; // invoice for vet A (via appointment)
+    let invBId: string; // invoice for vet B (via appointment)
+
+    beforeAll(async () => {
+      const owner = await prisma.owner.create({
+        data: { firstName: 'Sales', lastName: 'VetOwner', phone: '+966530000001', customerCode: 'SALES-V1' },
+      });
+      const pet = await prisma.pet.create({
+        data: { name: 'SalesPet', species: 'DOG', gender: 'MALE', ownerId: owner.id, petCode: 'SLS-V1' },
+      });
+
+      const vetA = await prisma.user.create({
+        data: { email: `salesveta-${Date.now()}@fluffnwoof.com`, password: 'x', firstName: 'Sales', lastName: 'VetA', isActive: true, isBookable: true },
+      });
+      const vetB = await prisma.user.create({
+        data: { email: `salesvetb-${Date.now()}@fluffnwoof.com`, password: 'x', firstName: 'Sales', lastName: 'VetB', isActive: true, isBookable: true },
+      });
+      vetAId = vetA.id;
+      vetBId = vetB.id;
+
+      const today = new Date();
+      const apptA = await prisma.appointment.create({
+        data: { petId: pet.id, vetId: vetAId, appointmentDate: today, appointmentTime: '10:00', visitType: 'GENERAL_CHECKUP' },
+      });
+      const apptB = await prisma.appointment.create({
+        data: { petId: pet.id, vetId: vetBId, appointmentDate: today, appointmentTime: '11:00', visitType: 'GENERAL_CHECKUP' },
+      });
+
+      // One invoice per appointment (so each invoice resolves to a doctor via appointment.vetId)
+      const invA = await prisma.invoice.create({
+        data: {
+          invoiceNumber: `INV-SALESA-${Date.now()}`, ownerId: owner.id, appointmentId: apptA.id,
+          dueDate: today, totalAmount: 500, paidAmount: 500, status: 'PAID', isFinalized: true,
+          payments: { create: [{ amount: 500, paymentMethod: 'CASH', direction: 'INCOMING' }] },
+        },
+      });
+      const invB = await prisma.invoice.create({
+        data: {
+          invoiceNumber: `INV-SALESB-${Date.now()}`, ownerId: owner.id, appointmentId: apptB.id,
+          dueDate: today, totalAmount: 300, paidAmount: 300, status: 'PAID', isFinalized: true,
+          payments: { create: [{ amount: 300, paymentMethod: 'CASH', direction: 'INCOMING' }] },
+        },
+      });
+      invAId = invA.id;
+      invBId = invB.id;
+    });
+
+    it('filters invoices to the selected doctor only', async () => {
+      const res = await request(app)
+        .get('/api/reports/sales')
+        .query({ vetId: vetAId, limit: 100 })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const ids = res.body.invoices.data.map((i: any) => i.id);
+      expect(ids).toContain(invAId);
+      expect(ids).not.toContain(invBId);
+      // Every returned invoice resolves to vet A
+      for (const inv of res.body.invoices.data) {
+        expect(inv.appointment?.vet?.id).toBe(vetAId);
+      }
+    });
+
+    it('payment-side stats stay consistent with the vet filter', async () => {
+      const res = await request(app)
+        .get('/api/reports/sales')
+        .query({ vetId: vetAId, limit: 100 })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      // vet A's single invoice total = 500, payments = 500 (vet B's 300 excluded)
+      expect(res.body.stats.totalSales).toBe(500);
+      expect(res.body.stats.totalPayments).toBe(500);
+    });
+
+    it('includes the vet in the invoice payload', async () => {
+      const res = await request(app)
+        .get('/api/reports/sales')
+        .query({ vetId: vetBId, limit: 100 })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const inv = res.body.invoices.data.find((i: any) => i.id === invBId);
+      expect(inv).toBeDefined();
+      expect(inv.appointment.vet.firstName).toBe('Sales');
+      expect(inv.appointment.vet.lastName).toBe('VetB');
+    });
+
+    it('invoices with no appointment are excluded when filtering by a doctor', async () => {
+      // The base-suite invoice (created with ownerId only, no appointmentId) must not appear
+      const res = await request(app)
+        .get('/api/reports/sales')
+        .query({ vetId: vetAId, limit: 100 })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      for (const inv of res.body.invoices.data) {
+        expect(inv.appointment).not.toBeNull();
+        expect(inv.appointment?.vet?.id).toBe(vetAId);
+      }
+    });
+  });
+
   // ── Acquisition report: Google-only restriction (marketing role) ──
   describe('GET /api/reports/acquisition — googleOnly restriction', () => {
     let marketingToken: string;

@@ -16,6 +16,7 @@ interface GetSalesReportParams {
   endDateTime?: string;
   status?: string;
   paymentMethod?: string;
+  vetId?: string;
   page?: number;
   limit?: number;
 }
@@ -146,7 +147,7 @@ export const reportService = {
   },
 
   getSalesReport: async (params: GetSalesReportParams) => {
-    const { startDateTime, endDateTime, status, paymentMethod, page = 1, limit = 20 } = params;
+    const { startDateTime, endDateTime, status, paymentMethod, vetId, page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
 
     // Build invoice where clause
@@ -168,11 +169,21 @@ export const reportService = {
       invoiceWhere.status = status as InvoiceStatus;
     }
 
+    // Vet (doctor) filtering — invoice has no vetId; its doctor is the assigned vet
+    // on the linked appointment. A to-one relation filter also requires the appointment
+    // to exist, so NULL-appointment invoices are correctly excluded when filtering by vet.
+    if (vetId) {
+      invoiceWhere.appointment = { vetId };
+    }
+
     // Payment where — INCOMING only (money received), by their invoice's issueDate.
     // OUTGOING refunds are excluded here and counted separately as totalRefunds.
     const paymentWhere: any = { direction: 'INCOMING' };
     if (startDateTime || endDateTime) {
       paymentWhere.invoice = { issueDate: invoiceWhere.issueDate };
+    }
+    if (vetId) {
+      paymentWhere.invoice = { ...(paymentWhere.invoice || {}), appointment: { vetId } };
     }
     if (paymentMethod && Object.values(PaymentMethod).includes(paymentMethod as PaymentMethod)) {
       paymentWhere.paymentMethod = paymentMethod as PaymentMethod;
@@ -186,6 +197,9 @@ export const reportService = {
       if (startDateTime) refundWhere.paymentDate.gte = new Date(startDateTime);
       if (endDateTime) refundWhere.paymentDate.lte = new Date(endDateTime);
     }
+    if (vetId) {
+      refundWhere.invoice = { appointment: { vetId } };
+    }
     if (paymentMethod && Object.values(PaymentMethod).includes(paymentMethod as PaymentMethod)) {
       refundWhere.paymentMethod = paymentMethod as PaymentMethod;
     }
@@ -197,6 +211,9 @@ export const reportService = {
       creditNoteWhere.createdAt = {};
       if (startDateTime) creditNoteWhere.createdAt.gte = new Date(startDateTime);
       if (endDateTime) creditNoteWhere.createdAt.lte = new Date(endDateTime);
+    }
+    if (vetId) {
+      creditNoteWhere.invoice = { appointment: { vetId } };
     }
 
     // 6 parallel queries for performance
@@ -260,6 +277,13 @@ export const reportService = {
           appointment: {
             select: {
               id: true,
+              vet: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
               pet: {
                 select: {
                   id: true,

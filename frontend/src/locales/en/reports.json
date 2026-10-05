@@ -42,6 +42,9 @@
       "endTime": "End Time",
       "status": "Invoice Status",
       "allStatuses": "All Statuses",
+      "staff": "Doctor",
+      "allStaff": "All Doctors",
+      "searchStaff": "Search doctor...",
       "apply": "Apply",
       "reset": "Reset"
     },
@@ -61,6 +64,7 @@
       "date": "Date",
       "customer": "Customer",
       "phone": "Phone",
+      "doctor": "Doctor",
       "items": "Items",
       "total": "Total",
       "paid": "Paid",

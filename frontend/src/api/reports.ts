@@ -24,6 +24,7 @@ export interface GetSalesReportParams {
   endDateTime?: string;
   status?: InvoiceStatus | '';
   paymentMethod?: PaymentMethod | '';
+  vetId?: string;
   page?: number;
   limit?: number;
 }
@@ -83,6 +84,11 @@ export interface SalesReportInvoice {
   };
   appointment?: {
     id: string;
+    vet?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    } | null;
     pet?: {
       id: string;
       name: string;

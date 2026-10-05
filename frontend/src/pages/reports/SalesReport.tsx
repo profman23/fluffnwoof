@@ -23,13 +23,15 @@ import {
   SalesReportResponse,
   SalesReportInvoice,
 } from '../../api/reports';
-import { InvoiceStatus } from '../../types';
+import { InvoiceStatus, User } from '../../types';
+import { flowBoardApi } from '../../api/flowBoard';
 import { usePhonePermission, maskPhoneNumber } from '../../hooks/useScreenPermission';
 import { useAuthStore } from '../../store/authStore';
 import { useDarkMode } from '../../context/DarkModeContext';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { StatsCard } from '../../components/dashboard/StatsCard';
 import { SarSymbol } from '../../components/common/SarSymbol';
 
@@ -75,9 +77,16 @@ export const SalesReport = () => {
     endDate: '',
     endTime: '23:59',
     status: '',
+    vetId: '',
     page: 1,
     limit: 20,
   });
+
+  // Staff (doctor) list for the staff filter dropdown
+  const [staffList, setStaffList] = useState<User[]>([]);
+  useEffect(() => {
+    flowBoardApi.getStaff().then(setStaffList).catch(() => setStaffList([]));
+  }, []);
 
   // Use ref to access latest filters in loadReport without stale closures
   const filtersRef = useRef(filters);
@@ -105,6 +114,7 @@ export const SalesReport = () => {
       if (startDT) params.startDateTime = startDT;
       if (endDT) params.endDateTime = endDT;
       if (f.status) params.status = f.status as InvoiceStatus;
+      if (f.vetId) params.vetId = f.vetId;
 
       console.log('[SalesReport] API params:', params);
       const result = await reportsApi.getSalesReport(params);
@@ -136,6 +146,7 @@ export const SalesReport = () => {
       endDate: '',
       endTime: '23:59',
       status: '' as const,
+      vetId: '',
       page: 1,
       limit: 20,
     };
@@ -162,6 +173,7 @@ export const SalesReport = () => {
       if (startDT) params.startDateTime = startDT;
       if (endDT) params.endDateTime = endDT;
       if (f.status) params.status = f.status as InvoiceStatus;
+      if (f.vetId) params.vetId = f.vetId;
 
       const result = await reportsApi.getSalesReport(params);
       const rows = (result.invoices?.data || []).map((inv) => ({
@@ -169,6 +181,9 @@ export const SalesReport = () => {
         [t('salesReport.table.date')]: formatDate(inv.issueDate),
         [t('salesReport.table.customer')]: `${inv.owner?.firstName || ''} ${inv.owner?.lastName || ''}`.trim(),
         [t('salesReport.table.phone')]: canViewPhone ? (inv.owner?.phone || '') : maskPhoneNumber(inv.owner?.phone || ''),
+        [t('salesReport.table.doctor')]: inv.appointment?.vet
+          ? `Dr. ${inv.appointment.vet.firstName} ${inv.appointment.vet.lastName}`
+          : '-',
         [t('salesReport.table.items')]: inv.items.length,
         [t('salesReport.table.total')]: Number(formatCurrency(inv.totalAmount)),
         [t('salesReport.table.paid')]: Number(formatCurrency(inv.paidAmount)),
@@ -368,6 +383,17 @@ export const SalesReport = () => {
       ),
     },
     {
+      id: 'doctor',
+      header: t('salesReport.table.doctor'),
+      render: (inv) => (
+        <span className="text-sm text-gray-900 dark:text-[var(--app-text-primary)] whitespace-nowrap">
+          {inv.appointment?.vet
+            ? `Dr. ${inv.appointment.vet.firstName} ${inv.appointment.vet.lastName}`
+            : '-'}
+        </span>
+      ),
+    },
+    {
       id: 'items',
       header: t('salesReport.table.items'),
       render: (inv) => (
@@ -495,7 +521,7 @@ export const SalesReport = () => {
       {/* Filters */}
       {showFilters && (
         <div className="bg-white dark:bg-[var(--app-bg-card)] rounded-lg shadow dark:shadow-black/30 p-4 mb-6 border border-gray-200 dark:border-[var(--app-border-default)]">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
             {/* Start Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
@@ -565,6 +591,22 @@ export const SalesReport = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Staff (Doctor) Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--app-text-secondary)] mb-1">
+                {t('salesReport.filters.staff')}
+              </label>
+              <SearchableSelect
+                options={staffList.map((s) => ({ value: s.id, label: `Dr. ${s.firstName} ${s.lastName}` }))}
+                value={filters.vetId || ''}
+                onChange={(v) => setFilters(prev => ({ ...prev, vetId: v }))}
+                placeholder={t('salesReport.filters.allStaff')}
+                searchPlaceholder={t('salesReport.filters.searchStaff')}
+                allowClear
+                showIcons={false}
+              />
             </div>
 
             {/* Filter Actions */}
