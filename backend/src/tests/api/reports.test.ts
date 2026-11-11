@@ -208,11 +208,11 @@ describe('Reports API', () => {
         data: { name: 'SalesPet', species: 'DOG', gender: 'MALE', ownerId: owner.id, petCode: 'SLS-V1' },
       });
 
-      const vetA = await prisma.user.create({
-        data: { email: `salesveta-${Date.now()}@fluffnwoof.com`, password: 'x', firstName: 'Sales', lastName: 'VetA', isActive: true, isBookable: true },
+      const vetA = await createTestUser({
+        email: `salesveta-${Date.now()}@fluffnwoof.com`, firstName: 'Sales', lastName: 'VetA', isBookable: true,
       });
-      const vetB = await prisma.user.create({
-        data: { email: `salesvetb-${Date.now()}@fluffnwoof.com`, password: 'x', firstName: 'Sales', lastName: 'VetB', isActive: true, isBookable: true },
+      const vetB = await createTestUser({
+        email: `salesvetb-${Date.now()}-b@fluffnwoof.com`, firstName: 'Sales', lastName: 'VetB', isBookable: true,
       });
       vetAId = vetA.id;
       vetBId = vetB.id;
